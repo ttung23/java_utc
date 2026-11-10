@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Dashboard Thư Viện Thông Minh</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar"></aside>
+
+  <!-- Main Content -->
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Tổng quan Thư viện</h1>
+        <p class="page-subtitle">Hệ thống quản lý mượn trả sách, vòng đời bản sao & phạt vi phạm</p>
+      </div>
+      <div>
+        <a href="loans.html" class="btn btn-primary">⚡ Vào Quầy Mượn/Trả Sách</a>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Tổng đầu sách</div>
+          <div class="stat-value" id="stat-books">-</div>
+        </div>
+        <div class="stat-icon icon-blue">📚</div>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Tổng độc giả</div>
+          <div class="stat-value" id="stat-readers">-</div>
+        </div>
+        <div class="stat-icon icon-green">👥</div>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Sách đang mượn</div>
+          <div class="stat-value" id="stat-borrowed">-</div>
+        </div>
+        <div class="stat-icon icon-amber">📖</div>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Phiếu mượn quá hạn</div>
+          <div class="stat-value" id="stat-overdue" style="color:var(--danger);">-</div>
+        </div>
+        <div class="stat-icon icon-red">⚠️</div>
+      </div>
+    </div>
+
+    <!-- Quy định mượn trả nhanh -->
+    <div class="alert alert-info">
+      <div>
+        <strong>📌 Tóm tắt Quy tắc Nghiệp vụ Hệ thống (SLMS):</strong>
+        <ul style="margin-left: 20px; margin-top: 6px; font-size: 13px; line-height: 1.6;">
+          <li><strong>Sinh viên (STUDENT):</strong> Mượn tối đa <strong>5 cuốn</strong> trong <strong>14 ngày</strong>.</li>
+          <li><strong>Giảng viên (LECTURER):</strong> Mượn tối đa <strong>10 cuốn</strong> trong <strong>30 ngày</strong>.</li>
+          <li><strong>Điều kiện mượn:</strong> Thẻ ACTIVE, còn hạn sử dụng, nợ phạt &le; <strong>50.000 VNĐ</strong> và chưa vượt hạn mức.</li>
+          <li><strong>Phí phạt trễ hạn:</strong> <strong>5.000 VNĐ / ngày / cuốn</strong>. Sách hỏng/mất: bồi thường 100% - 200% giá sách.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách phiếu mượn mới nhất -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Phiếu mượn gần đây</h2>
+        <a href="loans.html" class="btn btn-secondary btn-sm">Xem tất cả</a>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã phiếu</th>
+              <th>Mã độc giả</th>
+              <th>Mã bản sao</th>
+              <th>Ngày mượn</th>
+              <th>Hạn trả</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="recent-loans-table">
+            <tr><td colspan="6" style="text-align:center;">Đang tải dữ liệu...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      renderSidebar("dashboard");
+
+      try {
+        // Tải danh sách sách
+        const books = await fetchAPI("/api/books");
+        document.getElementById("stat-books").textContent = books.length;
+
+        // Tải danh sách độc giả
+        const readers = await fetchAPI("/api/readers");
+        document.getElementById("stat-readers").textContent = readers.length;
+
+        // Tải danh sách phiếu mượn
+        const loans = await fetchAPI("/api/loans");
+        const activeLoans = loans.filter(l => l.status === "BORROWED" || l.status === "OVERDUE");
+        const overdueLoans = loans.filter(l => l.status === "OVERDUE");
+
+        document.getElementById("stat-borrowed").textContent = activeLoans.length;
+        document.getElementById("stat-overdue").textContent = overdueLoans.length;
+
+        // Render bảng phiếu mượn gần đây (5 bản ghi đầu)
+        const recent = loans.slice(0, 5);
+        const tbody = document.getElementById("recent-loans-table");
+        if (recent.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có phiếu mượn nào</td></tr>`;
+        } else {
+          tbody.innerHTML = recent.map(l => {
+            let badgeClass = "badge-primary";
+            if (l.status === "RETURNED") badgeClass = "badge-success";
+            if (l.status === "OVERDUE") badgeClass = "badge-danger";
+            return `
+              <tr>
+                <td><strong>${l.loanId}</strong></td>
+                <td>${l.readerId}</td>
+                <td>${l.copyId}</td>
+                <td>${formatDateTime(l.borrowDate)}</td>
+                <td>${formatDateTime(l.dueDate)}</td>
+                <td><span class="badge ${badgeClass}">${l.status}</span></td>
+              </tr>
+            `;
+          }).join("");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>
+

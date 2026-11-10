@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quản Lý Hóa Đơn Phạt</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Hóa Đơn Phạt Vi Phạm</h1>
+        <p class="page-subtitle">Theo dõi tiền phạt trễ hạn (5.000đ/ngày), bồi thường hỏng/mất và thu tiền nợ</p>
+      </div>
+    </div>
+
+    <!-- Tóm tắt quy định phạt -->
+    <div class="alert alert-warning">
+      <div>
+        <strong>⚠️ Quy định Phạt & Nợ Phạt:</strong>
+        <div style="font-size:13px;margin-top:4px;">
+          • Phạt trễ hạn: <strong>5.000 VNĐ / ngày / cuốn</strong>.<br>
+          • Bồi thường sách hỏng hoặc mất: <strong>100% - 200%</strong> giá trị bản sao.<br>
+          • Độc giả có nợ phạt vượt quá <strong>50.000 VNĐ</strong> sẽ bị <strong>khóa quyền mượn sách</strong> cho đến khi thanh toán.
+        </div>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách hóa đơn phạt -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Danh sách Hóa đơn Phạt</h2>
+        <button class="btn btn-secondary btn-sm" onclick="loadFines()">Làm mới</button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã phạt</th>
+              <th>Mã phiếu mượn</th>
+              <th>Lý do vi phạm</th>
+              <th>Số tiền phạt</th>
+              <th>Trạng thái</th>
+              <th>Ngày thanh toán</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="fines-table-body">
+            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    async function loadFines() {
+      const tbody = document.getElementById("fines-table-body");
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        const fines = await fetchAPI("/api/fines");
+        if (fines.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có hóa đơn phạt nào</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = fines.map(f => {
+          const isPaid = f.paymentStatus === "Paid";
+          const badge = isPaid ? "badge-success" : "badge-danger";
+          const actionBtn = isPaid
+            ? `<span style="color:var(--text-muted);font-size:12px;">Đã nộp tiền</span>`
+            : `<button class="btn btn-success btn-sm" onclick="payFine('${f.fineId}')">💵 Thu Tiền Phạt</button>`;
+
+          return `
+            <tr>
+              <td><strong>${f.fineId}</strong></td>
+              <td>${f.loanId}</td>
+              <td>${f.reason || "Vi phạm quy chế"}</td>
+              <td style="font-weight:700;color:${isPaid ? '#0f172a' : 'var(--danger)'};">${formatCurrency(f.fineAmount)}</td>
+              <td><span class="badge ${badge}">${isPaid ? "Đã thanh toán" : "Chưa thanh toán"}</span></td>
+              <td>${f.paymentDate ? formatDateTime(f.paymentDate) : "-"}</td>
+              <td>${actionBtn}</td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {}
+    }
+
+    async function payFine(fineId) {
+      if (!confirm(`Bạn có chắc chắn muốn xác nhận thu tiền cho hóa đơn phạt [${fineId}]?`)) {
+        return;
+      }
+
+      try {
+        await fetchAPI("/api/fines/pay", {
+          method: "POST",
+          body: JSON.stringify({ fineId })
+        });
+        showToast("Thu tiền phạt thành công!", "success");
+        loadFines();
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("fines");
+      loadFines();
+    });
+  </script>
+</body>
+</html>
+

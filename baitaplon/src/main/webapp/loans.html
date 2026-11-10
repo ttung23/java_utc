@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quầy Mượn & Trả Sách (UC21 & UC22)</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Quầy Mượn & Trả Sách</h1>
+        <p class="page-subtitle">Xử lý ca sử dụng Lập phiếu mượn (UC21) và Trả sách / Sự cố (UC22)</p>
+      </div>
+    </div>
+
+    <!-- Tabs điều hướng chức năng -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('borrow-tab')">📖 UC21: Lập Phiếu Mượn Sách</button>
+      <button class="tab-btn" onclick="switchTab('return-tab')">↩️ UC22: Nhận Trả Sách & Sự Cố</button>
+      <button class="tab-btn" onclick="switchTab('list-tab')">📋 Danh Sách Phiếu Mượn</button>
+    </div>
+
+    <!-- TAB 1: LẬP PHIẾU MƯỢN (UC21) -->
+    <div id="borrow-tab" class="tab-content active">
+      <div class="panel">
+        <h2 class="panel-title" style="margin-bottom:16px;">Bước 1: Quét & Kiểm tra Thẻ Độc Giả</h2>
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;">
+          <div class="form-group" style="flex:1;">
+            <label for="borrow-reader-id">Mã độc giả (Reader ID):</label>
+            <input type="text" id="borrow-reader-id" placeholder="Nhập mã ví dụ: RD001, RD002, RD003, RD004..." value="RD001">
+          </div>
+          <button class="btn btn-secondary" onclick="checkReaderEligibility()">🔍 Kiểm Tra Thẻ</button>
+        </div>
+
+        <!-- Khung hiển thị thông tin & tính hợp lệ của độc giả -->
+        <div id="reader-info-box" style="display:none;margin-top:16px;"></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel-title" style="margin-bottom:16px;">Bước 2: Quét Bản Sao Sách & Xác Nhận Mượn</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="borrow-barcode">Mã vạch bản sao (Barcode):</label>
+            <input type="text" id="borrow-barcode" placeholder="Nhập barcode ví dụ: BC-00001, BC-00003, BC-00004..." value="BC-00001">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="submitBorrow()" id="btn-submit-borrow">
+          ✓ Xác Nhận Lập Phiếu Mượn Sách
+        </button>
+
+        <div id="borrow-result" style="margin-top:20px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: NHẬN TRẢ SÁCH (UC22) -->
+    <div id="return-tab" class="tab-content">
+      <div class="panel">
+        <h2 class="panel-title" style="margin-bottom:16px;">Tiếp Nhận Trả Sách & Xử Lý Sự Cố Vi Phạm</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="return-barcode">Mã vạch bản sao cần trả (Barcode):</label>
+            <input type="text" id="return-barcode" placeholder="Quét mã vạch ví dụ: BC-00002, BC-00005...">
+          </div>
+          <div class="form-group">
+            <label for="return-condition">Tình trạng sách khi trả:</label>
+            <select id="return-condition" onchange="toggleDamageField()">
+              <option value="normal">Bình thường (Đúng hạn hoặc Trễ hạn)</option>
+              <option value="damaged">Sách bị hư hỏng / rách nát</option>
+              <option value="lost">Báo mất sách</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="damage-percent-box" class="form-group" style="display:none;margin-bottom:16px;max-width:300px;">
+          <label for="damage-percent">Mức bồi thường hư hỏng (%):</label>
+          <input type="number" id="damage-percent" value="100" min="100" max="200" step="10">
+          <small style="color:var(--text-muted);font-size:12px;">Quy định: từ 100% đến 200% giá bìa sách.</small>
+        </div>
+
+        <button class="btn btn-success" onclick="submitReturn()">
+          ✓ Xác Nhận Nhận Trả Sách
+        </button>
+
+        <div id="return-result" style="margin-top:20px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DANH SÁCH PHIẾU MƯỢN -->
+    <div id="list-tab" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Tất cả Phiếu Mượn</h2>
+          <div style="display:flex;gap:10px;">
+            <select id="filter-loan-status" onchange="loadLoansList()" style="padding:6px 12px;font-size:13px;">
+              <option value="">Tất cả trạng thái</option>
+              <option value="BORROWED">Đang mượn (BORROWED)</option>
+              <option value="OVERDUE">Quá hạn (OVERDUE)</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadLoansList()">Làm mới</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã phiếu</th>
+                <th>Mã độc giả</th>
+                <th>Mã bản sao</th>
+                <th>Ngày mượn</th>
+                <th>Hạn trả</th>
+                <th>Ngày trả</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="loans-table-body">
+              <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    let currentEligibility = null;
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+
+      const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(b => b.getAttribute("onclick").includes(tabId));
+      if (activeBtn) activeBtn.classList.add("active");
+      document.getElementById(tabId).classList.add("active");
+
+      if (tabId === "list-tab") {
+        loadLoansList();
+      }
+    }
+
+    function toggleDamageField() {
+      const cond = document.getElementById("return-condition").value;
+      document.getElementById("damage-percent-box").style.display = (cond === "damaged") ? "block" : "none";
+    }
+
+    // Kiểm tra điều kiện mượn sách của độc giả (canBorrow)
+    async function checkReaderEligibility() {
+      const readerId = document.getElementById("borrow-reader-id").value.trim();
+      if (!readerId) {
+        showToast("Vui lòng nhập mã độc giả!", "warning");
+        return;
+      }
+
+      try {
+        const data = await fetchAPI(`/api/readers/eligibility?readerId=${encodeURIComponent(readerId)}`);
+        currentEligibility = data;
+
+        const infoBox = document.getElementById("reader-info-box");
+        infoBox.style.display = "block";
+
+        const alertClass = data.eligible ? "alert-success" : "alert-danger";
+        const icon = data.eligible ? "✅" : "❌";
+
+        infoBox.innerHTML = `
+          <div class="alert ${alertClass}">
+            <div style="font-size:24px;">${icon}</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:15px;">${data.fullName} (${data.readerId}) - Loại: ${data.readerType}</div>
+              <div style="margin-top:4px;font-size:13px;">
+                Trạng thái: <strong>${data.status}</strong> | Hạn thẻ: <strong>${data.expiryDate}</strong> | 
+                Nợ phạt: <strong>${formatCurrency(data.balanceFine)}</strong> | 
+                Đang mượn: <strong>${data.currentBorrowedCount} / ${data.maxBooks} cuốn</strong> (tối đa ${data.maxBorrowDays} ngày)
+              </div>
+              <div style="margin-top:6px;font-weight:600;">Thông báo: ${data.reason}</div>
+            </div>
+          </div>
+        `;
+
+        if (!data.eligible) {
+          showToast(data.reason, "danger");
+        } else {
+          showToast("Độc giả đủ điều kiện mượn sách!", "success");
+        }
+      } catch (err) {
+        // lỗi đã được showToast trong fetchAPI
+      }
+    }
+
+    // Gửi yêu cầu mượn sách (UC21)
+    async function submitBorrow() {
+      const readerId = document.getElementById("borrow-reader-id").value.trim();
+      const barcode = document.getElementById("borrow-barcode").value.trim();
+
+      if (!readerId || !barcode) {
+        showToast("Vui lòng nhập đầy đủ Mã độc giả và Mã vạch sách!", "warning");
+        return;
+      }
+
+      try {
+        const loanDto = await fetchAPI("/api/loans/borrow", {
+          method: "POST",
+          body: JSON.stringify({ readerId, barcode })
+        });
+
+        const resBox = document.getElementById("borrow-result");
+        resBox.style.display = "block";
+        resBox.innerHTML = `
+          <div class="alert alert-success">
+            <div>
+              <h3 style="margin-bottom:6px;">🎉 Lập Phiếu Mượn Thành Công!</h3>
+              <div>Mã phiếu: <strong>${loanDto.loanId}</strong></div>
+              <div>Độc giả: <strong>${loanDto.readerName} (${loanDto.readerId})</strong></div>
+              <div>Sách: <strong>${loanDto.bookTitle}</strong> (Mã vạch: ${loanDto.barcode})</div>
+              <div>Hạn trả sách: <strong>${formatDateTime(loanDto.dueDate)}</strong></div>
+            </div>
+          </div>
+        `;
+
+        showToast("Lập phiếu mượn thành công!", "success");
+        // Cập nhật lại trạng thái thẻ độc giả
+        checkReaderEligibility();
+      } catch (e) {
+        // Lỗi đã được hiển thị toast
+      }
+    }
+
+    // Gửi yêu cầu trả sách (UC22)
+    async function submitReturn() {
+      const barcode = document.getElementById("return-barcode").value.trim();
+      const condition = document.getElementById("return-condition").value;
+      const isDamaged = (condition === "damaged");
+      const isLost = (condition === "lost");
+      const damagePercent = parseFloat(document.getElementById("damage-percent").value) || 100;
+
+      if (!barcode) {
+        showToast("Vui lòng quét hoặc nhập mã vạch sách cần trả!", "warning");
+        return;
+      }
+
+      try {
+        const result = await fetchAPI("/api/loans/return", {
+          method: "POST",
+          body: JSON.stringify({ barcode, isDamaged, isLost, damagePercent })
+        });
+
+        const resBox = document.getElementById("return-result");
+        resBox.style.display = "block";
+
+        let fineNote = result.fineAmount > 0 
+          ? `<div style="color:var(--danger);font-weight:700;margin-top:6px;">⚠️ Phát sinh tiền phạt: ${formatCurrency(result.fineAmount)} (${result.overdueDays > 0 ? result.overdueDays + ' ngày trễ' : 'Bồi thường'})</div>`
+          : `<div style="color:var(--success);font-weight:600;margin-top:6px;">✓ Trả đúng hạn, không có phí phạt.</div>`;
+
+        resBox.innerHTML = `
+          <div class="alert alert-info">
+            <div>
+              <h3 style="margin-bottom:6px;">${result.message}</h3>
+              <div>Mã phiếu mượn: <strong>${result.loanId}</strong></div>
+              <div>Mã vạch sách: <strong>${result.barcode}</strong></div>
+              <div>Trạng thái mới của bản sao: <span class="badge badge-primary">${result.copyNewStatus}</span></div>
+              ${fineNote}
+            </div>
+          </div>
+        `;
+
+        showToast("Xử lý trả sách thành công!", "success");
+      } catch (e) {}
+    }
+
+    // Tải danh sách tất cả phiếu mượn
+    async function loadLoansList() {
+      const status = document.getElementById("filter-loan-status").value;
+      const tbody = document.getElementById("loans-table-body");
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        const endpoint = status ? `/api/loans?status=${encodeURIComponent(status)}` : "/api/loans";
+        const loans = await fetchAPI(endpoint);
+
+        if (loans.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có phiếu mượn nào</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = loans.map(l => {
+          let badge = "badge-primary";
+          if (l.status === "RETURNED") badge = "badge-success";
+          if (l.status === "OVERDUE") badge = "badge-danger";
+          if (l.status.includes("DAMAGED") || l.status.includes("LOST")) badge = "badge-warning";
+
+          return `
+            <tr>
+              <td><strong>${l.loanId}</strong></td>
+              <td>${l.readerId}</td>
+              <td>${l.copyId}</td>
+              <td>${formatDateTime(l.borrowDate)}</td>
+              <td>${formatDateTime(l.dueDate)}</td>
+              <td>${l.returnDate ? formatDateTime(l.returnDate) : "-"}</td>
+              <td><span class="badge ${badge}">${l.status}</span></td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("loans");
+      checkReaderEligibility();
+    });
+  </script>
+</body>
+</html>
+

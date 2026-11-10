@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quản Lý Đặt Trước Sách (Reservation)</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Hàng Chờ Đặt Trước Sách</h1>
+        <p class="page-subtitle">Đặt trước khi đầu sách tạm thời hết bản sao khả dụng (Available = 0)</p>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="openAddResModal()">+ Tạo Đơn Đặt Trước</button>
+      </div>
+    </div>
+
+    <!-- Quy định đặt trước -->
+    <div class="alert alert-info">
+      <div>
+        <strong>Quy tắc Đặt trước (Reservation Rules):</strong>
+        <div style="font-size:13px;margin-top:4px;">
+          • Chỉ được đặt trước khi đầu sách không còn bản sao khả dụng (Available = 0).<br>
+          • Khi có bản sao được trả về kho, hệ thống tự động gán trạng thái <strong>Reserved</strong> cho người đặt đầu tiên trong hàng chờ.<br>
+          • Thời hạn giữ chỗ là <strong>3 ngày</strong>. Quá 3 ngày không đến nhận, đơn đặt sẽ chuyển sang Expired và sách quay lại Available.
+        </div>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách đặt trước -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Danh sách Hàng chờ Đặt trước</h2>
+        <button class="btn btn-secondary btn-sm" onclick="loadReservations()">Làm mới</button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã đặt trước</th>
+              <th>Mã độc giả</th>
+              <th>Mã ISBN sách</th>
+              <th>Ngày đặt</th>
+              <th>Hạn nhận sách</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="reservations-table-body">
+            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal Tạo Đơn Đặt Trước -->
+    <div id="add-res-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3>Tạo Đơn Đặt Trước Sách</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeAddResModal()">✕</button>
+        </div>
+        <form onsubmit="submitAddReservation(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Mã độc giả (Reader ID):</label>
+            <input type="text" id="res-reader-id" required placeholder="VD: RD001">
+          </div>
+          <div class="form-group" style="margin-bottom:18px;">
+            <label>Mã ISBN đầu sách cần đặt:</label>
+            <input type="text" id="res-isbn" required placeholder="VD: 978-0-13-468599-1">
+            <small style="color:var(--text-muted);font-size:12px;">Lưu ý: Chỉ đặt trước được khi tất cả bản sao của sách đã bị mượn hết.</small>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeAddResModal()">Hủy</button>
+            <button type="submit" class="btn btn-primary">Xác Nhận Đặt Trước</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    async function loadReservations() {
+      const tbody = document.getElementById("reservations-table-body");
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        const list = await fetchAPI("/api/reservations");
+        if (list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có đơn đặt trước nào</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list.map(r => {
+          let badge = "badge-warning";
+          if (r.status === "Fulfilled") badge = "badge-success";
+          if (r.status === "Expired" || r.status === "Cancelled") badge = "badge-gray";
+
+          const canCancel = r.status === "Pending";
+          const actionBtn = canCancel
+            ? `<button class="btn btn-danger btn-sm" onclick="cancelReservation('${r.reservationId}')">Hủy đặt</button>`
+            : `-`;
+
+          return `
+            <tr>
+              <td><strong>${r.reservationId}</strong></td>
+              <td>${r.readerId}</td>
+              <td><code>${r.isbn}</code></td>
+              <td>${formatDateTime(r.reservationDate)}</td>
+              <td>${formatDateTime(r.expiryDate)}</td>
+              <td><span class="badge ${badge}">${r.status}</span></td>
+              <td>${actionBtn}</td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {}
+    }
+
+    function openAddResModal() {
+      document.getElementById("add-res-modal").classList.add("open");
+    }
+
+    function closeAddResModal() {
+      document.getElementById("add-res-modal").classList.remove("open");
+    }
+
+    async function submitAddReservation(e) {
+      e.preventDefault();
+      const readerId = document.getElementById("res-reader-id").value.trim();
+      const isbn = document.getElementById("res-isbn").value.trim();
+
+      try {
+        await fetchAPI("/api/reservations", {
+          method: "POST",
+          body: JSON.stringify({ readerId, isbn })
+        });
+        showToast("Tạo đơn đặt trước thành công!", "success");
+        closeAddResModal();
+        loadReservations();
+      } catch (e) {}
+    }
+
+    async function cancelReservation(reservationId) {
+      if (!confirm("Bạn có chắc chắn muốn hủy đơn đặt trước này?")) return;
+      try {
+        await fetchAPI("/api/reservations/cancel", {
+          method: "POST",
+          body: JSON.stringify({ reservationId })
+        });
+        showToast("Đã hủy đơn đặt trước!", "success");
+        loadReservations();
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("reservations");
+      loadReservations();
+    });
+  </script>
+</body>
+</html>
+

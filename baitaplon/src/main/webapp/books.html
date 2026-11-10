@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quản Lý Sách & Bản Sao Vật Lý</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Quản Lý Danh Mục Sách & Bản Sao</h1>
+        <p class="page-subtitle">Quản lý đầu sách (ISBN), số lượng bản sao vật lý và mã vạch (Barcode)</p>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="openAddBookModal()">+ Thêm Đầu Sách Mới</button>
+      </div>
+    </div>
+
+    <!-- Thanh tìm kiếm -->
+    <div class="panel" style="padding:16px 20px;">
+      <div style="display:flex;gap:12px;">
+        <input type="text" id="search-keyword" placeholder="Nhập tên sách, tác giả cần tìm..." style="flex:1;">
+        <button class="btn btn-primary" onclick="searchBooks()">🔍 Tìm Kiếm</button>
+        <button class="btn btn-secondary" onclick="loadBooks()">Tất cả</button>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách sách -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Danh sách Đầu sách</h2>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ISBN</th>
+              <th>Tựa sách</th>
+              <th>Tác giả</th>
+              <th>Nhà xuất bản</th>
+              <th>Năm XB</th>
+              <th>Thể loại</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="books-table-body">
+            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal Xem & Thêm Bản sao của sách -->
+    <div id="copies-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width:700px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 id="copies-modal-title">Danh sách Bản sao sách</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeCopiesModal()">✕</button>
+        </div>
+
+        <div class="panel" style="background:#f8fafc;padding:16px;margin-bottom:16px;">
+          <h4 style="font-size:14px;margin-bottom:10px;">Thêm bản sao vật lý mới:</h4>
+          <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="form-group">
+              <label>Mã bản sao (Copy ID):</label>
+              <input type="text" id="new-copy-id" placeholder="VD: CP016">
+            </div>
+            <div class="form-group">
+              <label>Mã vạch (Barcode):</label>
+              <input type="text" id="new-copy-barcode" placeholder="VD: BC-00016">
+            </div>
+            <div class="form-group">
+              <label>Giá bìa (VNĐ):</label>
+              <input type="number" id="new-copy-price" value="350000" step="10000">
+            </div>
+          </div>
+          <button class="btn btn-success btn-sm" style="margin-top:10px;" onclick="submitAddCopy()">+ Thêm Bản Sao</button>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Copy ID</th>
+                <th>Barcode</th>
+                <th>Giá sách</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="copies-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Thêm Đầu Sách Mới -->
+    <div id="add-book-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3>Thêm Đầu Sách Mới</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeAddBookModal()">✕</button>
+        </div>
+        <form onsubmit="submitAddBook(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Mã ISBN:</label>
+            <input type="text" id="book-isbn" required placeholder="VD: 978-0-123456-78-9">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Tựa sách (Title):</label>
+            <input type="text" id="book-title" required placeholder="Nhập tên cuốn sách">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Tác giả (Author):</label>
+            <input type="text" id="book-author" required placeholder="Tên tác giả">
+          </div>
+          <div class="form-grid" style="margin-bottom:12px;">
+            <div class="form-group">
+              <label>Nhà xuất bản:</label>
+              <input type="text" id="book-publisher" placeholder="Nhà xuất bản">
+            </div>
+            <div class="form-group">
+              <label>Năm xuất bản:</label>
+              <input type="number" id="book-year" value="2023">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:18px;">
+            <label>Thể loại / Chuyên ngành:</label>
+            <input type="text" id="book-category" placeholder="VD: Công nghệ thông tin, Lập trình...">
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeAddBookModal()">Hủy</button>
+            <button type="submit" class="btn btn-primary">Lưu Đầu Sách</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    let currentIsbnForCopies = null;
+
+    async function loadBooks(query = "") {
+      const tbody = document.getElementById("books-table-body");
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        const endpoint = query ? `/api/books?q=${encodeURIComponent(query)}` : "/api/books";
+        const books = await fetchAPI(endpoint);
+
+        if (books.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không tìm thấy sách nào</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = books.map(b => `
+          <tr>
+            <td><code>${b.isbn}</code></td>
+            <td><strong>${b.title}</strong></td>
+            <td>${b.author}</td>
+            <td>${b.publisher || "-"}</td>
+            <td>${b.publishYear || "-"}</td>
+            <td><span class="badge badge-gray">${b.category || "General"}</span></td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="viewCopies('${b.isbn}', '${b.title.replace(/'/g, "\\'")}')">
+                📦 Xem Bản Sao
+              </button>
+            </td>
+          </tr>
+        `).join("");
+      } catch (e) {}
+    }
+
+    function searchBooks() {
+      const kw = document.getElementById("search-keyword").value.trim();
+      loadBooks(kw);
+    }
+
+    async function viewCopies(isbn, title) {
+      currentIsbnForCopies = isbn;
+      document.getElementById("copies-modal-title").textContent = `Bản sao: ${title}`;
+      document.getElementById("copies-modal").classList.add("open");
+      loadCopiesTable(isbn);
+    }
+
+    async function loadCopiesTable(isbn) {
+      const tbody = document.getElementById("copies-table-body");
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>`;
+      try {
+        const copies = await fetchAPI(`/api/books/copies?isbn=${encodeURIComponent(isbn)}`);
+        if (copies.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Chưa có bản sao nào trong kho</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = copies.map(c => {
+          let badge = "badge-success";
+          if (c.status === "Loaned") badge = "badge-primary";
+          if (c.status === "Reserved") badge = "badge-warning";
+          if (c.status === "Damaged" || c.status === "Lost") badge = "badge-danger";
+
+          return `
+            <tr>
+              <td><strong>${c.copyId}</strong></td>
+              <td><code>${c.barcode}</code></td>
+              <td>${formatCurrency(c.price)}</td>
+              <td><span class="badge ${badge}">${c.status}</span></td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {}
+    }
+
+    async function submitAddCopy() {
+      const copyId = document.getElementById("new-copy-id").value.trim();
+      const barcode = document.getElementById("new-copy-barcode").value.trim();
+      const price = parseFloat(document.getElementById("new-copy-price").value) || 0;
+
+      if (!copyId || !barcode) {
+        showToast("Vui lòng nhập Mã bản sao và Mã vạch!", "warning");
+        return;
+      }
+
+      try {
+        await fetchAPI("/api/books/copies", {
+          method: "POST",
+          body: JSON.stringify({
+            copyId,
+            isbn: currentIsbnForCopies,
+            barcode,
+            price,
+            status: "Available"
+          })
+        });
+
+        showToast("Thêm bản sao thành công!", "success");
+        document.getElementById("new-copy-id").value = "";
+        document.getElementById("new-copy-barcode").value = "";
+        loadCopiesTable(currentIsbnForCopies);
+      } catch (e) {}
+    }
+
+    function closeCopiesModal() {
+      document.getElementById("copies-modal").classList.remove("open");
+    }
+
+    function openAddBookModal() {
+      document.getElementById("add-book-modal").classList.add("open");
+    }
+
+    function closeAddBookModal() {
+      document.getElementById("add-book-modal").classList.remove("open");
+    }
+
+    async function submitAddBook(e) {
+      e.preventDefault();
+      const book = {
+        isbn: document.getElementById("book-isbn").value.trim(),
+        title: document.getElementById("book-title").value.trim(),
+        author: document.getElementById("book-author").value.trim(),
+        publisher: document.getElementById("book-publisher").value.trim(),
+        publishYear: parseInt(document.getElementById("book-year").value) || null,
+        category: document.getElementById("book-category").value.trim()
+      };
+
+      try {
+        await fetchAPI("/api/books", {
+          method: "POST",
+          body: JSON.stringify(book)
+        });
+        showToast("Thêm đầu sách mới thành công!", "success");
+        closeAddBookModal();
+        loadBooks();
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("books");
+      loadBooks();
+    });
+  </script>
+</body>
+</html>
+

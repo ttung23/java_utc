@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quản Lý Độc Giả Thư Viện</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Quản Lý Độc Giả</h1>
+        <p class="page-subtitle">Theo dõi hạn ngạch mượn sách, hạn thẻ thư viện và nợ phạt</p>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="openAddReaderModal()">+ Thêm Độc Giả Mới</button>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách độc giả -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Danh sách Độc giả</h2>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã độc giả</th>
+              <th>Họ và tên</th>
+              <th>Loại độc giả</th>
+              <th>Hạn thẻ</th>
+              <th>Nợ phạt</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="readers-table-body">
+            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal Thêm Độc Giả -->
+    <div id="add-reader-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3>Thêm Độc Giả Mới</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeAddReaderModal()">✕</button>
+        </div>
+        <form onsubmit="submitAddReader(event)">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Mã độc giả (Reader ID):</label>
+            <input type="text" id="reader-id" required placeholder="VD: RD006">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Họ và tên:</label>
+            <input type="text" id="reader-name" required placeholder="Nhập tên độc giả">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Loại độc giả:</label>
+            <select id="reader-type">
+              <option value="STUDENT">Sinh viên (STUDENT) - Tối đa 5 cuốn, 14 ngày</option>
+              <option value="LECTURER">Giảng viên (LECTURER) - Tối đa 10 cuốn, 30 ngày</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:18px;">
+            <label>Hạn thẻ thư viện:</label>
+            <input type="date" id="reader-expiry" required value="2027-12-31">
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeAddReaderModal()">Hủy</button>
+            <button type="submit" class="btn btn-primary">Lưu Độc Giả</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    async function loadReaders() {
+      const tbody = document.getElementById("readers-table-body");
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        const readers = await fetchAPI("/api/readers");
+        if (readers.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có độc giả nào</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = readers.map(r => {
+          let statusBadge = "badge-success";
+          if (r.status === "EXPIRED") statusBadge = "badge-warning";
+          if (r.status === "BLOCKED") statusBadge = "badge-danger";
+
+          let fineStyle = r.balanceFine > 50000 ? "color:var(--danger);font-weight:700;" : "";
+
+          return `
+            <tr>
+              <td><strong>${r.readerId}</strong></td>
+              <td>${r.fullName}</td>
+              <td><span class="badge badge-primary">${r.type}</span></td>
+              <td>${r.expiryDate}</td>
+              <td style="${fineStyle}">${formatCurrency(r.balanceFine)}</td>
+              <td><span class="badge ${statusBadge}">${r.status}</span></td>
+              <td>
+                <a href="loans.html" class="btn btn-secondary btn-sm">Mượn sách</a>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {}
+    }
+
+    function openAddReaderModal() {
+      document.getElementById("add-reader-modal").classList.add("open");
+    }
+
+    function closeAddReaderModal() {
+      document.getElementById("add-reader-modal").classList.remove("open");
+    }
+
+    async function submitAddReader(e) {
+      e.preventDefault();
+      const reader = {
+        readerId: document.getElementById("reader-id").value.trim(),
+        fullName: document.getElementById("reader-name").value.trim(),
+        type: document.getElementById("reader-type").value,
+        expiryDate: document.getElementById("reader-expiry").value,
+        balanceFine: 0,
+        status: "ACTIVE"
+      };
+
+      try {
+        await fetchAPI("/api/readers", {
+          method: "POST",
+          body: JSON.stringify(reader)
+        });
+        showToast("Thêm độc giả thành công!", "success");
+        closeAddReaderModal();
+        loadReaders();
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("readers");
+      loadReaders();
+    });
+  </script>
+</body>
+</html>
+
