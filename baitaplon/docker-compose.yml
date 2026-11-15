@@ -1,0 +1,18 @@
+services:
+  slms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: slms:1.0
+    container_name: slms-app
+    ports:
+      - "8080:8080"
+    volumes:
+      # Giữ dữ liệu H2 giữa các lần restart
+      - slms-db:/app/database
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    restart: unless-stopped
+
+volumes:
+  slms-db:

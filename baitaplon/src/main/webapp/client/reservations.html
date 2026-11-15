@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Đặt trước</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Đặt trước của tôi</h1>
+        <p class="page-subtitle">Theo dõi vị trí hàng chờ và hủy đơn Pending</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="catalog.html" class="btn btn-primary">+ Đặt từ catalog</a>
+        <button class="btn btn-secondary" onclick="loadReservations()">Làm mới</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr><th>Mã</th><th>ISBN</th><th>Ngày đặt</th><th>Hạn nhận</th><th>Hàng chờ</th><th>Trạng thái</th><th></th></tr>
+          </thead>
+          <tbody id="res-body"><tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script src="js/client.js"></script>
+  <script>
+    const readerId = requireLogin();
+    if (readerId) { renderClientSidebar("reservations"); loadReservations(); }
+
+    async function loadReservations() {
+      const tbody = document.getElementById("res-body");
+      try {
+        const list = await fetchAPI("/api/reservations?readerId=" + encodeURIComponent(readerId));
+        if (!list.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có đơn đặt trước</td></tr>`;
+          return;
+        }
+        const rows = await Promise.all(list.map(async (r) => {
+          let queue = "-";
+          if (r.status === "Pending") {
+            try {
+              const q = await fetchAPI("/api/client/queue/" + encodeURIComponent(r.reservationId));
+              queue = "#" + q.queuePosition + " / " + q.queueLength;
+            } catch (e) { queue = "?"; }
+          }
+          const canCancel = r.status === "Pending";
+          return `<tr>
+            <td>${r.reservationId}</td><td>${r.isbn}</td>
+            <td>${formatDateTime(r.reservationDate)}</td><td>${formatDateTime(r.expiryDate)}</td>
+            <td>${queue}</td><td>${r.status}</td>
+            <td>${canCancel ? `<button class="btn btn-secondary btn-sm" onclick="cancelReservation('${r.reservationId}')">Hủy</button>` : "-"}</td>
+          </tr>`;
+        }));
+        tbody.innerHTML = rows.join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+      }
+    }
+
+    async function cancelReservation(reservationId) {
+      if (!confirm("Hủy đơn " + reservationId + "?")) return;
+      try {
+        await fetchAPI("/api/reservations/cancel", {
+          method: "POST",
+          body: JSON.stringify({ reservationId })
+        });
+        showToast("Đã hủy đơn", "success");
+        loadReservations();
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

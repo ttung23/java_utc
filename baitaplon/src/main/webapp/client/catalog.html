@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Tra cứu sách</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Tra cứu sách</h1>
+        <p class="page-subtitle">Xem số bản sao còn lại và đặt trước khi hết</p>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:20px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <input type="text" id="search-q" placeholder="Nhập tên sách..." style="flex:1;min-width:220px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;">
+        <button class="btn btn-primary" onclick="loadCatalog()">Tìm kiếm</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('search-q').value=''; loadCatalog();">Tất cả</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>ISBN</th><th>Tên sách</th><th>Tác giả</th><th>Còn lại</th><th></th></tr></thead>
+          <tbody id="catalog-body"><tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script src="js/client.js"></script>
+  <script>
+    const readerId = requireLogin();
+    if (readerId) { renderClientSidebar("catalog"); loadCatalog(); }
+    document.getElementById("search-q").addEventListener("keydown", e => { if (e.key === "Enter") loadCatalog(); });
+
+    async function loadCatalog() {
+      const q = document.getElementById("search-q").value.trim();
+      const tbody = document.getElementById("catalog-body");
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>`;
+      try {
+        const books = await fetchAPI(q ? "/api/books?q=" + encodeURIComponent(q) : "/api/books");
+        if (!books.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Không tìm thấy sách</td></tr>`;
+          return;
+        }
+        const rows = await Promise.all(books.map(async (b) => {
+          let available = 0, total = 0;
+          try {
+            const av = await fetchAPI("/api/books/availability?isbn=" + encodeURIComponent(b.isbn));
+            available = av.availableCount; total = av.totalCopies;
+          } catch (e) {}
+          const action = available === 0
+            ? `<button class="btn btn-primary btn-sm" onclick="reserveBook('${b.isbn}')">Đặt trước</button>`
+            : `<span class="badge badge-success">Có sẵn</span>`;
+          return `<tr><td>${b.isbn}</td><td>${b.title}</td><td>${b.author || "-"}</td><td><strong>${available}</strong>/${total}</td><td>${action}</td></tr>`;
+        }));
+        tbody.innerHTML = rows.join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+      }
+    }
+
+    async function reserveBook(isbn) {
+      if (!confirm("Đặt trước " + isbn + "?")) return;
+      try {
+        await fetchAPI("/api/reservations", {
+          method: "POST",
+          body: JSON.stringify({ readerId, isbn })
+        });
+        showToast("Đặt trước thành công", "success");
+        loadCatalog();
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

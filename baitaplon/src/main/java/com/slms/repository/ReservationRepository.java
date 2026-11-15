@@ -35,6 +35,10 @@ public class ReservationRepository {
             "SELECT reservation_id, reader_id, isbn, reservation_date, expiry_date, status "
                     + "FROM RESERVATIONS WHERE isbn = ? AND status = 'Pending' ORDER BY reservation_date ASC";
 
+    private static final String SQL_FIND_BY_READER_ID =
+            "SELECT reservation_id, reader_id, isbn, reservation_date, expiry_date, status "
+                    + "FROM RESERVATIONS WHERE reader_id = ? ORDER BY reservation_date DESC";
+
     private static final String SQL_UPDATE_STATUS =
             "UPDATE RESERVATIONS SET status = ? WHERE reservation_id = ?";
 
@@ -129,6 +133,30 @@ public class ReservationRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi tìm đặt trước theo ISBN [" + isbn + "]: " + e.getMessage(), e);
+        }
+        return reservations;
+    }
+
+    /**
+     * Lấy danh sách đơn đặt trước của một độc giả, sắp xếp theo ngày đặt giảm dần.
+     *
+     * @param readerId mã độc giả
+     * @return danh sách đơn đặt trước của độc giả
+     */
+    public List<Reservation> findByReaderId(String readerId) {
+        List<Reservation> reservations = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_FIND_BY_READER_ID)) {
+
+            ps.setString(1, readerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    reservations.add(mapResultSetToReservation(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi tìm đặt trước theo độc giả [" + readerId + "]: "
+                    + e.getMessage(), e);
         }
         return reservations;
     }

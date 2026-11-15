@@ -49,6 +49,19 @@ public final class IdGenerator {
     }
 
     /**
+     * Sinh mã độc giả.
+     * Định dạng: RD + timestamp + 3 chữ số ngẫu nhiên.
+     */
+    public static String generateReaderId() {
+        return generateId("RD");
+    }
+
+    /** Alias cho generateReaderId (AuthService). */
+    public static String nextReaderId() {
+        return generateReaderId();
+    }
+
+    /**
      * Phương thức nội bộ sinh mã ID với prefix tùy chỉnh.
      *
      * @param prefix tiền tố mã ID

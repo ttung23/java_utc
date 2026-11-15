@@ -230,4 +230,16 @@ public class FineService {
         List<Fine> list = fineRepository.findByLoanId(loanId);
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
+
+    /**
+     * Kiểm tra hóa đơn phạt có thuộc độc giả hay không (qua phiếu mượn).
+     */
+    public boolean isFineOwnedByReader(String fineId, String readerId) {
+        Optional<Fine> fineOpt = fineRepository.findById(fineId);
+        if (fineOpt.isEmpty()) {
+            return false;
+        }
+        Optional<Loan> loanOpt = loanRepository.findById(fineOpt.get().getLoanId());
+        return loanOpt.isPresent() && readerId.equals(loanOpt.get().getReaderId());
+    }
 }

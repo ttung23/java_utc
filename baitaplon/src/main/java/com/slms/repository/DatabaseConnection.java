@@ -72,11 +72,18 @@ public class DatabaseConnection {
             }
         }
 
-        // Tự động kiểm tra bảng nếu chạy chế độ dự phòng
+        // Tự động kiểm tra bảng / nâng cấp schema
         if (!initialized && conn != null) {
             initialized = true;
             if (Boolean.FALSE.equals(useOracle)) {
                 DatabaseInitializer.initialize();
+            } else {
+                try {
+                    DatabaseInitializer.upgradeSchema(conn);
+                    DatabaseInitializer.ensureAuthDefaults();
+                } catch (Exception e) {
+                    System.err.println(">>> [DB] Upgrade schema Oracle: " + e.getMessage());
+                }
             }
         }
 

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Hồ sơ độc giả</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Hồ sơ & mật khẩu</h1>
+        <p class="page-subtitle">Cập nhật thông tin liên hệ và đổi mật khẩu BCrypt</p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px;max-width:560px;">
+      <div class="panel-header"><h2 class="panel-title">Thông tin liên hệ</h2></div>
+      <div style="padding:8px 4px 16px;">
+        <label>Họ tên</label>
+        <input id="fullName" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
+        <label>Email</label>
+        <input id="email" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
+        <label>Số điện thoại</label>
+        <input id="phone" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
+        <button class="btn btn-primary" onclick="saveProfile()">Lưu hồ sơ</button>
+      </div>
+    </div>
+
+    <div class="panel" style="max-width:560px;">
+      <div class="panel-header"><h2 class="panel-title">Đổi mật khẩu</h2></div>
+      <div style="padding:8px 4px 16px;">
+        <label>Mật khẩu cũ</label>
+        <input id="oldPassword" type="password" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
+        <label>Mật khẩu mới</label>
+        <input id="newPassword" type="password" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
+        <button class="btn btn-secondary" onclick="changePassword()">Đổi mật khẩu</button>
+      </div>
+    </div>
+  </main>
+  <script src="js/client.js"></script>
+  <script>
+    const readerId = requireLogin();
+    if (readerId) {
+      renderClientSidebar("profile");
+      loadProfile();
+    }
+
+    async function loadProfile() {
+      try {
+        const readers = await fetchAPI("/api/readers");
+        const me = (readers || []).find(r => r.readerId === readerId);
+        if (me) {
+          document.getElementById("fullName").value = me.fullName || "";
+          document.getElementById("email").value = me.email || "";
+          document.getElementById("phone").value = me.phone || "";
+        }
+      } catch (e) {}
+    }
+
+    async function saveProfile() {
+      try {
+        await fetchAPI("/api/auth/profile", {
+          method: "PUT",
+          body: JSON.stringify({
+            fullName: document.getElementById("fullName").value.trim(),
+            email: document.getElementById("email").value.trim(),
+            phone: document.getElementById("phone").value.trim()
+          })
+        });
+        sessionStorage.setItem("slms_reader_name", document.getElementById("fullName").value.trim());
+        showToast("Đã lưu hồ sơ", "success");
+        renderClientSidebar("profile");
+      } catch (e) {}
+    }
+
+    async function changePassword() {
+      try {
+        await fetchAPI("/api/auth/password", {
+          method: "POST",
+          body: JSON.stringify({
+            oldPassword: document.getElementById("oldPassword").value,
+            newPassword: document.getElementById("newPassword").value
+          })
+        });
+        showToast("Đổi mật khẩu thành công", "success");
+        document.getElementById("oldPassword").value = "";
+        document.getElementById("newPassword").value = "";
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

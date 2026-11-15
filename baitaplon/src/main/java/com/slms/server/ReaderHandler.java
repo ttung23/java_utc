@@ -35,7 +35,7 @@ public class ReaderHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            if (path.equals("/api/readers/eligibility")) {
+            if (path.equals("/api/readers/eligibility") || path.equals("/api/readers/login")) {
                 if ("GET".equals(method)) {
                     Map<String, String> params = HttpHelper.getQueryParams(exchange);
                     String readerId = params.get("readerId");
@@ -45,49 +45,29 @@ public class ReaderHandler implements HttpHandler {
                         return;
                     }
 
-                    Optional<Reader> readerOpt = readerRepository.findById(readerId.trim());
-                    if (readerOpt.isEmpty()) {
+                    Map<String, Object> result = buildReaderProfile(readerId.trim());
+                    if (result == null) {
                         HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy độc giả với mã: " + readerId));
                         return;
                     }
 
-                    Reader reader = readerOpt.get();
-                    int activeLoansCount = loanRepository.countActiveLoansByReaderId(reader.getReaderId());
-                    boolean eligible = reader.canBorrow(activeLoansCount);
-
-                    Map<String, Object> result = new HashMap<>();
-                    result.put("readerId", reader.getReaderId());
-                    result.put("fullName", reader.getFullName());
-                    result.put("readerType", reader.getType().name());
-                    result.put("status", reader.getStatus());
-                    result.put("expiryDate", reader.getExpiryDate().toString());
-                    result.put("balanceFine", reader.getBalanceFine());
-                    result.put("currentBorrowedCount", activeLoansCount);
-                    result.put("maxBooks", reader.getType().getMaxBooks());
-                    result.put("maxBorrowDays", reader.getType().getMaxBorrowDays());
-                    result.put("eligible", eligible);
-
-                    if (!eligible) {
-                        if (!"ACTIVE".equalsIgnoreCase(reader.getStatus())) {
-                            result.put("reason", "Thẻ độc giả đang ở trạng thái: " + reader.getStatus());
-                        } else if (reader.getExpiryDate().isBefore(LocalDate.now())) {
-                            result.put("reason", "Thẻ độc giả đã hết hạn sử dụng vào ngày " + reader.getExpiryDate());
-                        } else if (reader.getBalanceFine() > 50000.0) {
-                            result.put("reason", "Độc giả đang nợ tiền phạt (" + String.format("%,.0f", reader.getBalanceFine()) + " VNĐ), vượt quá hạn mức cho phép 50.000 VNĐ");
-                        } else if (activeLoansCount >= reader.getType().getMaxBooks()) {
-                            result.put("reason", "Đã đạt số lượng mượn tối đa (" + activeLoansCount + "/" + reader.getType().getMaxBooks() + " cuốn)");
-                        }
+                    String message = path.equals("/api/readers/login")
+                            ? "Đăng nhập thành công"
+                            : null;
+                    if (message != null) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(message, result));
                     } else {
-                        result.put("reason", "Độc giả đủ điều kiện mượn sách (còn mượn được " + (reader.getType().getMaxBooks() - activeLoansCount) + " cuốn)");
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(result));
                     }
-
-                    HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(result));
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
             } else if (path.equals("/api/readers")) {
                 if ("GET".equals(method)) {
                     List<Reader> readers = readerRepository.findAll();
+                    for (Reader r : readers) {
+                        r.setPasswordHash(null);
+                    }
                     HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(readers));
                 } else if ("POST".equals(method)) {
                     String body = HttpHelper.readRequestBody(exchange);
@@ -109,6 +89,54 @@ public class ReaderHandler implements HttpHandler {
         } catch (Exception e) {
             HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Lỗi: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Xây dựng hồ sơ độc giả kèm thông tin điều kiện mượn.
+     *
+     * @param readerId mã độc giả
+     * @return map hồ sơ, hoặc null nếu không tìm thấy
+     */
+    private Map<String, Object> buildReaderProfile(String readerId) {
+        Optional<Reader> readerOpt = readerRepository.findById(readerId);
+        if (readerOpt.isEmpty()) {
+            return null;
+        }
+
+        Reader reader = readerOpt.get();
+        int activeLoansCount = loanRepository.countActiveLoansByReaderId(reader.getReaderId());
+        boolean eligible = reader.canBorrow(activeLoansCount);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("readerId", reader.getReaderId());
+        result.put("fullName", reader.getFullName());
+        result.put("readerType", reader.getType().name());
+        result.put("status", reader.getStatus());
+        result.put("expiryDate", reader.getExpiryDate().toString());
+        result.put("balanceFine", reader.getBalanceFine());
+        result.put("currentBorrowedCount", activeLoansCount);
+        result.put("maxBooks", reader.getType().getMaxBooks());
+        result.put("maxBorrowDays", reader.getType().getMaxBorrowDays());
+        result.put("eligible", eligible);
+
+        if (!eligible) {
+            if (!"ACTIVE".equalsIgnoreCase(reader.getStatus())) {
+                result.put("reason", "Thẻ độc giả đang ở trạng thái: " + reader.getStatus());
+            } else if (reader.getExpiryDate().isBefore(LocalDate.now())) {
+                result.put("reason", "Thẻ độc giả đã hết hạn sử dụng vào ngày " + reader.getExpiryDate());
+            } else if (reader.getBalanceFine() > 50000.0) {
+                result.put("reason", "Độc giả đang nợ tiền phạt (" + String.format("%,.0f", reader.getBalanceFine())
+                        + " VNĐ), vượt quá hạn mức cho phép 50.000 VNĐ");
+            } else if (activeLoansCount >= reader.getType().getMaxBooks()) {
+                result.put("reason", "Đã đạt số lượng mượn tối đa (" + activeLoansCount + "/"
+                        + reader.getType().getMaxBooks() + " cuốn)");
+            }
+        } else {
+            result.put("reason", "Độc giả đủ điều kiện mượn sách (còn mượn được "
+                    + (reader.getType().getMaxBooks() - activeLoansCount) + " cuốn)");
+        }
+
+        return result;
     }
 }
 

@@ -38,8 +38,15 @@ public class LoanRepository {
     private static final String SQL_COUNT_ACTIVE_BY_READER =
             "SELECT COUNT(*) FROM LOANS WHERE reader_id = ? AND status = 'BORROWED'";
 
+    private static final String SQL_FIND_BY_READER_ID =
+            "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
+                    + "FROM LOANS WHERE reader_id = ? ORDER BY borrow_date DESC";
+
     private static final String SQL_UPDATE_RETURN =
             "UPDATE LOANS SET return_date = ?, status = ? WHERE loan_id = ?";
+
+    private static final String SQL_UPDATE_DUE_DATE =
+            "UPDATE LOANS SET due_date = ? WHERE loan_id = ?";
 
     private static final String SQL_FIND_OVERDUE =
             "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
@@ -168,6 +175,30 @@ public class LoanRepository {
     }
 
     /**
+     * Lấy danh sách phiếu mượn của một độc giả, sắp xếp theo ngày mượn giảm dần.
+     *
+     * @param readerId mã độc giả
+     * @return danh sách phiếu mượn của độc giả
+     */
+    public List<Loan> findByReaderId(String readerId) {
+        List<Loan> loans = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_FIND_BY_READER_ID)) {
+
+            ps.setString(1, readerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    loans.add(mapResultSetToLoan(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi tìm phiếu mượn theo độc giả [" + readerId + "]: "
+                    + e.getMessage(), e);
+        }
+        return loans;
+    }
+
+    /**
      * Cập nhật trạng thái trả sách cho phiếu mượn.
      *
      * @param loanId     mã phiếu mượn
@@ -186,6 +217,20 @@ public class LoanRepository {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái trả sách [" + loanId + "]: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Gia hạn hạn trả của phiếu mượn.
+     */
+    public boolean updateDueDate(String loanId, LocalDateTime newDueDate) {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_DUE_DATE)) {
+            ps.setTimestamp(1, Timestamp.valueOf(newDueDate));
+            ps.setString(2, loanId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi gia hạn phiếu mượn [" + loanId + "]: " + e.getMessage(), e);
         }
     }
 

@@ -7,12 +7,17 @@ const API_BASE = "";
 // Gọi API với xử lý chung
 async function fetchAPI(endpoint, options = {}) {
   try {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    };
+    const staffToken = sessionStorage.getItem("slms_staff_token");
+    if (staffToken) {
+      headers.Authorization = "Bearer " + staffToken;
+    }
     const res = await fetch(API_BASE + endpoint, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      },
-      ...options
+      ...options,
+      headers
     });
 
     const json = await res.json();
@@ -72,8 +77,12 @@ function renderSidebar(activeKey) {
     { key: "books", label: "Quản lý Sách & Bản sao", icon: "📚", href: "books.html" },
     { key: "readers", label: "Quản lý Độc giả", icon: "👥", href: "readers.html" },
     { key: "fines", label: "Hóa đơn Phạt", icon: "💰", href: "fines.html" },
-    { key: "reservations", label: "Đặt trước Sách", icon: "🔖", href: "reservations.html" }
+    { key: "reservations", label: "Đặt trước Sách", icon: "🔖", href: "reservations.html" },
+    { key: "client", label: "Cổng độc giả", icon: "🧑‍🎓", href: "client/login.html" }
   ];
+
+  const staffName = sessionStorage.getItem("slms_staff_name") || "Nhân viên";
+  const staffRole = sessionStorage.getItem("slms_staff_role") || "";
 
   let html = `
     <div class="brand">
@@ -101,13 +110,39 @@ function renderSidebar(activeKey) {
   html += `
     </ul>
     <div class="sidebar-footer">
+      <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px;">${staffName}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">${staffRole}</div>
+      <button type="button" class="btn btn-secondary btn-sm" style="width:100%;margin-bottom:8px;" onclick="staffLogout()">Đăng xuất</button>
       <div>Hệ Thống Thư Viện UTC</div>
-      <div style="font-size:11px;color:#64748b;margin-top:2px;">Phiên bản Java & Oracle DB</div>
     </div>
   `;
 
   sidebar.innerHTML = html;
 }
+
+function staffLogout() {
+  const token = sessionStorage.getItem("slms_staff_token");
+  if (token) {
+    fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token }
+    }).catch(() => {});
+  }
+  sessionStorage.removeItem("slms_staff_token");
+  sessionStorage.removeItem("slms_staff_role");
+  sessionStorage.removeItem("slms_staff_name");
+  window.location.href = "staff-login.html";
+}
+
+// Soft gate: trang admin yêu cầu đăng nhập staff (trừ staff-login)
+(function guardStaffPages() {
+  const path = window.location.pathname || "";
+  if (path.endsWith("staff-login.html") || path.includes("/client/")) return;
+  if (!sessionStorage.getItem("slms_staff_token")) {
+    // Cho phép xem tạm khi demo — bỏ comment dòng dưới nếu muốn bắt buộc login
+    // window.location.href = "staff-login.html";
+  }
+})();
 
 // ==================== AUTO LIVE RELOAD ====================
 (function initAutoReload() {

@@ -1,12 +1,10 @@
 package com.slms.repository;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.slms.model.StaffUser;
+import com.slms.model.enums.UserRole;
+import com.slms.service.AuthService;
+import com.slms.util.PasswordUtil;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -27,8 +25,69 @@ public class DatabaseInitializer {
             } else {
                 System.out.println(">>> Cơ sở dữ liệu đã sẵn sàng (đã tồn tại các bảng).");
             }
+            upgradeSchema(conn);
+            ensureAuthDefaults();
         } catch (Exception e) {
             System.err.println(">>> Lỗi khi kiểm tra / khởi tạo database: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Nâng cấp schema hiện có: thêm cột auth/profile + bảng STAFF_USERS.
+     */
+    public static void upgradeSchema(Connection conn) {
+        String[] alters = new String[] {
+                "ALTER TABLE READERS ADD COLUMN email VARCHAR2(150)",
+                "ALTER TABLE READERS ADD COLUMN phone VARCHAR2(30)",
+                "ALTER TABLE READERS ADD COLUMN password_hash VARCHAR2(100)",
+                "CREATE TABLE IF NOT EXISTS STAFF_USERS (" +
+                        " staff_id VARCHAR2(20) NOT NULL," +
+                        " username VARCHAR2(50) NOT NULL UNIQUE," +
+                        " full_name VARCHAR2(100) NOT NULL," +
+                        " password_hash VARCHAR2(100) NOT NULL," +
+                        " role VARCHAR2(20) NOT NULL," +
+                        " status VARCHAR2(20) DEFAULT 'ACTIVE'," +
+                        " CONSTRAINT pk_staff_users PRIMARY KEY (staff_id)" +
+                        ")"
+        };
+        try (Statement stmt = conn.createStatement()) {
+            for (String sql : alters) {
+                try {
+                    stmt.execute(sql);
+                } catch (SQLException ignored) {
+                    // Cột/bảng đã tồn tại
+                }
+            }
+            System.out.println(">>> [DB] Schema upgrade (auth/profile) đã kiểm tra.");
+        } catch (SQLException e) {
+            System.err.println(">>> [DB] Lỗi upgrade schema: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Gán mật khẩu mặc định cho độc giả cũ + tạo tài khoản thủ thư/admin demo.
+     */
+    public static void ensureAuthDefaults() {
+        try {
+            ReaderRepository readerRepository = new ReaderRepository();
+            String defaultHash = PasswordUtil.hash(AuthService.DEFAULT_READER_PASSWORD);
+            for (String id : readerRepository.findIdsMissingPassword()) {
+                readerRepository.updatePassword(id, defaultHash);
+            }
+
+            StaffRepository staffRepository = new StaffRepository();
+            if (staffRepository.count() == 0) {
+                staffRepository.save(new StaffUser(
+                        "ST001", "librarian", "Thu Thu Demo",
+                        PasswordUtil.hash("123456"), UserRole.LIBRARIAN, "ACTIVE"));
+                staffRepository.save(new StaffUser(
+                        "ST002", "admin", "Admin SLMS",
+                        PasswordUtil.hash("admin123"), UserRole.ADMIN, "ACTIVE"));
+                System.out.println(">>> [Auth] Đã tạo tài khoản staff demo: librarian/123456, admin/admin123");
+            }
+            System.out.println(">>> [Auth] Mật khẩu mặc định độc giả demo: " + AuthService.DEFAULT_READER_PASSWORD);
+        } catch (Exception e) {
+            System.err.println(">>> [Auth] Lỗi khởi tạo mặc định: " + e.getMessage());
         }
     }
 
@@ -77,7 +136,21 @@ public class DatabaseInitializer {
             "    expiry_date DATE NOT NULL," +
             "    balance_fine NUMBER(12,2) DEFAULT 0," +
             "    status VARCHAR2(20) DEFAULT 'ACTIVE'," +
+            "    email VARCHAR2(150)," +
+            "    phone VARCHAR2(30)," +
+            "    password_hash VARCHAR2(100)," +
             "    CONSTRAINT pk_readers PRIMARY KEY (reader_id)" +
+            ")",
+
+            // 3b. STAFF_USERS
+            "CREATE TABLE IF NOT EXISTS STAFF_USERS (" +
+            "    staff_id VARCHAR2(20) NOT NULL," +
+            "    username VARCHAR2(50) NOT NULL UNIQUE," +
+            "    full_name VARCHAR2(100) NOT NULL," +
+            "    password_hash VARCHAR2(100) NOT NULL," +
+            "    role VARCHAR2(20) NOT NULL," +
+            "    status VARCHAR2(20) DEFAULT 'ACTIVE'," +
+            "    CONSTRAINT pk_staff_users PRIMARY KEY (staff_id)" +
             ")",
 
             // 4. LOANS
@@ -143,12 +216,17 @@ public class DatabaseInitializer {
             "INSERT INTO BOOK_COPIES VALUES ('CP009', '978-0-321-12521-7', 'BC-00009', CURRENT_DATE, 490000, 'Available')",
             "INSERT INTO BOOK_COPIES VALUES ('CP010', '978-1-49-195016-0', 'BC-00010', CURRENT_DATE, 350000, 'Available')",
 
-            // Dữ liệu mẫu READERS
-            "INSERT INTO READERS VALUES ('RD001', 'Nguyen Van An', 'STUDENT', DATE '2027-12-31', 0, 'ACTIVE')",
-            "INSERT INTO READERS VALUES ('RD002', 'Tran Thi Binh', 'STUDENT', DATE '2027-12-31', 15000, 'ACTIVE')",
-            "INSERT INTO READERS VALUES ('RD003', 'Le Hoang Cuong', 'STUDENT', DATE '2024-06-30', 0, 'EXPIRED')",
-            "INSERT INTO READERS VALUES ('RD004', 'Pham Minh Duc', 'LECTURER', DATE '2028-12-31', 0, 'ACTIVE')",
-            "INSERT INTO READERS VALUES ('RD005', 'Vo Thi Hoa', 'LECTURER', DATE '2028-06-30', 25000, 'ACTIVE')",
+            // Dữ liệu mẫu READERS (password_hash gán sau bởi ensureAuthDefaults)
+            "INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash) "
+                    + "VALUES ('RD001', 'Nguyen Van An', 'STUDENT', DATE '2027-12-31', 0, 'ACTIVE', 'an.nguyen@utc.edu.vn', '0901000001', NULL)",
+            "INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash) "
+                    + "VALUES ('RD002', 'Tran Thi Binh', 'STUDENT', DATE '2027-12-31', 15000, 'ACTIVE', 'binh.tran@utc.edu.vn', '0901000002', NULL)",
+            "INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash) "
+                    + "VALUES ('RD003', 'Le Hoang Cuong', 'STUDENT', DATE '2024-06-30', 0, 'EXPIRED', 'cuong.le@utc.edu.vn', '0901000003', NULL)",
+            "INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash) "
+                    + "VALUES ('RD004', 'Pham Minh Duc', 'LECTURER', DATE '2028-12-31', 0, 'ACTIVE', 'duc.pham@utc.edu.vn', '0901000004', NULL)",
+            "INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash) "
+                    + "VALUES ('RD005', 'Vo Thi Hoa', 'LECTURER', DATE '2028-06-30', 25000, 'ACTIVE', 'hoa.vo@utc.edu.vn', '0901000005', NULL)",
 
             // Dữ liệu mẫu LOANS
             "INSERT INTO LOANS VALUES ('LN001', 'RD001', 'CP002', TIMESTAMP '2026-11-01 09:30:00', TIMESTAMP '2026-11-15 09:30:00', NULL, 'BORROWED')",

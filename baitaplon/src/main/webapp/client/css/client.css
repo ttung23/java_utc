@@ -1,0 +1,217 @@
+/* SLMS Client Portal - giao diện độc giả */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+
+:root {
+  --c-ink: #14212b;
+  --c-muted: #5b6b78;
+  --c-paper: #f3efe6;
+  --c-card: #fffdf8;
+  --c-line: #d9d0c0;
+  --c-accent: #0f6e56;
+  --c-accent-2: #c45c26;
+  --c-sky: #dcece6;
+  --sidebar-w: 270px;
+  --radius: 16px;
+  --shadow: 0 18px 40px rgba(20, 33, 43, 0.08);
+}
+
+body.client-body {
+  font-family: "Be Vietnam Pro", sans-serif;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(15, 110, 86, 0.12), transparent 35%),
+    radial-gradient(circle at 88% 0%, rgba(196, 92, 38, 0.12), transparent 32%),
+    linear-gradient(180deg, #f7f3ea 0%, #eef2ef 100%);
+  color: var(--c-ink);
+}
+
+body.client-body .sidebar {
+  background: linear-gradient(180deg, #173630 0%, #0f241f 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.client-body .brand-title {
+  font-family: "Fraunces", serif;
+  letter-spacing: 0;
+}
+
+body.client-body .nav-item.active a {
+  background: var(--c-accent);
+  box-shadow: none;
+}
+
+body.client-body .main-wrapper {
+  max-width: 1200px;
+}
+
+body.client-body .page-title {
+  font-family: "Fraunces", serif;
+  font-size: 30px;
+}
+
+body.client-body .panel,
+body.client-body .stat-card,
+body.client-body .login-card,
+body.client-body .hero-card {
+  background: var(--c-card);
+  border: 1px solid var(--c-line);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+}
+
+body.client-body .btn-primary {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+body.client-body .btn-primary:hover {
+  background: #0c5a46;
+}
+
+body.client-body .btn-secondary {
+  background: #fff;
+  border: 1px solid var(--c-line);
+  color: var(--c-ink);
+}
+
+body.client-body .alert-info {
+  background: var(--c-sky);
+  border-color: #b7d7cc;
+  color: #18483c;
+}
+
+.hero-card {
+  padding: 28px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.hero-card h2 {
+  font-family: "Fraunces", serif;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.hero-card p {
+  color: var(--c-muted);
+  line-height: 1.6;
+}
+
+.note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.note-item {
+  background: #fff;
+  border: 1px solid var(--c-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.note-item strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+}
+
+.auth-visual {
+  background:
+    linear-gradient(160deg, rgba(15, 110, 86, 0.88), rgba(20, 33, 43, 0.75)),
+    url("data:image/svg+xml,%3Csvg width='160' height='160' viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1'%3E%3Cpath d='M0 40h160M0 80h160M0 120h160M40 0v160M80 0v160M120 0v160'/%3E%3C/g%3E%3C/svg%3E");
+  color: #fff;
+  padding: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.auth-visual h1 {
+  font-family: "Fraunces", serif;
+  font-size: 42px;
+  line-height: 1.15;
+  margin-bottom: 14px;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: #f7f3ea;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px;
+}
+
+.login-card h1 {
+  font-family: "Fraunces", serif;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.login-card label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+.login-card input,
+.login-card select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--c-line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+}
+
+.stats-mini {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stats-mini div {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .auth-visual {
+    min-height: 220px;
+    padding: 28px;
+  }
+  .hero-card {
+    grid-template-columns: 1fr;
+  }
+  body.client-body {
+    display: block;
+  }
+  body.client-body .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+  body.client-body .main-wrapper {
+    margin-left: 0;
+    padding: 20px;
+  }
+}

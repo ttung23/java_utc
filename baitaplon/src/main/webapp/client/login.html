@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Đăng nhập độc giả</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body" style="display:block;margin:0;">
+  <div class="auth-shell">
+    <section class="auth-visual">
+      <div>
+        <div style="opacity:.85;margin-bottom:10px;">Thư viện UTC · SLMS</div>
+        <h1>Đọc nhiều hơn.<br>Quản lý dễ hơn.</h1>
+        <p style="max-width:420px;line-height:1.6;opacity:.9;">
+          Tra cứu sách, theo dõi hạn trả, đặt trước và thanh toán phạt ngay trên cổng độc giả.
+        </p>
+        <div class="stats-mini" style="margin-top:24px;max-width:360px;">
+          <div><div style="font-size:12px;opacity:.8;">Demo ID</div><strong>RD001</strong></div>
+          <div><div style="font-size:12px;opacity:.8;">Mật khẩu</div><strong>123456</strong></div>
+        </div>
+      </div>
+    </section>
+    <section class="auth-panel">
+      <div class="login-card">
+        <h1>Đăng nhập độc giả</h1>
+        <p style="color:var(--c-muted);margin-bottom:8px;">Dùng mã thẻ và mật khẩu BCrypt đã cấp.</p>
+        <div id="login-error" class="alert alert-danger" style="display:none;margin:12px 0;"></div>
+        <form id="login-form">
+          <label for="reader-id">Mã độc giả</label>
+          <input type="text" id="reader-id" placeholder="VD: RD001" required>
+          <label for="password">Mật khẩu</label>
+          <input type="password" id="password" placeholder="••••••" required>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:18px;" id="login-btn">Đăng nhập</button>
+        </form>
+        <div style="margin-top:16px;font-size:13px;color:var(--c-muted);line-height:1.6;">
+          Chưa có thẻ? <a href="register.html">Đăng ký thẻ mới</a><br>
+          <a href="../staff-login.html">Đăng nhập thủ thư / admin</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/client.js"></script>
+  <script>
+    if (getToken() && getReaderId()) {
+      window.location.href = "index.html";
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const readerId = document.getElementById("reader-id").value.trim();
+      const password = document.getElementById("password").value;
+      const errBox = document.getElementById("login-error");
+      const btn = document.getElementById("login-btn");
+      errBox.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Đang xác thực...";
+      try {
+        const data = await fetchAPI("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ mode: "reader", readerId, password })
+        });
+        setSession(data);
+        showToast("Xin chào " + data.displayName, "success");
+        window.location.href = "index.html";
+      } catch (err) {
+        errBox.textContent = err.message || "Đăng nhập thất bại";
+        errBox.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Đăng nhập";
+      }
+    });
+  </script>
+</body>
+</html>

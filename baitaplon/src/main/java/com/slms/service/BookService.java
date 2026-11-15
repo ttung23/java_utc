@@ -209,4 +209,25 @@ public class BookService {
         }
         return bookCopyRepository.countAvailableByIsbn(isbn);
     }
+
+    /**
+     * Lấy thông tin số lượng bản sao khả dụng / tổng số bản sao của một đầu sách.
+     *
+     * @param isbn mã ISBN
+     * @return map chứa isbn, availableCount, totalCopies
+     */
+    public java.util.Map<String, Object> getAvailability(String isbn) {
+        if (isbn == null || isbn.trim().isEmpty()) {
+            throw new IllegalArgumentException("ISBN không được để trống.");
+        }
+        String trimmed = isbn.trim();
+        List<BookCopy> copies = bookCopyRepository.findByIsbn(trimmed);
+        int available = bookCopyRepository.countAvailableByIsbn(trimmed);
+
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("isbn", trimmed);
+        result.put("availableCount", available);
+        result.put("totalCopies", copies.size());
+        return result;
+    }
 }

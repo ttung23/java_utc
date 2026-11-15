@@ -28,6 +28,15 @@ public class Reader {
     /** Trạng thái tài khoản: ACTIVE, EXPIRED, BLOCKED */
     private String status;
 
+    /** Email liên hệ */
+    private String email;
+
+    /** Số điện thoại */
+    private String phone;
+
+    /** Mật khẩu đã hash BCrypt (không trả về API public) */
+    private String passwordHash;
+
     /**
      * Constructor mặc định.
      */
@@ -52,6 +61,11 @@ public class Reader {
         this.expiryDate = expiryDate;
         this.balanceFine = balanceFine;
         this.status = status;
+    }
+
+    /** Tên loại độc giả (tiện cho AuthService). */
+    public String getReaderTypeName() {
+        return type != null ? type.name() : null;
     }
 
     // ======================== Phương thức nghiệp vụ ========================
@@ -139,6 +153,30 @@ public class Reader {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     // ======================== toString ========================

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Tiền phạt</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Khoản phạt của tôi</h1>
+        <p class="page-subtitle">Thanh toán online (giả lập) hoặc tại quầy thủ thư</p>
+      </div>
+      <button class="btn btn-secondary" onclick="loadFines()">Làm mới</button>
+    </div>
+    <div class="stat-card" style="margin-bottom:20px;max-width:360px;">
+      <div><div class="stat-label">Tổng nợ chưa thanh toán</div><div class="stat-value" id="total-unpaid" style="font-size:22px;color:var(--danger);">-</div></div>
+    </div>
+    <div class="panel">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr><th>Mã phạt</th><th>Phiếu mượn</th><th>Số tiền</th><th>Lý do</th><th>Trạng thái</th><th></th></tr>
+          </thead>
+          <tbody id="fines-body"><tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script src="js/client.js"></script>
+  <script>
+    const readerId = requireLogin();
+    if (readerId) { renderClientSidebar("fines"); loadFines(); }
+
+    async function loadFines() {
+      const tbody = document.getElementById("fines-body");
+      try {
+        const fines = await fetchAPI("/api/fines?readerId=" + encodeURIComponent(readerId));
+        if (!fines.length) {
+          document.getElementById("total-unpaid").textContent = formatCurrency(0);
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Không có khoản phạt chưa thanh toán</td></tr>`;
+          return;
+        }
+        const total = fines.reduce((s, f) => s + (Number(f.fineAmount) || 0), 0);
+        document.getElementById("total-unpaid").textContent = formatCurrency(total);
+        tbody.innerHTML = fines.map(f => `
+          <tr>
+            <td>${f.fineId}</td><td>${f.loanId || "-"}</td>
+            <td><strong>${formatCurrency(f.fineAmount)}</strong></td>
+            <td>${f.reason || "-"}</td>
+            <td><span class="badge badge-danger">${f.paymentStatus || "Unpaid"}</span></td>
+            <td><button class="btn btn-primary btn-sm" onclick="payFine('${f.fineId}')">Thanh toán</button></td>
+          </tr>`).join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+      }
+    }
+
+    async function payFine(fineId) {
+      if (!confirm("Xác nhận thanh toán hóa đơn " + fineId + "?")) return;
+      try {
+        await fetchAPI("/api/fines/pay", { method: "POST", body: JSON.stringify({ fineId }) });
+        showToast("Thanh toán thành công", "success");
+        loadFines();
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

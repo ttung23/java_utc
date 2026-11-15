@@ -57,6 +57,15 @@ public class FineHandler implements HttpHandler {
                         return;
                     }
 
+                    // Độc giả chỉ được thanh toán hóa đơn của chính mình
+                    var sessionOpt = AuthHelper.getSession(exchange);
+                    if (sessionOpt.isPresent() && sessionOpt.get().getRole() == com.slms.model.enums.UserRole.READER) {
+                        if (!fineService.isFineOwnedByReader(fineId.trim(), sessionOpt.get().getUserId())) {
+                            HttpHelper.sendJsonResponse(exchange, 403, ApiResponse.error("Hóa đơn phạt không thuộc tài khoản của bạn"));
+                            return;
+                        }
+                    }
+
                     boolean success = fineService.payFine(fineId.trim());
                     if (success) {
                         HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Thanh toán tiền phạt thành công!", null));
