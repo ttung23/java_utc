@@ -1,6 +1,7 @@
 package com.slms.server;
 
 import com.slms.dto.ApiResponse;
+import com.slms.model.Loan;
 import com.slms.model.Reader;
 import com.slms.repository.LoanRepository;
 import com.slms.repository.ReaderRepository;
@@ -53,7 +54,14 @@ public class ReaderHandler implements HttpHandler {
 
                     Reader reader = readerOpt.get();
                     int activeLoansCount = loanRepository.countActiveLoansByReaderId(reader.getReaderId());
-                    boolean eligible = reader.canBorrow(activeLoansCount);
+
+                    // Kiểm tra xem độc giả có phiếu mượn nào đang quá hạn chưa trả hay không
+                    List<Loan> overdueLoans = loanRepository.findOverdueLoans();
+                    boolean hasOverdueBook = overdueLoans.stream()
+                            .anyMatch(l -> l.getReaderId().equalsIgnoreCase(reader.getReaderId()) && l.getReturnDate() == null);
+
+                    // Điều kiện đủ điều kiện: Thỏa mãn canBorrow VÀ không có sách quá hạn
+                    boolean eligible = reader.canBorrow(activeLoansCount) && !hasOverdueBook;
 
                     Map<String, Object> result = new HashMap<>();
                     result.put("readerId", reader.getReaderId());
@@ -72,6 +80,8 @@ public class ReaderHandler implements HttpHandler {
                             result.put("reason", "Thẻ độc giả đang ở trạng thái: " + reader.getStatus());
                         } else if (reader.getExpiryDate().isBefore(LocalDate.now())) {
                             result.put("reason", "Thẻ độc giả đã hết hạn sử dụng vào ngày " + reader.getExpiryDate());
+                        } else if (hasOverdueBook) {
+                            result.put("reason", "Độc giả đang có sách quá hạn chưa trả, không được phép mượn sách mới.");
                         } else if (reader.getBalanceFine() > 50000.0) {
                             result.put("reason", "Độc giả đang nợ tiền phạt (" + String.format("%,.0f", reader.getBalanceFine()) + " VNĐ), vượt quá hạn mức cho phép 50.000 VNĐ");
                         } else if (activeLoansCount >= reader.getType().getMaxBooks()) {
@@ -85,13 +95,20 @@ public class ReaderHandler implements HttpHandler {
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
-            } else if (path.equals("/api/readers")) {
+            } else if (path.equals("/api/readers") || path.equals("/api/readers/")) {
                 if ("GET".equals(method)) {
                     List<Reader> readers = readerRepository.findAll();
                     HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(readers));
                 } else if ("POST".equals(method)) {
                     String body = HttpHelper.readRequestBody(exchange);
                     Reader reader = HttpHelper.getGson().fromJson(body, Reader.class);
+
+                    // --- VALIDATION: Hạn thẻ phải lớn hơn hôm nay + 30 ngày ---
+                    if (reader.getExpiryDate() == null || !reader.getExpiryDate().isAfter(LocalDate.now().plusDays(30))) {
+                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Hạn thẻ thư viện phải lớn hơn ngày hôm nay ít nhất 30 ngày."));
+                        return;
+                    }
+
                     if (reader.getStatus() == null) {
                         reader.setStatus("ACTIVE");
                     }
@@ -100,15 +117,33 @@ public class ReaderHandler implements HttpHandler {
                     }
                     Reader saved = readerRepository.save(reader);
                     HttpHelper.sendJsonResponse(exchange, 201, ApiResponse.ok("Thêm độc giả thành công", saved));
+                } else if ("PUT".equals(method)) {
+                    String body = HttpHelper.readRequestBody(exchange);
+                    Reader updatedInfo = HttpHelper.getGson().fromJson(body, Reader.class);
+
+                    // --- VALIDATION KHI GIA HẠN: Hạn thẻ mới phải lớn hơn hôm nay + 30 ngày ---
+                    if (updatedInfo.getExpiryDate() == null || !updatedInfo.getExpiryDate().isAfter(LocalDate.now().plusDays(30))) {
+                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Hạn thẻ mới phải lớn hơn ngày hôm nay ít nhất 30 ngày."));
+                        return;
+                    }
+
+                    Optional<Reader> existingOpt = readerRepository.findById(updatedInfo.getReaderId());
+                    if (existingOpt.isPresent()) {
+                        Reader reader = existingOpt.get();
+                        reader.setExpiryDate(updatedInfo.getExpiryDate());
+                        reader.setStatus("ACTIVE");
+
+                        readerRepository.update(reader);
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Gia hạn thẻ thành công", reader));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy độc giả"));
+                    }
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
-            } else {
-                HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Endpoint không tồn tại"));
             }
         } catch (Exception e) {
             HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Lỗi: " + e.getMessage()));
         }
     }
 }
-

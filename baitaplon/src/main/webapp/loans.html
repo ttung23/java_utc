@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
@@ -30,7 +30,10 @@
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;">
           <div class="form-group" style="flex:1;">
             <label for="borrow-reader-id">Mã độc giả (Reader ID):</label>
-            <input type="text" id="borrow-reader-id" placeholder="Nhập mã ví dụ: RD001, RD002, RD003, RD004..." value="RD001">
+            <!-- Thay input type="text" thành select và thêm sự kiện onchange để tự động kiểm tra thẻ -->
+            <select id="borrow-reader-id" onchange="checkReaderEligibility()" style="width:100%; padding: 8px; border: 1px solid var(--border-color, #ccc); border-radius: 4px;">
+              <option value="">-- Đang tải danh sách độc giả... --</option>
+            </select>
           </div>
           <button class="btn btn-secondary" onclick="checkReaderEligibility()">🔍 Kiểm Tra Thẻ</button>
         </div>
@@ -105,15 +108,15 @@
         <div class="table-responsive">
           <table>
             <thead>
-              <tr>
-                <th>Mã phiếu</th>
-                <th>Mã độc giả</th>
-                <th>Mã bản sao</th>
-                <th>Ngày mượn</th>
-                <th>Hạn trả</th>
-                <th>Ngày trả</th>
-                <th>Trạng thái</th>
-              </tr>
+            <tr>
+              <th>Mã phiếu</th>
+              <th>Mã độc giả</th>
+              <th>Mã bản sao</th>
+              <th>Ngày mượn</th>
+              <th>Hạn trả</th>
+              <th>Ngày trả</th>
+              <th>Trạng thái</th>
+            </tr>
             </thead>
             <tbody id="loans-table-body">
               <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
@@ -188,7 +191,44 @@
         // lỗi đã được showToast trong fetchAPI
       }
     }
+    // Tải danh sách độc giả vào thẻ select
+    async function loadReadersDropdown() {
+      const select = document.getElementById("borrow-reader-id");
 
+      // Lấy readerId được truyền từ URL (nếu có bấm từ trang Quản lý độc giả)
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetReaderId = urlParams.get("readerId");
+
+      try {
+        const readers = await fetchAPI("/api/readers");
+
+        if (!readers || readers.length === 0) {
+          select.innerHTML = `<option value="">Không có độc giả nào</option>`;
+          return;
+        }
+
+        // 1. Thêm dòng lựa chọn trống lên đầu danh sách
+        let htmlOptions = `<option value="">-- Chọn độc giả --</option>`;
+
+        // 2. Nối tiếp danh sách độc giả (Định dạng: Mã độc giả - Họ và tên)
+        htmlOptions += readers.map(r =>
+                `<option value="${r.readerId}">${r.readerId} - ${r.fullName}</option>`
+        ).join("");
+
+        select.innerHTML = htmlOptions;
+
+        // 3. Xử lý logic chọn: Nếu có truyền từ URL thì chọn người đó, ngược lại để trống
+        if (targetReaderId && readers.some(r => r.readerId === targetReaderId)) {
+          select.value = targetReaderId;
+          checkReaderEligibility();
+        } else {
+          select.value = ""; // Giữ nguyên dòng "-- Chọn độc giả --", không tự chọn ai
+          document.getElementById("reader-info-box").style.display = "none";
+        }
+      } catch (e) {
+        select.innerHTML = `<option value="">Lỗi tải danh sách độc giả</option>`;
+      }
+    }
     // Gửi yêu cầu mượn sách (UC21)
     async function submitBorrow() {
       const readerId = document.getElementById("borrow-reader-id").value.trim();
@@ -273,14 +313,14 @@
     async function loadLoansList() {
       const status = document.getElementById("filter-loan-status").value;
       const tbody = document.getElementById("loans-table-body");
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Đang tải...</td></tr>`;
 
       try {
         const endpoint = status ? `/api/loans?status=${encodeURIComponent(status)}` : "/api/loans";
         const loans = await fetchAPI(endpoint);
 
         if (loans.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có phiếu mượn nào</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Không có phiếu mượn nào</td></tr>`;
           return;
         }
 
@@ -307,7 +347,18 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       renderSidebar("loans");
-      checkReaderEligibility();
+
+      // Bắt thêm barcode nếu có chuyển sang từ trang Sách
+      const urlParams = new URLSearchParams(window.location.search);
+      const barcodeParam = urlParams.get("barcode");
+      if (barcodeParam) {
+        const barcodeInput = document.getElementById("borrow-barcode");
+        if (barcodeInput) {
+          barcodeInput.value = barcodeParam;
+        }
+      }
+
+      loadReadersDropdown();
     });
   </script>
 </body>

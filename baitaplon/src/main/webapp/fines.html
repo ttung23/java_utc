@@ -6,77 +6,128 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <aside class="sidebar"></aside>
+<aside class="sidebar"></aside>
 
-  <main class="main-wrapper">
-    <div class="top-header">
-      <div>
-        <h1 class="page-title">Hóa Đơn Phạt Vi Phạm</h1>
-        <p class="page-subtitle">Theo dõi tiền phạt trễ hạn (5.000đ/ngày), bồi thường hỏng/mất và thu tiền nợ</p>
+<main class="main-wrapper">
+  <div class="top-header">
+    <div>
+      <h1 class="page-title">Hóa Đơn Phạt Vi Phạm</h1>
+      <p class="page-subtitle">Theo dõi tiền phạt trễ hạn (5.000đ/ngày), bồi thường hỏng/mất và thu tiền nợ</p>
+    </div>
+  </div>
+
+  <!-- Tóm tắt quy định phạt -->
+  <div class="alert alert-warning">
+    <div>
+      <strong>⚠️ Quy định Phạt & Nợ Phạt:</strong>
+      <div style="font-size:13px;margin-top:4px;">
+        • Phạt trễ hạn: <strong>5.000 VNĐ / ngày / cuốn</strong>.<br>
+        • Bồi thường sách hỏng hoặc mất: <strong>100% - 200%</strong> giá trị bản sao.<br>
+        • Độc giả có nợ phạt vượt quá <strong>50.000 VNĐ</strong> sẽ bị <strong>khóa quyền mượn sách</strong> cho đến khi thanh toán.
       </div>
     </div>
+  </div>
 
-    <!-- Tóm tắt quy định phạt -->
-    <div class="alert alert-warning">
-      <div>
-        <strong>⚠️ Quy định Phạt & Nợ Phạt:</strong>
-        <div style="font-size:13px;margin-top:4px;">
-          • Phạt trễ hạn: <strong>5.000 VNĐ / ngày / cuốn</strong>.<br>
-          • Bồi thường sách hỏng hoặc mất: <strong>100% - 200%</strong> giá trị bản sao.<br>
-          • Độc giả có nợ phạt vượt quá <strong>50.000 VNĐ</strong> sẽ bị <strong>khóa quyền mượn sách</strong> cho đến khi thanh toán.
+  <!-- Bảng danh sách hóa đơn phạt -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2 class="panel-title">Danh sách Hóa đơn Phạt</h2>
+      <button class="btn btn-secondary btn-sm" onclick="loadFines()">Làm mới</button>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+        <tr>
+          <th>Mã phạt</th>
+          <th>Mã phiếu mượn</th>
+          <th>Lý do vi phạm</th>
+          <th>Số tiền phạt</th>
+          <th>Trạng thái</th>
+          <th>Ngày thanh toán</th>
+          <th>Hành động</th>
+        </tr>
+        </thead>
+        <tbody id="fines-table-body">
+        <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Xác Nhận Thu Tiền Phạt (Thiết kế đồng bộ với Modal Đặt Trước Sách) -->
+  <div id="pay-fine-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>Xác Nhận Thu Tiền Phạt</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closePayFineModal()">✕</button>
+      </div>
+      <form onsubmit="submitPayFine(event)">
+        <input type="hidden" id="modal-fine-id">
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Mã hóa đơn phạt (Fine ID):</label>
+          <input type="text" id="modal-fine-id-display" disabled style="background:#f1f5f9;font-weight:700;">
         </div>
-      </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Mã phiếu mượn liên quan:</label>
+          <input type="text" id="modal-loan-id-display" disabled style="background:#f1f5f9;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Lý do vi phạm:</label>
+          <input type="text" id="modal-reason-display" disabled style="background:#f1f5f9;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label>Số tiền cần thu:</label>
+          <input type="text" id="modal-amount-display" disabled style="background:#fef2f2;color:var(--danger);font-weight:700;font-size:15px;">
+          <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block;">
+            Lưu ý: Sau khi xác nhận thu tiền, số dư nợ phạt của độc giả sẽ được trừ tương ứng.
+          </small>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closePayFineModal()">Hủy</button>
+          <button type="submit" class="btn btn-primary">Xác Nhận Thanh Toán</button>
+        </div>
+      </form>
     </div>
+  </div>
+</main>
 
-    <!-- Bảng danh sách hóa đơn phạt -->
-    <div class="panel">
-      <div class="panel-header">
-        <h2 class="panel-title">Danh sách Hóa đơn Phạt</h2>
-        <button class="btn btn-secondary btn-sm" onclick="loadFines()">Làm mới</button>
-      </div>
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã phạt</th>
-              <th>Mã phiếu mượn</th>
-              <th>Lý do vi phạm</th>
-              <th>Số tiền phạt</th>
-              <th>Trạng thái</th>
-              <th>Ngày thanh toán</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="fines-table-body">
-            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </main>
+<script src="js/app.js"></script>
+<script>
+  let allFinesList = [];
 
-  <script src="js/app.js"></script>
-  <script>
-    async function loadFines() {
-      const tbody = document.getElementById("fines-table-body");
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+  async function loadFines() {
+    const tbody = document.getElementById("fines-table-body");
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
 
-      try {
-        const fines = await fetchAPI("/api/fines");
-        if (fines.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có hóa đơn phạt nào</td></tr>`;
-          return;
-        }
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetReaderId = urlParams.get("readerId");
 
-        tbody.innerHTML = fines.map(f => {
-          const isPaid = f.paymentStatus === "Paid";
-          const badge = isPaid ? "badge-success" : "badge-danger";
-          const actionBtn = isPaid
-            ? `<span style="color:var(--text-muted);font-size:12px;">Đã nộp tiền</span>`
-            : `<button class="btn btn-success btn-sm" onclick="payFine('${f.fineId}')">💵 Thu Tiền Phạt</button>`;
+    try {
+      const fines = await fetchAPI("/api/fines");
+      allFinesList = fines || [];
 
-          return `
-            <tr>
+      if (allFinesList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có hóa đơn phạt nào</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = allFinesList.map(f => {
+        const isPaid = f.paymentStatus === "Paid";
+        const badge = isPaid ? "badge-success" : "badge-danger";
+        const actionBtn = isPaid
+                ? `<span style="color:var(--text-muted);font-size:12px;">Đã nộp tiền</span>`
+                : `<button class="btn btn-success btn-sm" onclick="openPayFineModal('${f.fineId}')">=Thu Tiền Phạt</button>`;
+
+        const isTarget = targetReaderId && f.readerId === targetReaderId;
+        const rowStyle = isTarget ? "background-color: #fef3c7; border-left: 4px solid #f59e0b;" : "";
+
+        return `
+            <tr style="${rowStyle}">
               <td><strong>${f.fineId}</strong></td>
               <td>${f.loanId}</td>
               <td>${f.reason || "Vi phạm quy chế"}</td>
@@ -86,30 +137,55 @@
               <td>${actionBtn}</td>
             </tr>
           `;
-        }).join("");
-      } catch (e) {}
-    }
+      }).join("");
 
-    async function payFine(fineId) {
-      if (!confirm(`Bạn có chắc chắn muốn xác nhận thu tiền cho hóa đơn phạt [${fineId}]?`)) {
-        return;
+      if (targetReaderId) {
+        showToast(`Đang lọc hóa đơn phạt cho độc giả: ${targetReaderId}`, "info");
       }
-
-      try {
-        await fetchAPI("/api/fines/pay", {
-          method: "POST",
-          body: JSON.stringify({ fineId })
-        });
-        showToast("Thu tiền phạt thành công!", "success");
-        loadFines();
-      } catch (e) {}
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger);">Lỗi tải dữ liệu hóa đơn</td></tr>`;
     }
+  }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      renderSidebar("fines");
+  // Mở Modal và điền tự động thông tin hóa đơn được chọn
+  function openPayFineModal(fineId) {
+    const fine = allFinesList.find(f => f.fineId === fineId);
+    if (!fine) return;
+
+    document.getElementById("modal-fine-id").value = fine.fineId;
+    document.getElementById("modal-fine-id-display").value = fine.fineId;
+    document.getElementById("modal-loan-id-display").value = fine.loanId;
+    document.getElementById("modal-reason-display").value = fine.reason || "Vi phạm quy chế";
+    document.getElementById("modal-amount-display").value = formatCurrency(fine.fineAmount);
+
+    document.getElementById("pay-fine-modal").classList.add("open");
+  }
+
+  // Đóng Modal
+  function closePayFineModal() {
+    document.getElementById("pay-fine-modal").classList.remove("open");
+  }
+
+  // Xử lý xác nhận thanh toán khi bấm nút trong Modal
+  async function submitPayFine(e) {
+    e.preventDefault();
+    const fineId = document.getElementById("modal-fine-id").value;
+
+    try {
+      await fetchAPI("/api/fines/pay", {
+        method: "POST",
+        body: JSON.stringify({ fineId })
+      });
+      showToast("Thu tiền phạt thành công!", "success");
+      closePayFineModal();
       loadFines();
-    });
-  </script>
+    } catch (err) {}
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderSidebar("fines");
+    loadFines();
+  });
+</script>
 </body>
 </html>
-

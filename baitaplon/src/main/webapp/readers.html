@@ -6,152 +6,242 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <aside class="sidebar"></aside>
+<aside class="sidebar"></aside>
 
-  <main class="main-wrapper">
-    <div class="top-header">
-      <div>
-        <h1 class="page-title">Quản Lý Độc Giả</h1>
-        <p class="page-subtitle">Theo dõi hạn ngạch mượn sách, hạn thẻ thư viện và nợ phạt</p>
-      </div>
-      <div>
-        <button class="btn btn-primary" onclick="openAddReaderModal()">+ Thêm Độc Giả Mới</button>
-      </div>
+<main class="main-wrapper">
+  <div class="top-header">
+    <div>
+      <h1 class="page-title">Quản Lý Độc Giả</h1>
+      <p class="page-subtitle">Theo dõi hạn mượn sách, hạn thẻ thư viện và nợ phạt</p>
     </div>
-
-    <!-- Bảng danh sách độc giả -->
-    <div class="panel">
-      <div class="panel-header">
-        <h2 class="panel-title">Danh sách Độc giả</h2>
-      </div>
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã độc giả</th>
-              <th>Họ và tên</th>
-              <th>Loại độc giả</th>
-              <th>Hạn thẻ</th>
-              <th>Nợ phạt</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="readers-table-body">
-            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
-          </tbody>
-        </table>
-      </div>
+    <div>
+      <button class="btn btn-primary" onclick="openAddReaderModal()">+ Thêm Độc Giả Mới</button>
     </div>
+  </div>
 
-    <!-- Modal Thêm Độc Giả -->
-    <div id="add-reader-modal" class="modal-overlay">
-      <div class="modal-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3>Thêm Độc Giả Mới</h3>
-          <button class="btn btn-secondary btn-sm" onclick="closeAddReaderModal()">✕</button>
+  <!-- Bảng danh sách độc giả -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2 class="panel-title">Danh sách Độc giả</h2>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+        <tr>
+          <th>Mã độc giả</th>
+          <th>Họ và tên</th>
+          <th>Loại độc giả</th>
+          <th>Hạn thẻ</th>
+          <th>Nợ phạt</th>
+          <th>Trạng thái</th>
+          <th>Hành động</th>
+        </tr>
+        </thead>
+        <tbody id="readers-table-body">
+        <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Thêm Độc Giả Mới -->
+  <div id="add-reader-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>Thêm Độc Giả Mới</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeAddReaderModal()">✕</button>
+      </div>
+      <form onsubmit="submitAddReader(event)">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Mã độc giả (Reader ID):</label>
+          <input type="text" id="reader-id" required placeholder="VD: RD006">
         </div>
-        <form onsubmit="submitAddReader(event)">
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Mã độc giả (Reader ID):</label>
-            <input type="text" id="reader-id" required placeholder="VD: RD006">
-          </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Họ và tên:</label>
-            <input type="text" id="reader-name" required placeholder="Nhập tên độc giả">
-          </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Loại độc giả:</label>
-            <select id="reader-type">
-              <option value="STUDENT">Sinh viên (STUDENT) - Tối đa 5 cuốn, 14 ngày</option>
-              <option value="LECTURER">Giảng viên (LECTURER) - Tối đa 10 cuốn, 30 ngày</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:18px;">
-            <label>Hạn thẻ thư viện:</label>
-            <input type="date" id="reader-expiry" required value="2027-12-31">
-          </div>
-          <div style="display:flex;justify-content:flex-end;gap:10px;">
-            <button type="button" class="btn btn-secondary" onclick="closeAddReaderModal()">Hủy</button>
-            <button type="submit" class="btn btn-primary">Lưu Độc Giả</button>
-          </div>
-        </form>
-      </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Họ và tên:</label>
+          <input type="text" id="reader-name" required placeholder="Nhập tên độc giả">
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Loại độc giả:</label>
+          <select id="reader-type">
+            <option value="STUDENT">Sinh viên (STUDENT) - Tối đa 5 cuốn, 14 ngày</option>
+            <option value="LECTURER">Giảng viên (LECTURER) - Tối đa 10 cuốn, 30 ngày</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:18px;">
+          <label>Hạn thẻ thư viện (phải lớn hơn ngày hôm nay ít nhất 30 ngày):</label>
+          <input type="date" id="reader-expiry" required>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddReaderModal()">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu Độc Giả</button>
+        </div>
+      </form>
     </div>
-  </main>
+  </div>
 
-  <script src="js/app.js"></script>
-  <script>
-    async function loadReaders() {
-      const tbody = document.getElementById("readers-table-body");
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+  <!-- Modal Gia Hạn Thẻ Thư Viện -->
+  <div id="renew-reader-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>Gia Hạn Thẻ Thư Viện</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeRenewModal()">✕</button>
+      </div>
+      <form onsubmit="submitRenewReader(event)">
+        <input type="hidden" id="renew-reader-id">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Mã độc giả:</label>
+          <input type="text" id="renew-reader-id-display" disabled style="background:#f1f5f9;">
+        </div>
+        <div class="form-group" style="margin-bottom:18px;">
+          <label>Hạn thẻ mới (phải lớn hơn ngày hôm nay ít nhất 30 ngày):</label>
+          <input type="date" id="renew-new-expiry" required>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeRenewModal()">Hủy</button>
+          <button type="submit" class="btn btn-primary">Xác Nhận Gia Hạn</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
 
-      try {
-        const readers = await fetchAPI("/api/readers");
-        if (readers.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có độc giả nào</td></tr>`;
-          return;
+<script src="js/app.js"></script>
+<script>
+  // Tính toán ngày tối thiểu (Hôm nay + 30 ngày)
+  function getMinExpiryDate() {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  }
+
+  async function loadReaders() {
+    const tbody = document.getElementById("readers-table-body");
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+
+    try {
+      const readers = await fetchAPI("/api/readers");
+      if (readers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có độc giả nào</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = readers.map(r => {
+        let displayStatus = r.status;
+        if (r.balanceFine > 50000) {
+          displayStatus = "BLOCKED";
         }
 
-        tbody.innerHTML = readers.map(r => {
-          let statusBadge = "badge-success";
-          if (r.status === "EXPIRED") statusBadge = "badge-warning";
-          if (r.status === "BLOCKED") statusBadge = "badge-danger";
+        let statusBadge = "badge-success";
+        if (displayStatus === "EXPIRED") statusBadge = "badge-warning";
+        if (displayStatus === "BLOCKED") statusBadge = "badge-danger";
 
-          let fineStyle = r.balanceFine > 50000 ? "color:var(--danger);font-weight:700;" : "";
+        let fineStyle = r.balanceFine > 50000 ? "color:var(--danger);font-weight:700;" : "";
 
-          return `
+        let actionBtn = `<a href="loans.html?readerId=${encodeURIComponent(r.readerId)}" class="btn btn-secondary btn-sm">Mượn sách</a>`;
+
+        if (r.balanceFine > 50000) {
+          actionBtn = `<a href="fines.html?readerId=${encodeURIComponent(r.readerId)}" class="btn btn-danger btn-sm">Thanh toán</a>`;
+        } else if (displayStatus === "EXPIRED") {
+          actionBtn = `<button class="btn btn-sm" style="background-color: #eab308; color: #fff; border: none;" onclick="openRenewModal('${r.readerId}')">Gia hạn thẻ</button>`;
+        }
+
+        return `
             <tr>
               <td><strong>${r.readerId}</strong></td>
               <td>${r.fullName}</td>
               <td><span class="badge badge-primary">${r.type}</span></td>
               <td>${r.expiryDate}</td>
               <td style="${fineStyle}">${formatCurrency(r.balanceFine)}</td>
-              <td><span class="badge ${statusBadge}">${r.status}</span></td>
-              <td>
-                <a href="loans.html" class="btn btn-secondary btn-sm">Mượn sách</a>
-              </td>
+              <td><span class="badge ${statusBadge}">${displayStatus}</span></td>
+              <td>${actionBtn}</td>
             </tr>
           `;
-        }).join("");
-      } catch (e) {}
+      }).join("");
+    } catch (e) {}
+  }
+
+  function openAddReaderModal() {
+    document.getElementById("reader-expiry").min = getMinExpiryDate();
+    document.getElementById("add-reader-modal").classList.add("open");
+  }
+  function closeAddReaderModal() {
+    document.getElementById("add-reader-modal").classList.remove("open");
+  }
+
+  function openRenewModal(readerId) {
+    document.getElementById("renew-reader-id").value = readerId;
+    document.getElementById("renew-reader-id-display").value = readerId;
+    document.getElementById("renew-new-expiry").min = getMinExpiryDate();
+    document.getElementById("renew-reader-modal").classList.add("open");
+  }
+  function closeRenewModal() {
+    document.getElementById("renew-reader-modal").classList.remove("open");
+  }
+
+  async function submitRenewReader(e) {
+    e.preventDefault();
+    const readerId = document.getElementById("renew-reader-id").value;
+    const newExpiry = document.getElementById("renew-new-expiry").value;
+
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 30);
+    minDate.setHours(0, 0, 0, 0);
+
+    if (new Date(newExpiry) <= minDate) {
+      showToast("Hạn thẻ mới phải lớn hơn ngày hôm nay ít nhất 30 ngày!", "danger");
+      return;
     }
 
-    function openAddReaderModal() {
-      document.getElementById("add-reader-modal").classList.add("open");
-    }
-
-    function closeAddReaderModal() {
-      document.getElementById("add-reader-modal").classList.remove("open");
-    }
-
-    async function submitAddReader(e) {
-      e.preventDefault();
-      const reader = {
-        readerId: document.getElementById("reader-id").value.trim(),
-        fullName: document.getElementById("reader-name").value.trim(),
-        type: document.getElementById("reader-type").value,
-        expiryDate: document.getElementById("reader-expiry").value,
-        balanceFine: 0,
-        status: "ACTIVE"
-      };
-
-      try {
-        await fetchAPI("/api/readers", {
-          method: "POST",
-          body: JSON.stringify(reader)
-        });
-        showToast("Thêm độc giả thành công!", "success");
-        closeAddReaderModal();
-        loadReaders();
-      } catch (e) {}
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      renderSidebar("readers");
+    try {
+      await fetchAPI(`/api/readers`, {
+        method: "PUT",
+        body: JSON.stringify({ readerId, expiryDate: newExpiry, status: "ACTIVE" })
+      });
+      showToast("Gia hạn thẻ thành công!", "success");
+      closeRenewModal();
       loadReaders();
-    });
-  </script>
+    } catch (e) {
+      showToast("Lỗi khi gia hạn thẻ!", "danger");
+    }
+  }
+
+  async function submitAddReader(e) {
+    e.preventDefault();
+    const expiryDateVal = document.getElementById("reader-expiry").value;
+
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 30);
+    minDate.setHours(0, 0, 0, 0);
+
+    if (new Date(expiryDateVal) <= minDate) {
+      showToast("Hạn thẻ thư viện phải lớn hơn ngày hôm nay ít nhất 30 ngày!", "danger");
+      return;
+    }
+
+    const reader = {
+      readerId: document.getElementById("reader-id").value.trim(),
+      fullName: document.getElementById("reader-name").value.trim(),
+      type: document.getElementById("reader-type").value,
+      expiryDate: expiryDateVal,
+      balanceFine: 0,
+      status: "ACTIVE"
+    };
+
+    try {
+      await fetchAPI("/api/readers", {
+        method: "POST",
+        body: JSON.stringify(reader)
+      });
+      showToast("Thêm độc giả thành công!", "success");
+      closeAddReaderModal();
+      loadReaders();
+    } catch (e) {}
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderSidebar("readers");
+    loadReaders();
+  });
+</script>
 </body>
 </html>
-
