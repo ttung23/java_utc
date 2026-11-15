@@ -4,146 +4,229 @@
   <meta charset="UTF-8">
   <title>SLMS - Dashboard Thư Viện Thông Minh</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- Sidebar -->
-  <aside class="sidebar"></aside>
+<!-- Sidebar -->
+<aside class="sidebar"></aside>
 
-  <!-- Main Content -->
-  <main class="main-wrapper">
-    <div class="top-header">
+<!-- Main Content -->
+<main class="main-wrapper">
+  <div class="top-header">
+    <div>
+      <h1 class="page-title">Tổng quan Thư viện</h1>
+      <p class="page-subtitle">Hệ thống quản lý mượn trả sách, vòng đời bản sao & phạt vi phạm</p>
+    </div>
+    <div>
+      <a href="loans.html" class="btn btn-primary">⚡ Vào Quầy Mượn/Trả Sách</a>
+    </div>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="stat-card">
       <div>
-        <h1 class="page-title">Tổng quan Thư viện</h1>
-        <p class="page-subtitle">Hệ thống quản lý mượn trả sách, vòng đời bản sao & phạt vi phạm</p>
+        <div class="stat-label">Tổng đầu sách</div>
+        <div class="stat-value" id="stat-books">-</div>
       </div>
+      <div class="stat-icon icon-blue">📚</div>
+    </div>
+
+    <div class="stat-card">
       <div>
-        <a href="loans.html" class="btn btn-primary">⚡ Vào Quầy Mượn/Trả Sách</a>
+        <div class="stat-label">Bản sao vật lý</div>
+        <div class="stat-value" id="stat-copies">-</div>
+      </div>
+      <div class="stat-icon icon-green">📋</div>
+    </div>
+
+    <div class="stat-card">
+      <div>
+        <div class="stat-label">Phiếu mượn</div>
+        <div class="stat-value" id="stat-borrowed">-</div>
+      </div>
+      <div class="stat-icon icon-amber">📖</div>
+    </div>
+
+    <div class="stat-card">
+      <div>
+        <div class="stat-label">Doanh thu phí phạt</div>
+        <div class="stat-value" id="stat-revenue" style="color:var(--success, #16a34a);">-</div>
+      </div>
+      <div class="stat-icon icon-red">💰</div>
+    </div>
+  </div>
+
+  <!-- Khu vực hiển thị biểu đồ tròn và thông tin nghiệp vụ -->
+  <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-bottom: 24px;">
+    <!-- Biểu đồ trạng thái bản sao vật lý -->
+    <div class="panel" style="margin-bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <h3 class="panel-title" style="align-self: flex-start; margin-bottom: 16px;">Trạng thái bản sao vật lý</h3>
+      <div style="width: 220px; height: 220px; position: relative;">
+        <canvas id="copyStatusChart"></canvas>
       </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-      <div class="stat-card">
+    <!-- Thông tin vận hành & Sách mượn gần đây -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="alert alert-info" style="margin-bottom: 0;">
         <div>
-          <div class="stat-label">Tổng đầu sách</div>
-          <div class="stat-value" id="stat-books">-</div>
+          <strong>📌 Tóm tắt Quy tắc Nghiệp vụ Hệ thống (SLMS):</strong>
+          <ul style="margin-left: 20px; margin-top: 6px; font-size: 13px; line-height: 1.6;">
+            <li><strong>Phí phạt trễ hạn:</strong> <strong>5.000 VNĐ / ngày / cuốn</strong>. Sách hỏng/mất: bồi thường 100% - 200% giá sách.</li>
+            <li><strong>Ràng buộc phong tỏa:</strong> Độc giả có nợ phạt > <strong>50.000 VNĐ</strong> hoặc thẻ hết hạn sẽ không được mượn sách mới.</li>
+          </ul>
         </div>
-        <div class="stat-icon icon-blue">📚</div>
       </div>
 
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">Tổng độc giả</div>
-          <div class="stat-value" id="stat-readers">-</div>
+      <div class="panel" style="margin-bottom: 0; flex: 1;">
+        <div class="panel-header" style="margin-bottom: 10px;">
+          <h3 class="panel-title" style="font-size: 16px;">Phiếu mượn gần đây</h3>
+          <a href="loans.html" class="btn btn-secondary btn-sm">Xem tất cả</a>
         </div>
-        <div class="stat-icon icon-green">👥</div>
-      </div>
-
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">Sách đang mượn</div>
-          <div class="stat-value" id="stat-borrowed">-</div>
-        </div>
-        <div class="stat-icon icon-amber">📖</div>
-      </div>
-
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">Phiếu mượn quá hạn</div>
-          <div class="stat-value" id="stat-overdue" style="color:var(--danger);">-</div>
-        </div>
-        <div class="stat-icon icon-red">⚠️</div>
-      </div>
-    </div>
-
-    <!-- Quy định mượn trả nhanh -->
-    <div class="alert alert-info">
-      <div>
-        <strong>📌 Tóm tắt Quy tắc Nghiệp vụ Hệ thống (SLMS):</strong>
-        <ul style="margin-left: 20px; margin-top: 6px; font-size: 13px; line-height: 1.6;">
-          <li><strong>Sinh viên (STUDENT):</strong> Mượn tối đa <strong>5 cuốn</strong> trong <strong>14 ngày</strong>.</li>
-          <li><strong>Giảng viên (LECTURER):</strong> Mượn tối đa <strong>10 cuốn</strong> trong <strong>30 ngày</strong>.</li>
-          <li><strong>Điều kiện mượn:</strong> Thẻ ACTIVE, còn hạn sử dụng, nợ phạt &le; <strong>50.000 VNĐ</strong> và chưa vượt hạn mức.</li>
-          <li><strong>Phí phạt trễ hạn:</strong> <strong>5.000 VNĐ / ngày / cuốn</strong>. Sách hỏng/mất: bồi thường 100% - 200% giá sách.</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Bảng danh sách phiếu mượn mới nhất -->
-    <div class="panel">
-      <div class="panel-header">
-        <h2 class="panel-title">Phiếu mượn gần đây</h2>
-        <a href="loans.html" class="btn btn-secondary btn-sm">Xem tất cả</a>
-      </div>
-      <div class="table-responsive">
-        <table>
-          <thead>
+        <div class="table-responsive">
+          <table>
+            <thead>
             <tr>
               <th>Mã phiếu</th>
               <th>Mã độc giả</th>
               <th>Mã bản sao</th>
-              <th>Ngày mượn</th>
               <th>Hạn trả</th>
               <th>Trạng thái</th>
             </tr>
-          </thead>
-          <tbody id="recent-loans-table">
-            <tr><td colspan="6" style="text-align:center;">Đang tải dữ liệu...</td></tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody id="recent-loans-table">
+            <tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <script src="js/app.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      renderSidebar("dashboard");
+<script src="js/app.js"></script>
+<script>
+  let myDoughnutChart = null;
 
+  document.addEventListener("DOMContentLoaded", async () => {
+    renderSidebar("dashboard");
+
+    try {
+      // 1. Tải dữ liệu đầu sách & tổng bản sao vật lý
+      const books = await fetchAPI("/api/books");
+      document.getElementById("stat-books").textContent = books.length;
+
+      let totalCopies = 0;
+      let countAvailable = 0;
+      let countBorrowed = 0;
+      let countReserved = 0;
+      let countDamaged = 0;
+      let countLost = 0;
+
+      // Lấy danh sách bản sao của từng đầu sách để thống kê biểu đồ
+      for (let b of books) {
+        try {
+          const copies = await fetchAPI(`/api/books/copies?isbn=${encodeURIComponent(b.isbn)}`);
+          totalCopies += copies.length;
+          copies.forEach(c => {
+            if (c.status === "Available") countAvailable++;
+            else if (c.status === "Loaned") countBorrowed++;
+            else if (c.status === "Reserved") countReserved++;
+            else if (c.status === "Damaged") countDamaged++;
+            else if (c.status === "Lost") countLost++;
+          });
+        } catch (err) {}
+      }
+      document.getElementById("stat-copies").textContent = totalCopies;
+
+      // Vẽ biểu đồ tròn
+      renderCopyChart({
+        available: countAvailable,
+        borrowed: countBorrowed,
+        reserved: countReserved,
+        damaged: countDamaged,
+        lost: countLost
+      });
+
+      // 2. Tải danh sách phiếu mượn
+      const loans = await fetchAPI("/api/loans");
+      const activeLoans = loans.filter(l => l.status === "BORROWED" || l.status === "OVERDUE");
+      document.getElementById("stat-borrowed").textContent = loans.length;
+
+      // 3. Tải danh sách hóa đơn phạt để tính tổng doanh thu (bao gồm trễ hạn và bồi thường hỏng/mất)
       try {
-        // Tải danh sách sách
-        const books = await fetchAPI("/api/books");
-        document.getElementById("stat-books").textContent = books.length;
+        const fines = await fetchAPI("/api/fines");
+        // Tổng doanh thu từ các hóa đơn đã thanh toán ("Paid") (ở đây tính các khoản đã thu)
+        const totalRevenue = fines
+                .filter(f => f.paymentStatus === "Paid")
+                .reduce((sum, f) => sum + (f.fineAmount || 0), 0);
+        document.getElementById("stat-revenue").textContent = formatCurrency(totalRevenue);
+      } catch (e) {
+        document.getElementById("stat-revenue").textContent = formatCurrency(0);
+      }
 
-        // Tải danh sách độc giả
-        const readers = await fetchAPI("/api/readers");
-        document.getElementById("stat-readers").textContent = readers.length;
-
-        // Tải danh sách phiếu mượn
-        const loans = await fetchAPI("/api/loans");
-        const activeLoans = loans.filter(l => l.status === "BORROWED" || l.status === "OVERDUE");
-        const overdueLoans = loans.filter(l => l.status === "OVERDUE");
-
-        document.getElementById("stat-borrowed").textContent = activeLoans.length;
-        document.getElementById("stat-overdue").textContent = overdueLoans.length;
-
-        // Render bảng phiếu mượn gần đây (5 bản ghi đầu)
-        const recent = loans.slice(0, 5);
-        const tbody = document.getElementById("recent-loans-table");
-        if (recent.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có phiếu mượn nào</td></tr>`;
-        } else {
-          tbody.innerHTML = recent.map(l => {
-            let badgeClass = "badge-primary";
-            if (l.status === "RETURNED") badgeClass = "badge-success";
-            if (l.status === "OVERDUE") badgeClass = "badge-danger";
-            return `
+      const recent = loans.slice(0, 5);
+      const tbody = document.getElementById("recent-loans-table");
+      if (recent.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Chưa có phiếu mượn nào</td></tr>`;
+      } else {
+        tbody.innerHTML = recent.map(l => {
+          let badgeClass = "badge-primary";
+          if (l.status === "RETURNED") badgeClass = "badge-success";
+          if (l.status === "OVERDUE") badgeClass = "badge-danger";
+          return `
               <tr>
                 <td><strong>${l.loanId}</strong></td>
                 <td>${l.readerId}</td>
                 <td>${l.copyId}</td>
-                <td>${formatDateTime(l.borrowDate)}</td>
                 <td>${formatDateTime(l.dueDate)}</td>
                 <td><span class="badge ${badgeClass}">${l.status}</span></td>
               </tr>
             `;
-          }).join("");
-        }
-      } catch (e) {
-        console.error(e);
+        }).join("");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  // Hàm khởi tạo biểu đồ tròn (Doughnut Chart)
+  function renderCopyChart(data) {
+    const ctx = document.getElementById('copyStatusChart').getContext('2d');
+    if (myDoughnutChart) myDoughnutChart.destroy();
+
+    myDoughnutChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Sẵn có', 'Đang mượn', 'Hỏng', 'Mất'],
+        datasets: [{
+          data: [data.available, data.borrowed, data.damaged, data.lost],
+          backgroundColor: [
+            '#22c55e', // Sẵn có (Xanh lá)
+            '#3b82f6', // Đang mượn (Xanh dương)
+            // '#f97316',  Đặt trước (Cam)
+            '#ea580c', // Hỏng (Cam đậm)
+            '#ef4444'  // Mất (Đỏ)
+          ],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              font: { size: 11 }
+            }
+          }
+        },
+        cutout: '65%'
       }
     });
-  </script>
+  }
+</script>
 </body>
 </html>
-

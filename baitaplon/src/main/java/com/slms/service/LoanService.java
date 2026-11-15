@@ -137,6 +137,29 @@ public class LoanService {
             // ===== BƯỚC 2: Đếm số sách đang mượn =====
             int activeLoansCount = loanRepository.countActiveLoansByReaderId(readerId);
 
+            // Kiểm tra xem độc giả có phiếu mượn nào đang quá hạn (chưa trả) hay không
+            List<Loan> overdueLoans = loanRepository.findOverdueLoans();
+            boolean hasOverdueBook = overdueLoans.stream()
+                    .anyMatch(l -> l.getReaderId().equalsIgnoreCase(readerId) && l.getReturnDate() == null);
+
+            if (hasOverdueBook) {
+                throw new ReaderNotEligibleException(
+                        "Độc giả đang có sách quá hạn chưa trả, vui lòng hoàn trả trước khi mượn sách mới.");
+            }
+
+            // ===== BƯỚC 3: Kiểm tra tư cách mượn sách =====
+            if (!reader.canBorrow(activeLoansCount)) {
+                if (!"ACTIVE".equalsIgnoreCase(reader.getStatus())) {
+                    throw new ReaderNotEligibleException("Thẻ độc giả không hợp lệ");
+                }
+                if (reader.getExpiryDate() != null && reader.getExpiryDate().isBefore(LocalDate.now())) {
+                    throw new ReaderNotEligibleException("Thẻ thư viện đã hết hạn");
+                }
+                if (reader.getBalanceFine() > 50000) {
+                    throw new FineExceededException("Nợ phạt vượt quá 50.000 VNĐ");
+                }
+                throw new MaxBorrowLimitExceededException("Đã mượn tối đa số sách cho phép");
+            }
             // ===== BƯỚC 3: Kiểm tra tư cách mượn sách =====
             if (!reader.canBorrow(activeLoansCount)) {
                 // Phân loại nguyên nhân cụ thể để ném đúng ngoại lệ
@@ -384,7 +407,8 @@ public class LoanService {
                     String reason = String.format("Phạt quá hạn %d ngày (5.000 VNĐ/ngày)", overdueDays);
                     fineService.createFine(loan.getLoanId(), fineAmount, reason);
 
-                    newLoanStatus = LoanStatus.OVERDUE;
+                    // Đã trả sách thì trạng thái phiếu là RETURNED (tránh bị tính là chưa trả)
+                    newLoanStatus = LoanStatus.RETURNED;
                     message = String.format("Trả sách quá hạn %d ngày. Phạt: %,.0f VNĐ", overdueDays, fineAmount);
                 } else {
                     newLoanStatus = LoanStatus.RETURNED;

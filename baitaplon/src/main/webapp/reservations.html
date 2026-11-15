@@ -160,6 +160,17 @@
     document.addEventListener("DOMContentLoaded", () => {
       renderSidebar("reservations");
       loadReservations();
+
+      // Tự động nhận ISBN từ URL, điền vào form và mở Modal tạo đơn đặt trước
+      const urlParams = new URLSearchParams(window.location.search);
+      const isbnParam = urlParams.get("isbn");
+      if (isbnParam) {
+        const isbnInput = document.getElementById("res-isbn");
+        if (isbnInput) {
+          isbnInput.value = isbnParam;
+        }
+        openAddResModal(); // Tự động bật Modal tạo đơn đặt trước
+      }
     });
   </script>
 </body>

@@ -79,16 +79,16 @@
           </div>
           <button class="btn btn-success btn-sm" style="margin-top:10px;" onclick="submitAddCopy()">+ Thêm Bản Sao</button>
         </div>
-
         <div class="table-responsive">
           <table>
             <thead>
-              <tr>
-                <th>Copy ID</th>
-                <th>Barcode</th>
-                <th>Giá sách</th>
-                <th>Trạng thái</th>
-              </tr>
+            <tr>
+              <th>Copy ID</th>
+              <th>Barcode</th>
+              <th>Giá sách</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
             </thead>
             <tbody id="copies-table-body"></tbody>
           </table>
@@ -188,13 +188,16 @@
 
     async function loadCopiesTable(isbn) {
       const tbody = document.getElementById("copies-table-body");
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>`;
       try {
         const copies = await fetchAPI(`/api/books/copies?isbn=${encodeURIComponent(isbn)}`);
         if (copies.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Chưa có bản sao nào trong kho</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Chưa có bản sao nào trong kho</td></tr>`;
           return;
         }
+
+        // Kiểm tra xem đầu sách có bản sao nào khả dụng không (Available = 0)
+        const hasAvailable = copies.some(c => c.status === "Available");
 
         tbody.innerHTML = copies.map(c => {
           let badge = "badge-success";
@@ -202,16 +205,33 @@
           if (c.status === "Reserved") badge = "badge-warning";
           if (c.status === "Damaged" || c.status === "Lost") badge = "badge-danger";
 
+          let actionBtn = "-";
+          if (c.status === "Available") {
+            actionBtn = `<button class="btn btn-primary btn-sm" onclick="quickBorrow('${c.barcode}')">⚡ Mượn ngay</button>`;
+          } else if (!hasAvailable) {
+            // Nếu Available = 0 (không còn bản sao khả dụng), hiển thị nút Đặt trước
+            actionBtn = `<button class="btn btn-warning btn-sm" onclick="quickReserve('${isbn}')">📅 Đặt trước</button>`;
+          }
+
           return `
             <tr>
               <td><strong>${c.copyId}</strong></td>
               <td><code>${c.barcode}</code></td>
               <td>${formatCurrency(c.price)}</td>
               <td><span class="badge ${badge}">${c.status}</span></td>
+              <td>${actionBtn}</td>
             </tr>
           `;
         }).join("");
       } catch (e) {}
+    }
+    // Chuyển sang trang đặt trước và truyền tự động mã ISBN qua URL
+    function quickReserve(isbn) {
+      window.location.href = `reservations.html?isbn=${encodeURIComponent(isbn)}`;
+    }
+    // Chuyển sang trang mượn sách và truyền tự động barcode qua URL
+    function quickBorrow(barcode) {
+      window.location.href = `loans.html?barcode=${encodeURIComponent(barcode)}`;
     }
 
     async function submitAddCopy() {
