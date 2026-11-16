@@ -21,6 +21,10 @@ Dự án đã được cấu hình sẵn **Java HttpServer** và **Local Databas
   mvn -Dslms.port=8081 exec:java
   ```
   Sau đó truy cập **`http://localhost:8081`**.
+  Hoặc truyền cổng trực tiếp cho ứng dụng:
+  ```bash
+  mvn exec:java -Dexec.args="--port=8081"
+  ```
 
 ### Cách 3: Chạy bằng dòng lệnh Terminal / PowerShell
 Mở PowerShell tại thư mục `baitaplon` và gõ:
