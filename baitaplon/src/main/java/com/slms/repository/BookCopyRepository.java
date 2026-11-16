@@ -37,6 +37,9 @@ public class BookCopyRepository {
     private static final String SQL_UPDATE_STATUS =
             "UPDATE BOOK_COPIES SET status = ? WHERE copy_id = ?";
 
+    private static final String SQL_DELETE =
+            "DELETE FROM BOOK_COPIES WHERE copy_id = ?";
+
     private static final String SQL_COUNT_AVAILABLE =
             "SELECT COUNT(*) FROM BOOK_COPIES WHERE isbn = ? AND status = 'Available'";
 
@@ -168,6 +171,17 @@ public class BookCopyRepository {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái bản sao [" + copyId + "]: " + e.getMessage(), e);
+        }
+    }
+
+    public boolean delete(String copyId) {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_DELETE)) {
+
+            ps.setString(1, copyId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi xóa bản sao [" + copyId + "]: " + e.getMessage(), e);
         }
     }
 

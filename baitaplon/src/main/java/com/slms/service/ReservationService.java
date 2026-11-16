@@ -10,12 +10,14 @@ import com.slms.exception.BookNotAvailableException;
 import com.slms.repository.ReservationRepository;
 import com.slms.repository.BookCopyRepository;
 import com.slms.repository.ReaderRepository;
+import com.slms.repository.BookRepository;
 import com.slms.util.IdGenerator;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Lớp dịch vụ quản lý đặt trước sách trong hệ thống thư viện.
@@ -25,7 +27,7 @@ import java.util.Optional;
  * <ul>
  *   <li>Độc giả phải có trạng thái ACTIVE, thẻ còn hạn, nợ phạt ≤ 50.000 VNĐ</li>
  *   <li>Sách phải không còn bản sao nào có sẵn (tất cả đều đang mượn)</li>
- *   <li>Hạn đặt trước: 3 ngày kể từ ngày tạo (sẽ cập nhật khi sách được trả)</li>
+ *   <li>Hạn nhận sách: 3 ngày kể từ khi bản sao được phân cho người đặt đầu tiên</li>
  *   <li>Trạng thái ban đầu: Pending</li>
  * </ul>
  *
@@ -33,9 +35,12 @@ import java.util.Optional;
  */
 public class ReservationService {
 
+    private static final Object EXPIRY_PROCESS_LOCK = new Object();
+
     private final ReservationRepository reservationRepository;
     private final BookCopyRepository bookCopyRepository;
     private final ReaderRepository readerRepository;
+    private final BookRepository bookRepository;
 
     /**
      * Khởi tạo ReservationService với các repository mặc định.
@@ -44,6 +49,7 @@ public class ReservationService {
         this.reservationRepository = new ReservationRepository();
         this.bookCopyRepository = new BookCopyRepository();
         this.readerRepository = new ReaderRepository();
+        this.bookRepository = new BookRepository();
     }
 
     // ========================== ĐẶT TRƯỚC SÁCH ==========================
@@ -56,7 +62,7 @@ public class ReservationService {
      *   <li>Kiểm tra độc giả: tồn tại, trạng thái ACTIVE, thẻ còn hạn, nợ phạt ≤ 50.000 VNĐ</li>
      *   <li>Kiểm tra sách: phải không còn bản sao nào có sẵn (countAvailable = 0)</li>
      *   <li>Tạo đơn đặt trước với trạng thái Pending</li>
-     *   <li>Ngày hết hạn = ngày hiện tại + 3 ngày (tạm thời, sẽ được cập nhật khi sách trả về)</li>
+     *   <li>Ngày hết hạn được đặt 3 ngày; hệ thống bắt đầu tính lại khi bản sao được phân bổ</li>
      *   <li>Lưu vào cơ sở dữ liệu</li>
      * </ol>
      *
@@ -91,6 +97,10 @@ public class ReservationService {
                     "Kiểm tra trạng thái thẻ, hạn sử dụng và số dư nợ phạt.");
         }
 
+        if (bookRepository.findByIsbn(isbn).isEmpty()) {
+            throw new BookNotAvailableException("Không tìm thấy đầu sách với ISBN '" + isbn + "'.");
+        }
+
         // 2. Kiểm tra sách phải không còn bản sao nào có sẵn
         int availableCount = bookCopyRepository.countAvailableByIsbn(isbn);
         if (availableCount > 0) {
@@ -102,7 +112,7 @@ public class ReservationService {
         // 3. Tạo đơn đặt trước
         String reservationId = IdGenerator.generateReservationId();
         LocalDateTime reservationDate = LocalDateTime.now();
-        // Hạn đặt trước: 3 ngày (tạm thời, sẽ cập nhật khi sách được trả về)
+        // The date is refreshed when this reservation receives a returned copy.
         LocalDateTime expiryDate = reservationDate.plusDays(3);
 
         Reservation reservation = new Reservation(
@@ -126,40 +136,64 @@ public class ReservationService {
      * Xử lý tất cả các đơn đặt trước đã hết hạn.
      *
      * <p>Quy trình xử lý:</p>
-     * <ol>
-     *   <li>Tìm tất cả đơn đặt trước có trạng thái Pending và ngày hết hạn &lt; ngày hiện tại</li>
-     *   <li>Cập nhật trạng thái từng đơn sang Expired</li>
-     *   <li>Với mỗi đơn hết hạn, tìm bản sao sách đang ở trạng thái Reserved
-     *       và chuyển về Available (nếu có)</li>
-     * </ol>
+     * Chỉ các đơn đã được phân bản sao mới bắt đầu thời hạn 3 ngày. Khi hết hạn,
+     * bản sao được chuyển cho người tiếp theo trong hàng chờ hoặc trả về Available.
      *
      * @return số lượng đơn đặt trước đã được xử lý (đánh dấu hết hạn)
      */
     public int processExpiredReservations() {
-        // Tìm tất cả đơn đặt trước đã hết hạn
+        synchronized (EXPIRY_PROCESS_LOCK) {
+            return processExpiredReservationsLocked();
+        }
+    }
+
+    private int processExpiredReservationsLocked() {
         List<Reservation> expiredReservations = reservationRepository.findExpiredReservations();
-
-        int processedCount = 0;
-
+        Set<String> isbns = new HashSet<>();
         for (Reservation reservation : expiredReservations) {
-            // Cập nhật trạng thái đơn đặt trước sang Expired
-            boolean updated = reservationRepository.updateStatus(
-                    reservation.getReservationId(),
-                    ReservationStatus.Expired
-            );
+            isbns.add(reservation.getIsbn());
+        }
+        int processedCount = 0;
+        LocalDateTime now = LocalDateTime.now();
 
-            if (updated) {
-                // Tìm các bản sao sách đang ở trạng thái Reserved cho ISBN này
-                // và chuyển về Available
-                List<BookCopy> copies = bookCopyRepository.findByIsbn(reservation.getIsbn());
-                for (BookCopy copy : copies) {
-                    if (copy.getStatus() == CopyStatus.Reserved) {
-                        bookCopyRepository.updateStatus(copy.getCopyId(), CopyStatus.Available);
-                        break; // Chỉ cập nhật 1 bản sao Reserved cho mỗi đơn hết hạn
+        for (String isbn : isbns) {
+            while (true) {
+                List<Reservation> pending = reservationRepository.findPendingByIsbn(isbn);
+                List<BookCopy> reservedCopies = getReservedCopies(isbn);
+                int assignedCount = Math.min(pending.size(), reservedCopies.size());
+                int expiredIndex = -1;
+
+                for (int i = 0; i < assignedCount; i++) {
+                    LocalDateTime expiryDate = pending.get(i).getExpiryDate();
+                    if (expiryDate != null && !expiryDate.isAfter(now)) {
+                        expiredIndex = i;
+                        break;
                     }
                 }
 
+                if (expiredIndex < 0) {
+                    break;
+                }
+
+                Reservation expired = pending.get(expiredIndex);
+                if (!reservationRepository.updateStatus(expired.getReservationId(), ReservationStatus.Expired)) {
+                    break;
+                }
                 processedCount++;
+
+                List<Reservation> remaining = reservationRepository.findPendingByIsbn(isbn);
+                if (remaining.size() < reservedCopies.size()) {
+                    bookCopyRepository.updateStatus(
+                            reservedCopies.get(reservedCopies.size() - 1).getCopyId(),
+                            CopyStatus.Available
+                    );
+                } else {
+                    Reservation newlyAssigned = remaining.get(reservedCopies.size() - 1);
+                    reservationRepository.updateExpiryDate(
+                            newlyAssigned.getReservationId(),
+                            now.plusDays(3)
+                    );
+                }
             }
         }
 
@@ -225,7 +259,8 @@ public class ReservationService {
             throw new IllegalArgumentException("Mã đơn đặt trước không được để trống.");
         }
 
-        // Tìm đơn đặt trước
+        processExpiredReservations();
+
         Optional<Reservation> reservationOpt = reservationRepository.findById(reservationId);
         if (reservationOpt.isEmpty()) {
             return false;
@@ -240,20 +275,39 @@ public class ReservationService {
                     "Trạng thái hiện tại: " + reservation.getStatus());
         }
 
-        // Cập nhật trạng thái sang Cancelled
-        boolean updated = reservationRepository.updateStatus(reservationId, ReservationStatus.Cancelled);
+        List<Reservation> pendingBefore = reservationRepository.findPendingByIsbn(reservation.getIsbn());
+        int reservationIndex = -1;
+        for (int i = 0; i < pendingBefore.size(); i++) {
+            if (pendingBefore.get(i).getReservationId().equals(reservationId)) {
+                reservationIndex = i;
+                break;
+            }
+        }
+        List<BookCopy> reservedCopies = getReservedCopies(reservation.getIsbn());
 
-        if (updated) {
-            // Tìm bản sao đang Reserved cho đơn này và chuyển về Available
-            List<BookCopy> copies = bookCopyRepository.findByIsbn(reservation.getIsbn());
-            for (BookCopy copy : copies) {
-                if (copy.getStatus() == CopyStatus.Reserved) {
-                    bookCopyRepository.updateStatus(copy.getCopyId(), CopyStatus.Available);
-                    break; // Chỉ cập nhật 1 bản sao
-                }
+        boolean updated = reservationRepository.updateStatus(reservationId, ReservationStatus.Cancelled);
+        if (updated && reservationIndex >= 0 && reservationIndex < reservedCopies.size()) {
+            List<Reservation> remaining = reservationRepository.findPendingByIsbn(reservation.getIsbn());
+            if (remaining.size() < reservedCopies.size()) {
+                bookCopyRepository.updateStatus(
+                        reservedCopies.get(reservedCopies.size() - 1).getCopyId(),
+                        CopyStatus.Available
+                );
+            } else {
+                Reservation newlyAssigned = remaining.get(reservedCopies.size() - 1);
+                reservationRepository.updateExpiryDate(
+                        newlyAssigned.getReservationId(),
+                        LocalDateTime.now().plusDays(3)
+                );
             }
         }
 
         return updated;
+    }
+
+    private List<BookCopy> getReservedCopies(String isbn) {
+        return bookCopyRepository.findByIsbn(isbn).stream()
+                .filter(copy -> copy.getStatus() == CopyStatus.Reserved)
+                .toList();
     }
 }

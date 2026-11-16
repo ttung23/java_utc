@@ -50,6 +50,8 @@ public class BookHandler implements HttpHandler {
                     Book book = HttpHelper.getGson().fromJson(body, Book.class);
                     Book saved = bookService.addBook(book);
                     HttpHelper.sendJsonResponse(exchange, 201, ApiResponse.ok("Thêm sách thành công", saved));
+                } else if ("PUT".equals(method)) {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Cần cung cấp ISBN của sách"));
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
@@ -90,6 +92,17 @@ public class BookHandler implements HttpHandler {
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
+            } else if (path.startsWith("/api/books/copies/")) {
+                String copyId = path.substring("/api/books/copies/".length());
+                if ("DELETE".equals(method)) {
+                    if (bookService.deleteCopy(copyId)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Xóa bản sao thành công", null));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy bản sao"));
+                    }
+                } else {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
+                }
             } else if (path.startsWith("/api/books/")) {
                 String isbn = path.substring("/api/books/".length());
                 if ("GET".equals(method)) {
@@ -99,12 +112,20 @@ public class BookHandler implements HttpHandler {
                     } else {
                         HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy sách với ISBN: " + isbn));
                     }
+                } else if ("PUT".equals(method)) {
+                    Book book = HttpHelper.getGson().fromJson(HttpHelper.readRequestBody(exchange), Book.class);
+                    book.setIsbn(isbn);
+                    if (bookService.updateBook(book)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Cập nhật sách thành công", book));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy sách với ISBN: " + isbn));
+                    }
                 } else if ("DELETE".equals(method)) {
                     boolean deleted = bookService.deleteBook(isbn);
                     if (deleted) {
                         HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Xóa sách thành công", null));
                     } else {
-                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Không thể xóa sách (có thể đang có bản sao được mượn)"));
+                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Không thể xóa sách"));
                     }
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));

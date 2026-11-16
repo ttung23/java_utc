@@ -47,6 +47,7 @@ public class LoanService {
     private final BookRepository bookRepository;
     private final FineService fineService;
     private final ReservationRepository reservationRepository;
+    private final ReservationService reservationService;
 
     /**
      * Khởi tạo LoanService với các repository và service mặc định.
@@ -59,6 +60,7 @@ public class LoanService {
         this.bookRepository = new BookRepository();
         this.fineService = new FineService();
         this.reservationRepository = new ReservationRepository();
+        this.reservationService = new ReservationService();
     }
 
     /**
@@ -73,6 +75,7 @@ public class LoanService {
         this.bookRepository = new BookRepository();
         this.fineService = fineService;
         this.reservationRepository = new ReservationRepository();
+        this.reservationService = new ReservationService();
     }
 
     // =====================================================================================
@@ -120,6 +123,7 @@ public class LoanService {
         if (barcode == null || barcode.trim().isEmpty()) {
             throw new IllegalArgumentException("Mã vạch (barcode) không được để trống.");
         }
+        reservationService.processExpiredReservations();
 
         Connection conn = null;
         try {
@@ -164,9 +168,13 @@ public class LoanService {
             Reservation matchedReservation = null;
 
             if (copy.getStatus() == CopyStatus.Reserved) {
-                // Nếu sách đang được đặt trước, kiểm tra xem có phải cho độc giả này không
+                // Only readers assigned one of the currently reserved copies may borrow it.
                 List<Reservation> pendingReservations = reservationRepository.findPendingByIsbn(copy.getIsbn());
-                for (Reservation res : pendingReservations) {
+                int reservedCount = (int) bookCopyRepository.findByIsbn(copy.getIsbn()).stream()
+                        .filter(bookCopy -> bookCopy.getStatus() == CopyStatus.Reserved)
+                        .count();
+                for (int i = 0; i < Math.min(reservedCount, pendingReservations.size()); i++) {
+                    Reservation res = pendingReservations.get(i);
                     if (res.getReaderId().equals(readerId)) {
                         isReservedForThisReader = true;
                         matchedReservation = res;
@@ -300,6 +308,7 @@ public class LoanService {
         if (barcode == null || barcode.trim().isEmpty()) {
             throw new IllegalArgumentException("Mã vạch (barcode) không được để trống.");
         }
+        reservationService.processExpiredReservations();
 
         Connection conn = null;
         try {
@@ -396,15 +405,20 @@ public class LoanService {
 
                 // Kiểm tra đơn đặt trước đang chờ cho ISBN này
                 List<Reservation> pendingReservations = reservationRepository.findPendingByIsbn(copy.getIsbn());
+                int reservedCount = (int) bookCopyRepository.findByIsbn(copy.getIsbn()).stream()
+                        .filter(bookCopy -> bookCopy.getStatus() == CopyStatus.Reserved)
+                        .count();
 
-                if (!pendingReservations.isEmpty()) {
+                if (pendingReservations.size() > reservedCount) {
                     // Có đơn đặt trước đang chờ → chuyển bản sao sang Reserved
                     copyNewStatus = CopyStatus.Reserved;
                     bookCopyRepository.updateStatus(copy.getCopyId(), copyNewStatus);
 
-                    // Cập nhật ngày hết hạn đặt trước (3 ngày kể từ hôm nay)
-                    Reservation nextReservation = pendingReservations.get(0);
-                    // Cập nhật reservation để thông báo cho độc giả đặt trước
+                    Reservation nextReservation = pendingReservations.get(reservedCount);
+                    reservationRepository.updateExpiryDate(
+                            nextReservation.getReservationId(),
+                            LocalDateTime.now().plusDays(3)
+                    );
                     message += String.format(" Bản sao được giữ cho đơn đặt trước: %s",
                             nextReservation.getReservationId());
                 } else {
@@ -512,7 +526,13 @@ public class LoanService {
      * @return danh sách phiếu mượn quá hạn
      */
     public List<Loan> getOverdueLoans() {
-        return loanRepository.findOverdueLoans();
+        List<Loan> loans = loanRepository.findOverdueLoans();
+        loans.forEach(loan -> loan.setStatus(LoanStatus.OVERDUE));
+        return loans;
+    }
+
+    public List<Loan> getBorrowedLoans() {
+        return loanRepository.findBorrowedLoans();
     }
 
     /**

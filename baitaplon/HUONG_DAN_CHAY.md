@@ -16,8 +16,13 @@ Dự án đã được cấu hình sẵn **Java HttpServer** và **Local Databas
 ### Cách 2: Chạy bình thường bằng `run.bat`
 - Nhấp đúp chuột vào file **`run.bat`**
 - Server sẽ khởi động tại: **`http://localhost:8080`**
+- Nếu cổng 8080 đã được ứng dụng khác sử dụng, hãy chạy bằng Terminal với cổng khác, ví dụ:
+  ```bash
+  mvn -Dslms.port=8081 exec:java
+  ```
+  Sau đó truy cập **`http://localhost:8081`**.
 
-### Cách 2: Chạy bằng dòng lệnh Terminal / PowerShell
+### Cách 3: Chạy bằng dòng lệnh Terminal / PowerShell
 Mở PowerShell tại thư mục `baitaplon` và gõ:
 ```bash
 mvn clean compile
@@ -87,6 +92,7 @@ Nếu máy bạn hoặc phòng máy trường đã cài Oracle XE (11g/19c/21c):
 ### 📌 Kịch bản 4: Đặt Trước Sách (Reservation)
 1. Vào mục **Đặt trước Sách** trên menu.
 2. Thử đặt trước đầu sách đã hết sạch bản sao khả dụng trong kho -> Hệ thống tiếp nhận đơn đặt `Pending` và giữ chỗ trong 3 ngày khi sách được trả về kho.
+3. Khi bản sao được trả, hệ thống phân bổ lần lượt cho người đặt trước; đơn hết hạn được xử lý tự động mỗi phút khi server đang chạy.
 
 ---
 

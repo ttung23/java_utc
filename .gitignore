@@ -8,3 +8,4 @@ baitaplon/database/*.mv.db
 baitaplon/database/*.trace.db
 baitaplon/database/*.lock.db
 
+/baitaplon/database/slms.mv.db
