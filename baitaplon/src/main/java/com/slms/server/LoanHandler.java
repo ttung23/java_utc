@@ -53,6 +53,30 @@ public class LoanHandler implements HttpHandler {
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
+            } else if (path.equals("/api/loans/renew")) {
+                if ("POST".equals(method)) {
+                    String body = HttpHelper.readRequestBody(exchange);
+                    JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                    String loanId = json.has("loanId") ? json.get("loanId").getAsString() : null;
+
+                    com.slms.auth.AuthSession session = AuthHelper.getSession(exchange).orElse(null);
+                    String readerId = null;
+                    if (session != null && session.getRole() == com.slms.model.enums.UserRole.READER) {
+                        readerId = session.getUserId();
+                    } else if (json.has("readerId")) {
+                        readerId = json.get("readerId").getAsString();
+                    }
+
+                    if (loanId == null || loanId.trim().isEmpty()) {
+                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Thiếu loanId"));
+                        return;
+                    }
+
+                    Loan renewed = loanService.renewLoan(loanId.trim(), readerId);
+                    HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Gia hạn thành công!", renewed));
+                } else {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
+                }
             } else if (path.equals("/api/loans/return")) {
                 // UC22: TIẾP NHẬN TRẢ SÁCH & XỬ LÝ SỰ CỐ
                 if ("POST".equals(method)) {
@@ -78,8 +102,11 @@ public class LoanHandler implements HttpHandler {
                 if ("GET".equals(method)) {
                     Map<String, String> params = HttpHelper.getQueryParams(exchange);
                     String status = params.get("status");
+                    String readerId = params.get("readerId");
                     List<Loan> loans;
-                    if ("OVERDUE".equalsIgnoreCase(status)) {
+                    if (readerId != null && !readerId.trim().isEmpty()) {
+                        loans = loanService.getLoansByReaderId(readerId.trim());
+                    } else if ("OVERDUE".equalsIgnoreCase(status)) {
                         loans = loanService.getOverdueLoans();
                     } else if ("BORROWED".equalsIgnoreCase(status)) {
                         loans = loanService.getBorrowedLoans();

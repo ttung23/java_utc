@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Sách đang mượn</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Phiếu mượn của tôi</h1>
+        <p class="page-subtitle">Gia hạn online nếu chưa quá hạn. Trả sách vẫn tại quầy.</p>
+      </div>
+      <button class="btn btn-secondary" onclick="loadLoans()">Làm mới</button>
+    </div>
+    <div class="panel">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã phiếu</th><th>Bản sao</th><th>Ngày mượn</th><th>Hạn trả</th><th>Trạng thái</th><th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="loans-body"><tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script src="js/client.js"></script>
+  <script>
+    const readerId = requireLogin();
+    if (readerId) { renderClientSidebar("loans"); loadLoans(); }
+
+    function statusBadge(status) {
+      const s = (status || "").toUpperCase();
+      if (s === "BORROWED") return `<span class="badge badge-warning">Đang mượn</span>`;
+      if (s === "RETURNED") return `<span class="badge badge-success">Đã trả</span>`;
+      if (s === "OVERDUE") return `<span class="badge badge-danger">Quá hạn</span>`;
+      return `<span class="badge">${status || "-"}</span>`;
+    }
+
+    async function loadLoans() {
+      const tbody = document.getElementById("loans-body");
+      try {
+        const loans = await fetchAPI("/api/loans?readerId=" + encodeURIComponent(readerId));
+        if (!loans.length) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có phiếu mượn</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = loans.map(l => {
+          const canRenew = (l.status || "").toUpperCase() === "BORROWED";
+          return `<tr>
+            <td>${l.loanId}</td><td>${l.copyId}</td>
+            <td>${formatDateTime(l.borrowDate)}</td><td>${formatDateTime(l.dueDate)}</td>
+            <td>${statusBadge(l.status)}</td>
+            <td>${canRenew ? `<button class="btn btn-primary btn-sm" onclick="renewLoan('${l.loanId}')">Gia hạn</button>` : "-"}</td>
+          </tr>`;
+        }).join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+      }
+    }
+
+    async function renewLoan(loanId) {
+      if (!confirm("Gia hạn phiếu " + loanId + "?")) return;
+      try {
+        const loan = await fetchAPI("/api/loans/renew", {
+          method: "POST",
+          body: JSON.stringify({ loanId })
+        });
+        showToast("Đã gia hạn đến " + formatDateTime(loan.dueDate), "success");
+        loadLoans();
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

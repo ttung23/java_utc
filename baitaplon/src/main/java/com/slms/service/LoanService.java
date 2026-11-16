@@ -469,6 +469,58 @@ public class LoanService {
     }
 
     /**
+     * Lấy danh sách phiếu mượn của một độc giả.
+     *
+     * @param readerId mã độc giả
+     * @return danh sách phiếu mượn
+     */
+    public List<Loan> getLoansByReaderId(String readerId) {
+        if (readerId == null || readerId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã độc giả không được để trống.");
+        }
+        return loanRepository.findByReaderId(readerId.trim());
+    }
+
+    /**
+     * Gia hạn phiếu mượn 1 lần: cộng thêm số ngày theo loại độc giả.
+     * Chỉ áp dụng phiếu BORROWED, chưa quá hạn, thuộc đúng độc giả.
+     */
+    public Loan renewLoan(String loanId, String readerId) {
+        if (loanId == null || loanId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã phiếu mượn không được để trống.");
+        }
+        Optional<Loan> opt = loanRepository.findById(loanId.trim());
+        if (opt.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy phiếu mượn: " + loanId);
+        }
+        Loan loan = opt.get();
+        if (readerId != null && !readerId.equals(loan.getReaderId())) {
+            throw new IllegalArgumentException("Phiếu mượn không thuộc độc giả này.");
+        }
+        if (loan.getStatus() != LoanStatus.BORROWED) {
+            throw new IllegalStateException("Chỉ gia hạn được phiếu đang mượn (BORROWED).");
+        }
+        if (loan.getDueDate() != null && loan.getDueDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Phiếu đã quá hạn — không thể gia hạn. Hãy trả sách tại quầy.");
+        }
+
+        Optional<Reader> readerOpt = readerRepository.findById(loan.getReaderId());
+        if (readerOpt.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy độc giả của phiếu mượn.");
+        }
+        Reader reader = readerOpt.get();
+        if (reader.getBalanceFine() > 50000) {
+            throw new FineExceededException("Nợ phạt vượt quá 50.000 VNĐ — không thể gia hạn.");
+        }
+
+        int extraDays = reader.getType().getMaxBorrowDays();
+        LocalDateTime newDue = loan.getDueDate().plusDays(extraDays);
+        loanRepository.updateDueDate(loan.getLoanId(), newDue);
+        loan.setDueDate(newDue);
+        return loan;
+    }
+
+    /**
      * Lấy danh sách các phiếu mượn quá hạn.
      *
      * @return danh sách phiếu mượn quá hạn

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Trang độc giả</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+  <main class="main-wrapper">
+    <div class="hero-card">
+      <div>
+        <h2>Xin chào, <span id="welcome-name">...</span></h2>
+        <p id="hero-reason">Đang tải hồ sơ thẻ thư viện...</p>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="catalog.html" class="btn btn-primary">Tra cứu sách</a>
+          <a href="profile.html" class="btn btn-secondary">Cập nhật hồ sơ</a>
+        </div>
+      </div>
+      <div class="stats-grid" style="margin:0;">
+        <div class="stat-card" style="margin:0;">
+          <div><div class="stat-label">Đang mượn</div><div class="stat-value" id="stat-borrowed">-</div></div>
+        </div>
+        <div class="stat-card" style="margin:0;">
+          <div><div class="stat-label">Nợ phạt</div><div class="stat-value" id="stat-fine" style="font-size:20px;">-</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div><div class="stat-label">Tổng phiếu mượn</div><div class="stat-value" id="s-total">-</div></div></div>
+      <div class="stat-card"><div><div class="stat-label">Đã trả</div><div class="stat-value" id="s-returned">-</div></div></div>
+      <div class="stat-card"><div><div class="stat-label">Quá hạn</div><div class="stat-value" id="s-overdue" style="color:var(--danger);">-</div></div></div>
+      <div class="stat-card"><div><div class="stat-label">Đặt trước Pending</div><div class="stat-value" id="s-res">-</div></div></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><h2 class="panel-title">Thông báo</h2></div>
+      <div id="notes" class="note-list" style="padding:4px 2px 12px;">Đang tải...</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">Thông tin thẻ</h2></div>
+      <table>
+        <tbody>
+          <tr><th style="width:220px;">Mã thẻ</th><td id="info-id">-</td></tr>
+          <tr><th>Loại</th><td id="info-type">-</td></tr>
+          <tr><th>Trạng thái</th><td id="info-status">-</td></tr>
+          <tr><th>Hạn thẻ</th><td id="info-expiry">-</td></tr>
+          <tr><th>Hạn mức</th><td id="info-limit">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <script src="js/client.js"></script>
+  <script>
+    const readerId = requireLogin();
+    if (readerId) {
+      renderClientSidebar("home");
+      loadAll();
+    }
+
+    async function loadAll() {
+      try {
+        const [p, stats, notes] = await Promise.all([
+          fetchAPI("/api/readers/eligibility?readerId=" + encodeURIComponent(readerId)),
+          fetchAPI("/api/client/stats"),
+          fetchAPI("/api/client/notifications")
+        ]);
+        document.getElementById("welcome-name").textContent = p.fullName;
+        document.getElementById("hero-reason").textContent = p.reason;
+        document.getElementById("stat-borrowed").textContent = p.currentBorrowedCount + "/" + p.maxBooks;
+        document.getElementById("stat-fine").textContent = formatCurrency(p.balanceFine);
+        document.getElementById("info-id").textContent = p.readerId;
+        document.getElementById("info-type").textContent = p.readerType;
+        document.getElementById("info-status").textContent = p.status;
+        document.getElementById("info-expiry").textContent = p.expiryDate;
+        document.getElementById("info-limit").textContent = p.maxBooks + " cuốn / " + p.maxBorrowDays + " ngày";
+
+        document.getElementById("s-total").textContent = stats.totalLoans;
+        document.getElementById("s-returned").textContent = stats.returnedLoans;
+        document.getElementById("s-overdue").textContent = stats.overdueLoans;
+        document.getElementById("s-res").textContent = stats.pendingReservations;
+
+        const box = document.getElementById("notes");
+        if (!notes.length) {
+          box.innerHTML = `<div class="note-item">Không có thông báo mới.</div>`;
+        } else {
+          box.innerHTML = notes.map(n => `<div class="note-item"><strong>${n.title}</strong><span style="color:var(--c-muted);font-size:13px;">${n.message}</span></div>`).join("");
+        }
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

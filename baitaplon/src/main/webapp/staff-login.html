@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Đăng nhập thủ thư</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#0f172a; }
+    .card { width:100%; max-width:420px; background:#fff; border-radius:14px; padding:32px; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+    h1 { margin-bottom:8px; }
+    p { color:#64748b; margin-bottom:16px; font-size:14px; }
+    label { display:block; font-size:13px; font-weight:600; margin:10px 0 6px; }
+    input { width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; }
+    .hint { margin-top:14px; font-size:12px; color:#64748b; line-height:1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Đăng nhập nhân viên</h1>
+    <p>Thủ thư / Admin — RBAC cho quầy quản trị SLMS</p>
+    <div id="err" class="alert alert-danger" style="display:none;"></div>
+    <form id="form">
+      <label>Tên đăng nhập</label>
+      <input id="username" required placeholder="librarian hoặc admin">
+      <label>Mật khẩu</label>
+      <input id="password" type="password" required>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px;" type="submit">Vào quầy thủ thư</button>
+    </form>
+    <div class="hint">
+      Demo: <strong>librarian / 123456</strong> · <strong>admin / admin123</strong><br>
+      <a href="client/login.html">← Cổng độc giả</a>
+    </div>
+  </div>
+  <script>
+    const TOKEN_KEY = "slms_staff_token";
+    const ROLE_KEY = "slms_staff_role";
+    if (sessionStorage.getItem(TOKEN_KEY)) {
+      window.location.href = "index.html";
+    }
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = document.getElementById("err");
+      err.style.display = "none";
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "staff",
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value
+          })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        sessionStorage.setItem(TOKEN_KEY, json.data.token);
+        sessionStorage.setItem(ROLE_KEY, json.data.role);
+        sessionStorage.setItem("slms_staff_name", json.data.displayName || "");
+        window.location.href = "index.html";
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

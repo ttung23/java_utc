@@ -2,4 +2,10 @@
 */lib*
 # */context
 */target
+# Local JDK / H2 runtime data
+baitaplon/.tools/
+baitaplon/database/*.mv.db
+baitaplon/database/*.trace.db
+baitaplon/database/*.lock.db
+
 /baitaplon/database/slms.mv.db

@@ -55,6 +55,19 @@ public class BookHandler implements HttpHandler {
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
+            } else if (path.equals("/api/books/availability")) {
+                if ("GET".equals(method)) {
+                    Map<String, String> params = HttpHelper.getQueryParams(exchange);
+                    String isbn = params.get("isbn");
+                    if (isbn == null || isbn.trim().isEmpty()) {
+                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Thiếu tham số isbn"));
+                        return;
+                    }
+                    Map<String, Object> availability = bookService.getAvailability(isbn.trim());
+                    HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(availability));
+                } else {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
+                }
             } else if (path.equals("/api/books/copies")) {
                 if ("GET".equals(method)) {
                     Map<String, String> params = HttpHelper.getQueryParams(exchange);

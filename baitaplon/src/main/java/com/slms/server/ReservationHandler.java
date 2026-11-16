@@ -37,8 +37,11 @@ public class ReservationHandler implements HttpHandler {
                 if ("GET".equals(method)) {
                     Map<String, String> params = HttpHelper.getQueryParams(exchange);
                     String isbn = params.get("isbn");
+                    String readerId = params.get("readerId");
                     List<Reservation> list;
-                    if (isbn != null && !isbn.trim().isEmpty()) {
+                    if (readerId != null && !readerId.trim().isEmpty()) {
+                        list = reservationService.getReservationsByReaderId(readerId.trim());
+                    } else if (isbn != null && !isbn.trim().isEmpty()) {
                         list = reservationService.getPendingByIsbn(isbn.trim());
                     } else {
                         list = reservationService.getAllReservations();

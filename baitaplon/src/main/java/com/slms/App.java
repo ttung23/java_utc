@@ -1,7 +1,9 @@
 package com.slms;
 
 import com.slms.repository.DatabaseConnection;
+import com.slms.server.AuthHandler;
 import com.slms.server.BookHandler;
+import com.slms.server.ClientPortalHandler;
 import com.slms.server.FineHandler;
 import com.slms.server.LoanHandler;
 import com.slms.server.ReaderHandler;
@@ -56,6 +58,8 @@ public class App {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
 
             // Đăng ký các REST API Handlers
+            server.createContext("/api/auth", new AuthHandler());
+            server.createContext("/api/client", new ClientPortalHandler());
             server.createContext("/api/books", new BookHandler());
             server.createContext("/api/readers", new ReaderHandler());
             server.createContext("/api/loans", new LoanHandler());

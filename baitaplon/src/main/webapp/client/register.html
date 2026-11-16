@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Đăng ký thẻ độc giả</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body" style="display:block;margin:0;">
+  <div class="auth-shell">
+    <section class="auth-visual">
+      <div>
+        <h1>Mở thẻ thư viện trực tuyến</h1>
+        <p style="max-width:420px;line-height:1.6;opacity:.9;">
+          Sinh viên: tối đa 5 cuốn / 14 ngày. Giảng viên: 10 cuốn / 30 ngày.
+        </p>
+      </div>
+    </section>
+    <section class="auth-panel">
+      <div class="login-card">
+        <h1>Đăng ký thẻ</h1>
+        <div id="reg-error" class="alert alert-danger" style="display:none;margin:12px 0;"></div>
+        <form id="reg-form">
+          <label>Họ và tên</label>
+          <input id="fullName" required placeholder="Nguyen Van A">
+          <label>Loại độc giả</label>
+          <select id="readerType">
+            <option value="STUDENT">Sinh viên</option>
+            <option value="LECTURER">Giảng viên</option>
+          </select>
+          <label>Email</label>
+          <input id="email" type="email" placeholder="email@utc.edu.vn">
+          <label>Số điện thoại</label>
+          <input id="phone" placeholder="09xxxxxxxx">
+          <label>Mật khẩu (≥ 6 ký tự)</label>
+          <input id="password" type="password" required minlength="6">
+          <button class="btn btn-primary" style="width:100%;margin-top:18px;" type="submit">Tạo thẻ</button>
+        </form>
+        <div style="margin-top:14px;font-size:13px;"><a href="login.html">← Đã có tài khoản</a></div>
+      </div>
+    </section>
+  </div>
+  <script src="js/client.js"></script>
+  <script>
+    document.getElementById("reg-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById("reg-error");
+      errBox.style.display = "none";
+      try {
+        const data = await fetchAPI("/api/auth/register", {
+          method: "POST",
+          body: JSON.stringify({
+            fullName: document.getElementById("fullName").value.trim(),
+            readerType: document.getElementById("readerType").value,
+            email: document.getElementById("email").value.trim(),
+            phone: document.getElementById("phone").value.trim(),
+            password: document.getElementById("password").value
+          })
+        });
+        setSession(data);
+        showToast("Đăng ký thành công. Mã thẻ: " + data.userId, "success");
+        window.location.href = "index.html";
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

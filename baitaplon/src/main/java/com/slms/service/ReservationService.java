@@ -212,6 +212,19 @@ public class ReservationService {
     }
 
     /**
+     * Lấy danh sách đơn đặt trước của một độc giả.
+     *
+     * @param readerId mã độc giả
+     * @return danh sách đơn đặt trước
+     */
+    public List<Reservation> getReservationsByReaderId(String readerId) {
+        if (readerId == null || readerId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã độc giả không được để trống.");
+        }
+        return reservationRepository.findByReaderId(readerId.trim());
+    }
+
+    /**
      * Lấy danh sách các đơn đặt trước đang chờ (Pending) cho một cuốn sách.
      *
      * @param isbn mã ISBN của sách
