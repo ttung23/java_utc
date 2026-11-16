@@ -13,32 +13,53 @@ Write-Host ""
 $projectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $projectDir
 
-# 1. Cấu hình Java 22
-$javac = "javac.exe"
-$java = "java.exe"
-if (Test-Path "C:\Program Files\Java\jdk-22\bin") {
-    $javac = "C:\Program Files\Java\jdk-22\bin\javac.exe"
-    $java = "C:\Program Files\Java\jdk-22\bin\java.exe"
-    $env:JAVA_HOME = "C:\Program Files\Java\jdk-22"
-    $env:PATH = "C:\Program Files\Java\jdk-22\bin;$env:PATH"
+$mavenWrapper = Join-Path $projectDir "mvnw.cmd"
+if (!(Test-Path $mavenWrapper)) {
+    throw "Khong tim thay Maven Wrapper: $mavenWrapper"
 }
 
-# 2. Đảm bảo thư mục bin và lib
-if (!(Test-Path "bin")) { New-Item -ItemType Directory -Force -Path "bin" | Out-Null }
-if (!(Test-Path "lib")) { New-Item -ItemType Directory -Force -Path "lib" | Out-Null }
+$javaHome = $env:JAVA_HOME
+if (!$javaHome -or !(Test-Path (Join-Path $javaHome "bin\javac.exe"))) {
+    $javaHome = $null
+    $javaRoots = @(
+        (Join-Path $env:ProgramFiles "Java"),
+        (Join-Path $env:ProgramFiles "Eclipse Adoptium"),
+        (Join-Path $env:ProgramFiles "Microsoft")
+    )
+    foreach ($root in $javaRoots) {
+        $candidate = Get-ChildItem -Path $root -Directory -Filter "jdk-*" -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName "bin\javac.exe") } |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+        if ($candidate) {
+            $javaHome = $candidate.FullName
+            break
+        }
+    }
+}
+if (!$javaHome) {
+    throw "Khong tim thay JDK 17+. Hay cai JDK hoac sua bien JAVA_HOME."
+}
+
+$env:JAVA_HOME = $javaHome
+$env:PATH = "$javaHome\bin;$env:PATH"
+$java = Join-Path $javaHome "bin\java.exe"
+$classpathFile = Join-Path $projectDir "target\dependency-classpath.txt"
 
 $global:serverProcess = $null
 
 function Start-Server {
     Write-Host "`n>>> [SERVER] Dang khoi dong Java Web Server..." -ForegroundColor Green
+    $dependencies = (Get-Content $classpathFile -Raw).Trim()
+    $classpath = "$(Join-Path $projectDir 'target\classes');$dependencies"
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = $java
-    $startInfo.Arguments = "-cp bin;lib/gson.jar;lib/ojdbc11.jar com.slms.App"
+    $startInfo.Arguments = "-cp `"$classpath`" com.slms.App --port=8081"
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $false
     $startInfo.RedirectStandardError = $false
     $global:serverProcess = [System.Diagnostics.Process]::Start($startInfo)
-    Write-Host ">>> [SERVER] Server da chay tai: http://localhost:8080 (PID: $($global:serverProcess.Id))" -ForegroundColor Cyan
+    Write-Host ">>> [SERVER] Server da chay tai: http://localhost:8081 (PID: $($global:serverProcess.Id))" -ForegroundColor Cyan
     Write-Host ">>> [WATCHER] Dang theo doi thay doi trong src/ (Sua code la tu dong build lai)..." -ForegroundColor Yellow
 }
 
@@ -53,12 +74,9 @@ function Stop-Server {
 }
 
 function Build-Java {
-    Write-Host "`n>>> [BUILD] Phat hien code Java thay doi! Dang bien dich lai..." -ForegroundColor Magenta
-    $sources = (Get-ChildItem -Path "src\main\java" -Recurse -Filter "*.java").FullName
-    $cp = "lib/gson.jar;lib/ojdbc11.jar;bin"
-    
-    $proc = Start-Process -FilePath $javac -ArgumentList @("-encoding", "UTF-8", "-cp", $cp, "-d", "bin") + $sources -NoNewWindow -Wait -PassThru
-    if ($proc.ExitCode -eq 0) {
+    Write-Host "`n>>> [BUILD] Dang bien dich Java va nap classpath..." -ForegroundColor Magenta
+    & $mavenWrapper -q compile dependency:build-classpath "-Dmdep.outputFile=$classpathFile"
+    if ($LASTEXITCODE -eq 0 -and (Test-Path $classpathFile)) {
         Write-Host ">>> [BUILD] Bien dich thanh cong 100%!" -ForegroundColor Green
         return $true
     } else {
@@ -67,8 +85,10 @@ function Build-Java {
     }
 }
 
-# Chạy server lần đầu
-Start-Server
+# Build and start the server once before watching for changes.
+if (Build-Java) {
+    Start-Server
+}
 
 # Cấu hình FileSystemWatcher để theo dõi thay đổi
 $watcher = New-Object System.IO.FileSystemWatcher

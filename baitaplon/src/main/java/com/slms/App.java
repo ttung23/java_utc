@@ -8,6 +8,7 @@ import com.slms.server.FineHandler;
 import com.slms.server.LoanHandler;
 import com.slms.server.ReaderHandler;
 import com.slms.server.ReservationHandler;
+import com.slms.server.StatisticsHandler;
 import com.slms.server.StaticFileHandler;
 import com.sun.net.httpserver.HttpServer;
 
@@ -22,10 +23,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class App {
 
-    private static final int PORT = Integer.parseInt(System.getProperty("slms.port", "8080"));
     private static final long START_TIME = System.currentTimeMillis();
 
     public static void main(String[] args) {
+        int port = resolvePort(args);
         System.out.println("========================================================================");
         System.out.println("       SMART LIBRARY MANAGEMENT SYSTEM (SLMS) - JAVA & DATABASE        ");
         System.out.println("========================================================================");
@@ -55,7 +56,7 @@ public class App {
 
         // 2. Khởi chạy HTTP Web Server
         try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
             // Đăng ký các REST API Handlers
             server.createContext("/api/auth", new AuthHandler());
@@ -65,6 +66,7 @@ public class App {
             server.createContext("/api/loans", new LoanHandler());
             server.createContext("/api/fines", new FineHandler());
             server.createContext("/api/reservations", new ReservationHandler());
+            server.createContext("/api/statistics/chart", new StatisticsHandler());
 
             // Endpoint kiểm tra phiên bản phục vụ Auto Live Reload
             server.createContext("/api/version", exchange -> {
@@ -87,8 +89,8 @@ public class App {
             server.start();
 
             System.out.println("------------------------------------------------------------------------");
-            System.out.println(">>> SERVER ĐANG CHẠY TẠI: http://localhost:" + PORT);
-            System.out.println(">>> Hãy mở trình duyệt và truy cập: http://localhost:" + PORT);
+            System.out.println(">>> SERVER ĐANG CHẠY TẠI: http://localhost:" + port);
+            System.out.println(">>> Hãy mở trình duyệt và truy cập: http://localhost:" + port);
             System.out.println("------------------------------------------------------------------------");
             System.out.println(">>> Nhấn Ctrl+C trong terminal để dừng server.");
             System.out.println("========================================================================");
@@ -97,6 +99,27 @@ public class App {
             System.err.println(">>> Lỗi khi khởi động HTTP Server: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private static int resolvePort(String[] args) {
+        String configuredPort = System.getProperty("slms.port", "8080");
+        for (String arg : args) {
+            if (arg.startsWith("--port=")) {
+                configuredPort = arg.substring("--port=".length());
+                break;
+            }
+        }
+
+        int port;
+        try {
+            port = Integer.parseInt(configuredPort);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Cổng máy chủ phải là số nguyên.", e);
+        }
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("Cổng máy chủ phải nằm trong khoảng 1-65535.");
+        }
+        return port;
     }
 }
 
