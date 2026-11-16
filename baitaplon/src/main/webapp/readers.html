@@ -48,7 +48,7 @@
     <div id="add-reader-modal" class="modal-overlay">
       <div class="modal-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3>Thêm Độc Giả Mới</h3>
+          <h3 id="reader-modal-title">Thêm Độc Giả Mới</h3>
           <button class="btn btn-secondary btn-sm" onclick="closeAddReaderModal()">✕</button>
         </div>
         <form onsubmit="submitAddReader(event)">
@@ -71,9 +71,17 @@
             <label>Hạn thẻ thư viện:</label>
             <input type="date" id="reader-expiry" required value="2027-12-31">
           </div>
+          <div class="form-group" style="margin-bottom:18px;">
+            <label>Trạng thái tài khoản:</label>
+            <select id="reader-status">
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="BLOCKED">Đã khóa</option>
+              <option value="EXPIRED">Hết hạn</option>
+            </select>
+          </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button type="button" class="btn btn-secondary" onclick="closeAddReaderModal()">Hủy</button>
-            <button type="submit" class="btn btn-primary">Lưu Độc Giả</button>
+            <button type="submit" class="btn btn-primary" id="reader-submit-button">Lưu Độc Giả</button>
           </div>
         </form>
       </div>
@@ -82,6 +90,9 @@
 
   <script src="js/app.js"></script>
   <script>
+    let readersById = {};
+    let editingReaderId = null;
+
     async function loadReaders() {
       const tbody = document.getElementById("readers-table-body");
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
@@ -93,6 +104,7 @@
           return;
         }
 
+        readersById = Object.fromEntries(readers.map(reader => [reader.readerId, reader]));
         tbody.innerHTML = readers.map(r => {
           let statusBadge = "badge-success";
           if (r.status === "EXPIRED") statusBadge = "badge-warning";
@@ -110,6 +122,8 @@
               <td><span class="badge ${statusBadge}">${r.status}</span></td>
               <td>
                 <a href="loans.html" class="btn btn-secondary btn-sm">Mượn sách</a>
+                <button class="btn btn-secondary btn-sm" onclick="editReader('${r.readerId}')">Sửa</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteReader('${r.readerId}')">Xóa</button>
               </td>
             </tr>
           `;
@@ -118,6 +132,27 @@
     }
 
     function openAddReaderModal() {
+      editingReaderId = null;
+      document.getElementById("reader-modal-title").textContent = "Thêm Độc Giả Mới";
+      document.getElementById("reader-submit-button").textContent = "Lưu Độc Giả";
+      document.getElementById("reader-id").readOnly = false;
+      document.querySelector("#add-reader-modal form").reset();
+      document.getElementById("reader-status").value = "ACTIVE";
+      document.getElementById("add-reader-modal").classList.add("open");
+    }
+
+    function editReader(readerId) {
+      const reader = readersById[readerId];
+      if (!reader) return;
+      editingReaderId = readerId;
+      document.getElementById("reader-modal-title").textContent = "Cập Nhật Độc Giả";
+      document.getElementById("reader-submit-button").textContent = "Lưu Thay Đổi";
+      document.getElementById("reader-id").value = reader.readerId;
+      document.getElementById("reader-id").readOnly = true;
+      document.getElementById("reader-name").value = reader.fullName;
+      document.getElementById("reader-type").value = reader.type;
+      document.getElementById("reader-expiry").value = reader.expiryDate;
+      document.getElementById("reader-status").value = reader.status;
       document.getElementById("add-reader-modal").classList.add("open");
     }
 
@@ -133,16 +168,27 @@
         type: document.getElementById("reader-type").value,
         expiryDate: document.getElementById("reader-expiry").value,
         balanceFine: 0,
-        status: "ACTIVE"
+        status: document.getElementById("reader-status").value
       };
 
       try {
-        await fetchAPI("/api/readers", {
-          method: "POST",
+        await fetchAPI(editingReaderId
+          ? `/api/readers/${encodeURIComponent(editingReaderId)}`
+          : "/api/readers", {
+          method: editingReaderId ? "PUT" : "POST",
           body: JSON.stringify(reader)
         });
-        showToast("Thêm độc giả thành công!", "success");
+        showToast(editingReaderId ? "Cập nhật độc giả thành công!" : "Thêm độc giả thành công!", "success");
         closeAddReaderModal();
+        loadReaders();
+      } catch (e) {}
+    }
+
+    async function deleteReader(readerId) {
+      if (!confirm(`Xóa độc giả ${readerId}? Không thể xóa độc giả đã có lịch sử mượn.`)) return;
+      try {
+        await fetchAPI(`/api/readers/${encodeURIComponent(readerId)}`, { method: "DELETE" });
+        showToast("Xóa độc giả thành công!", "success");
         loadReaders();
       } catch (e) {}
     }

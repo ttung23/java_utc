@@ -29,6 +29,7 @@ public class ReservationHandler implements HttpHandler {
             return;
         }
 
+        reservationService.processExpiredReservations();
         String path = exchange.getRequestURI().getPath();
 
         try {

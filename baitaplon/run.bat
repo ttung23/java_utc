@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 > nul
+setlocal
 
 echo ========================================================================
 echo       SMART LIBRARY MANAGEMENT SYSTEM (SLMS) - KHOI DONG HE THONG
@@ -8,48 +9,36 @@ echo.
 
 cd /d "%~dp0"
 
-REM 1. Uu tien duong dan JDK 22 tren he thong
-if exist "C:\Program Files\Java\jdk-22\bin" (
-    set "JAVA_HOME=C:\Program Files\Java\jdk-22"
-    set "PATH=C:\Program Files\Java\jdk-22\bin;%PATH%"
+if defined JAVA_HOME if exist "%JAVA_HOME%\bin\javac.exe" goto java_ready
+set "JAVA_HOME="
+for /d %%D in ("%ProgramFiles%\Java\jdk-*") do (
+    if exist "%%~fD\bin\javac.exe" set "JAVA_HOME=%%~fD"
 )
 
-REM 2. Dam bao thu vien da san sang
-if not exist "lib" mkdir "lib"
-if not exist "lib\ojdbc11.jar" (
-    copy "C:\app\sumaytinh0912350956\product\26ai\dbhomeFree\jdbc\lib\ojdbc11.jar" "lib\ojdbc11.jar" > nul 2>&1
-)
-if not exist "lib\gson.jar" (
-    copy "C:\app\sumaytinh0912350956\product\26ai\dbhomeFree\sqlcl\lib\gson.jar" "lib\gson.jar" > nul 2>&1
+if not defined JAVA_HOME (
+    echo [LOI] Khong tim thay JDK. Hay cai JDK 17+ hoac sua bien JAVA_HOME.
+    pause
+    exit /b 1
 )
 
-REM 3. Kiem tra va bien dich ma nguon Java neu can
-if not exist "bin\com\slms\App.class" (
-    echo [1/2] Dang bien dich cac file ma nguon Java...
-    if not exist "bin" mkdir "bin"
-    dir /s /b src\main\java\*.java > sources.txt
-    javac -encoding UTF-8 -cp "lib/gson.jar;lib/ojdbc11.jar" -d bin @sources.txt
-    if errorlevel 1 (
-        echo [LOI] Bien dich that bai!
-        if exist sources.txt del sources.txt
-        pause
-        exit /b 1
-    )
-    if exist sources.txt del sources.txt
-    echo [1/2] Bien dich thanh cong!
-) else (
-    echo [1/2] Ma nguon da duoc bien dich san sang!
+:java_ready
+set "PATH=%JAVA_HOME%\bin;%PATH%"
+set "PORT=%~1"
+if not defined PORT set "PORT=8081"
+
+if not exist "mvnw.cmd" (
+    echo [LOI] Khong tim thay Maven Wrapper trong thu muc baitaplon.
+    pause
+    exit /b 1
 )
 
-REM 4. Khoi chay Web Server
-echo.
-echo ========================================================================
-echo [2/2] DANG KHOI CHAY SERVER TAI: http://localhost:8080
-echo Hay mo trinh duyet (Chrome/Edge) va truy cap: http://localhost:8080
+echo [1/1] Dang khoi dong server tai http://localhost:%PORT%
 echo Nhan Ctrl+C de dung server.
-echo ========================================================================
 echo.
 
-java -cp "bin;lib/gson.jar;lib/ojdbc11.jar" com.slms.App
-
-pause
+call "mvnw.cmd" exec:java "-Dexec.args=--port=%PORT%"
+if errorlevel 1 (
+    echo [LOI] Server khong khoi dong duoc.
+    pause
+    exit /b 1
+)

@@ -285,10 +285,13 @@
         }
 
         tbody.innerHTML = loans.map(l => {
+          const isOverdue = !l.returnDate
+            && (l.status === "OVERDUE" || Date.parse(l.dueDate.replace(" ", "T")) < Date.now());
+          const status = isOverdue ? "OVERDUE" : l.status;
           let badge = "badge-primary";
-          if (l.status === "RETURNED") badge = "badge-success";
-          if (l.status === "OVERDUE") badge = "badge-danger";
-          if (l.status.includes("DAMAGED") || l.status.includes("LOST")) badge = "badge-warning";
+          if (status === "RETURNED") badge = "badge-success";
+          if (status === "OVERDUE") badge = "badge-danger";
+          if (status.includes("DAMAGED") || status.includes("LOST")) badge = "badge-warning";
 
           return `
             <tr>
@@ -298,7 +301,7 @@
               <td>${formatDateTime(l.borrowDate)}</td>
               <td>${formatDateTime(l.dueDate)}</td>
               <td>${l.returnDate ? formatDateTime(l.returnDate) : "-"}</td>
-              <td><span class="badge ${badge}">${l.status}</span></td>
+              <td><span class="badge ${badge}">${status}</span></td>
             </tr>
           `;
         }).join("");

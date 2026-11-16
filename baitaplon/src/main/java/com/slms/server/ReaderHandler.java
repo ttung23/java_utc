@@ -92,8 +92,11 @@ public class ReaderHandler implements HttpHandler {
                 } else if ("POST".equals(method)) {
                     String body = HttpHelper.readRequestBody(exchange);
                     Reader reader = HttpHelper.getGson().fromJson(body, Reader.class);
+                    validateReader(reader);
                     if (reader.getStatus() == null) {
                         reader.setStatus("ACTIVE");
+                    } else {
+                        reader.setStatus(reader.getStatus().toUpperCase());
                     }
                     if (reader.getBalanceFine() < 0) {
                         reader.setBalanceFine(0);
@@ -103,11 +106,53 @@ public class ReaderHandler implements HttpHandler {
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
+            } else if (path.startsWith("/api/readers/")) {
+                String readerId = path.substring("/api/readers/".length());
+                if ("PUT".equals(method)) {
+                    Reader reader = HttpHelper.getGson().fromJson(HttpHelper.readRequestBody(exchange), Reader.class);
+                    reader.setReaderId(readerId);
+                    Optional<Reader> existing = readerRepository.findById(readerId);
+                    if (existing.isEmpty()) {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy độc giả"));
+                        return;
+                    }
+                    if (reader.getStatus() == null) {
+                        reader.setStatus(existing.get().getStatus());
+                    }
+                    validateReader(reader);
+                    reader.setStatus(reader.getStatus().toUpperCase());
+                    reader.setBalanceFine(existing.get().getBalanceFine());
+                    if (readerRepository.update(reader)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Cập nhật độc giả thành công", reader));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy độc giả"));
+                    }
+                } else if ("DELETE".equals(method)) {
+                    if (readerRepository.delete(readerId)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Xóa độc giả thành công", null));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy độc giả"));
+                    }
+                } else {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
+                }
             } else {
                 HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Endpoint không tồn tại"));
             }
         } catch (Exception e) {
             HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Lỗi: " + e.getMessage()));
+        }
+    }
+
+    private void validateReader(Reader reader) {
+        if (reader == null || reader.getReaderId() == null || reader.getReaderId().trim().isEmpty()
+                || reader.getFullName() == null || reader.getFullName().trim().isEmpty()
+                || reader.getType() == null || reader.getExpiryDate() == null) {
+            throw new IllegalArgumentException("Mã, họ tên, loại độc giả và hạn thẻ là bắt buộc.");
+        }
+        if (reader.getStatus() != null
+                && !List.of("ACTIVE", "EXPIRED", "BLOCKED").contains(reader.getStatus().toUpperCase())) {
+            throw new IllegalArgumentException("Trạng thái độc giả không hợp lệ.");
         }
     }
 }

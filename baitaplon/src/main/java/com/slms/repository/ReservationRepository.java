@@ -38,6 +38,9 @@ public class ReservationRepository {
     private static final String SQL_UPDATE_STATUS =
             "UPDATE RESERVATIONS SET status = ? WHERE reservation_id = ?";
 
+    private static final String SQL_UPDATE_EXPIRY =
+            "UPDATE RESERVATIONS SET expiry_date = ? WHERE reservation_id = ?";
+
     private static final String SQL_FIND_EXPIRED =
             "SELECT reservation_id, reader_id, isbn, reservation_date, expiry_date, status "
                     + "FROM RESERVATIONS WHERE status = 'Pending' AND expiry_date < CURRENT_TIMESTAMP";
@@ -149,6 +152,19 @@ public class ReservationRepository {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái đặt trước [" + reservationId + "]: "
+                    + e.getMessage(), e);
+        }
+    }
+
+    public boolean updateExpiryDate(String reservationId, LocalDateTime expiryDate) {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_EXPIRY)) {
+
+            ps.setTimestamp(1, Timestamp.valueOf(expiryDate));
+            ps.setString(2, reservationId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi cập nhật hạn đặt trước [" + reservationId + "]: "
                     + e.getMessage(), e);
         }
     }

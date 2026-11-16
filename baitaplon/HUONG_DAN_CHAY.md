@@ -10,25 +10,31 @@ Dự án đã được cấu hình sẵn **Java HttpServer** và **Local Databas
 ### Cách 1: Chế độ Auto Rebuild & Live Reload (Khuyên dùng khi Code)
 - Nhấp đúp chuột vào file **`dev.bat`**
 - Server sẽ chạy và **liên tục lắng nghe mọi thay đổi trong thư mục `src/`**:
-  - Khi bạn sửa file **Java**: Hệ thống tự động biên dịch lại (`javac`) và khởi động lại server trong 1 giây!
+  - Khi bạn sửa file **Java**: Hệ thống tự động biên dịch lại bằng Maven Wrapper và khởi động lại server!
   - Khi bạn sửa file **HTML / CSS / JS**: Trình duyệt trên máy bạn sẽ **tự động refresh (F5)** cập nhật giao diện mới ngay lập tức mà bạn không cần phải bấm gì cả!
 
 ### Cách 2: Chạy bình thường bằng `run.bat`
 - Nhấp đúp chuột vào file **`run.bat`**
-- Server sẽ khởi động tại: **`http://localhost:8080`**
+- Server mặc định khởi động tại: **`http://localhost:8081`**. Có thể truyền cổng khác, ví dụ `run.bat 8082`.
+- Script tự tìm JDK đã cài nếu `JAVA_HOME` chưa đúng và dùng Maven Wrapper, không cần cài Maven riêng.
+- Nếu muốn chạy bằng Terminal, dùng:
+  ```bash
+  .\mvnw.cmd exec:java "-Dexec.args=--port=8081"
+  ```
+  Sau đó truy cập **`http://localhost:8081`**.
 
-### Cách 2: Chạy bằng dòng lệnh Terminal / PowerShell
+### Cách 3: Chạy bằng dòng lệnh Terminal / PowerShell
 Mở PowerShell tại thư mục `baitaplon` và gõ:
 ```bash
-mvn clean compile
-mvn exec:java
+.\mvnw.cmd clean compile
+.\mvnw.cmd exec:java "-Dexec.args=--port=8081"
 ```
 
 Sau khi terminal hiện dòng:
 ```
->>> SERVER ĐANG CHẠY TẠI: http://localhost:8080
+>>> SERVER ĐANG CHẠY TẠI: http://localhost:8081
 ```
-👉 Hãy mở trình duyệt (Chrome / Edge) và truy cập: **[http://localhost:8080](http://localhost:8080)**
+👉 Hãy mở trình duyệt (Chrome / Edge) và truy cập: **[http://localhost:8081](http://localhost:8081)**
 
 ---
 
@@ -87,6 +93,7 @@ Nếu máy bạn hoặc phòng máy trường đã cài Oracle XE (11g/19c/21c):
 ### 📌 Kịch bản 4: Đặt Trước Sách (Reservation)
 1. Vào mục **Đặt trước Sách** trên menu.
 2. Thử đặt trước đầu sách đã hết sạch bản sao khả dụng trong kho -> Hệ thống tiếp nhận đơn đặt `Pending` và giữ chỗ trong 3 ngày khi sách được trả về kho.
+3. Khi bản sao được trả, hệ thống phân bổ lần lượt cho người đặt trước; đơn hết hạn được xử lý tự động mỗi phút khi server đang chạy.
 
 ---
 

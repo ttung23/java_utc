@@ -56,6 +56,14 @@
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Biểu đồ thống kê thư viện</h2>
+      </div>
+      <img src="/api/statistics/chart" alt="Biểu đồ số đầu sách, độc giả, phiếu mượn trong hạn và quá hạn"
+           style="display:block;width:100%;height:auto;">
+    </div>
+
     <!-- Quy định mượn trả nhanh -->
     <div class="alert alert-info">
       <div>
@@ -111,8 +119,10 @@
 
         // Tải danh sách phiếu mượn
         const loans = await fetchAPI("/api/loans");
-        const activeLoans = loans.filter(l => l.status === "BORROWED" || l.status === "OVERDUE");
-        const overdueLoans = loans.filter(l => l.status === "OVERDUE");
+        const activeLoans = loans.filter(l => !l.returnDate
+          && (l.status === "BORROWED" || l.status === "OVERDUE"));
+        const overdueLoans = activeLoans.filter(l => l.status === "OVERDUE"
+          || Date.parse(l.dueDate.replace(" ", "T")) < Date.now());
 
         document.getElementById("stat-borrowed").textContent = activeLoans.length;
         document.getElementById("stat-overdue").textContent = overdueLoans.length;
@@ -124,9 +134,12 @@
           tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có phiếu mượn nào</td></tr>`;
         } else {
           tbody.innerHTML = recent.map(l => {
+            const isOverdue = !l.returnDate
+              && (l.status === "OVERDUE" || Date.parse(l.dueDate.replace(" ", "T")) < Date.now());
+            const status = isOverdue ? "OVERDUE" : l.status;
             let badgeClass = "badge-primary";
-            if (l.status === "RETURNED") badgeClass = "badge-success";
-            if (l.status === "OVERDUE") badgeClass = "badge-danger";
+            if (status === "RETURNED") badgeClass = "badge-success";
+            if (status === "OVERDUE") badgeClass = "badge-danger";
             return `
               <tr>
                 <td><strong>${l.loanId}</strong></td>
@@ -134,7 +147,7 @@
                 <td>${l.copyId}</td>
                 <td>${formatDateTime(l.borrowDate)}</td>
                 <td>${formatDateTime(l.dueDate)}</td>
-                <td><span class="badge ${badgeClass}">${l.status}</span></td>
+                <td><span class="badge ${badgeClass}">${status}</span></td>
               </tr>
             `;
           }).join("");
