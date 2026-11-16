@@ -33,7 +33,8 @@ public class BookRepository {
             "DELETE FROM BOOKS WHERE isbn = ?";
 
     private static final String SQL_SEARCH_BY_TITLE =
-            "SELECT isbn, title, author, publisher, publish_year, category FROM BOOKS WHERE LOWER(title) LIKE ?";
+            "SELECT isbn, title, author, publisher, publish_year, category FROM BOOKS "
+                    + "WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ?";
 
     /**
      * Lấy danh sách tất cả sách, sắp xếp theo tên.
@@ -151,7 +152,9 @@ public class BookRepository {
              PreparedStatement ps = conn.prepareStatement(SQL_SEARCH_BY_TITLE)) {
 
             // Thêm ký tự '%' để tìm kiếm gần đúng
-            ps.setString(1, "%" + keyword.toLowerCase() + "%");
+            String pattern = "%" + keyword.toLowerCase() + "%";
+            ps.setString(1, pattern);
+            ps.setString(2, pattern);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     books.add(mapResultSetToBook(rs));

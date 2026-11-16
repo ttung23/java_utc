@@ -81,6 +81,11 @@ public class LoanHandler implements HttpHandler {
                     List<Loan> loans;
                     if ("OVERDUE".equalsIgnoreCase(status)) {
                         loans = loanService.getOverdueLoans();
+                    } else if ("BORROWED".equalsIgnoreCase(status)) {
+                        loans = loanService.getBorrowedLoans();
+                    } else if (status != null && !status.trim().isEmpty()) {
+                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Trạng thái phiếu mượn không hợp lệ"));
+                        return;
                     } else {
                         loans = loanService.getAllLoans();
                     }

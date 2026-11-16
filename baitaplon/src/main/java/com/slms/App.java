@@ -12,13 +12,15 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Lớp khởi động chính cho Hệ Thống Quản Lý Thư Viện Thông Minh (SLMS).
  */
 public class App {
 
-    private static final int PORT = 8080;
+    private static final int PORT = Integer.parseInt(System.getProperty("slms.port", "8080"));
     private static final long START_TIME = System.currentTimeMillis();
 
     public static void main(String[] args) {
@@ -34,6 +36,20 @@ public class App {
         } catch (Exception e) {
             System.err.println(">>> Cảnh báo khi kết nối Database: " + e.getMessage());
         }
+
+        ScheduledExecutorService reservationExpiryExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
+            Thread thread = new Thread(task, "reservation-expiry");
+            thread.setDaemon(true);
+            return thread;
+        });
+        com.slms.service.ReservationService reservationService = new com.slms.service.ReservationService();
+        reservationExpiryExecutor.scheduleAtFixedRate(() -> {
+            try {
+                reservationService.processExpiredReservations();
+            } catch (RuntimeException e) {
+                System.err.println(">>> Lỗi khi xử lý đặt trước hết hạn: " + e.getMessage());
+            }
+        }, 1, 1, TimeUnit.MINUTES);
 
         // 2. Khởi chạy HTTP Web Server
         try {

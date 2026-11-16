@@ -88,6 +88,7 @@
                 <th>Barcode</th>
                 <th>Giá sách</th>
                 <th>Trạng thái</th>
+                <th>Hành động</th>
               </tr>
             </thead>
             <tbody id="copies-table-body"></tbody>
@@ -100,7 +101,7 @@
     <div id="add-book-modal" class="modal-overlay">
       <div class="modal-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3>Thêm Đầu Sách Mới</h3>
+          <h3 id="book-modal-title">Thêm Đầu Sách Mới</h3>
           <button class="btn btn-secondary btn-sm" onclick="closeAddBookModal()">✕</button>
         </div>
         <form onsubmit="submitAddBook(event)">
@@ -132,7 +133,7 @@
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button type="button" class="btn btn-secondary" onclick="closeAddBookModal()">Hủy</button>
-            <button type="submit" class="btn btn-primary">Lưu Đầu Sách</button>
+            <button type="submit" class="btn btn-primary" id="book-submit-button">Lưu Đầu Sách</button>
           </div>
         </form>
       </div>
@@ -142,6 +143,8 @@
   <script src="js/app.js"></script>
   <script>
     let currentIsbnForCopies = null;
+    let editingBookIsbn = null;
+    let booksByIsbn = {};
 
     async function loadBooks(query = "") {
       const tbody = document.getElementById("books-table-body");
@@ -156,6 +159,7 @@
           return;
         }
 
+        booksByIsbn = Object.fromEntries(books.map(book => [book.isbn, book]));
         tbody.innerHTML = books.map(b => `
           <tr>
             <td><code>${b.isbn}</code></td>
@@ -168,6 +172,8 @@
               <button class="btn btn-secondary btn-sm" onclick="viewCopies('${b.isbn}', '${b.title.replace(/'/g, "\\'")}')">
                 📦 Xem Bản Sao
               </button>
+              <button class="btn btn-secondary btn-sm" onclick="editBook('${b.isbn}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteBook('${b.isbn}')">Xóa</button>
             </td>
           </tr>
         `).join("");
@@ -188,11 +194,11 @@
 
     async function loadCopiesTable(isbn) {
       const tbody = document.getElementById("copies-table-body");
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>`;
+      tbody.innerHTML = `      <tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>`;
       try {
         const copies = await fetchAPI(`/api/books/copies?isbn=${encodeURIComponent(isbn)}`);
         if (copies.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Chưa có bản sao nào trong kho</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Chưa có bản sao nào trong kho</td></tr>`;
           return;
         }
 
@@ -208,6 +214,8 @@
               <td><code>${c.barcode}</code></td>
               <td>${formatCurrency(c.price)}</td>
               <td><span class="badge ${badge}">${c.status}</span></td>
+              <td>${c.status === "Loaned" || c.status === "Reserved" ? "-"
+                : `<button class="btn btn-danger btn-sm" onclick="deleteCopy('${c.copyId}')">Xóa</button>`}</td>
             </tr>
           `;
         }).join("");
@@ -248,6 +256,27 @@
     }
 
     function openAddBookModal() {
+      editingBookIsbn = null;
+      document.getElementById("book-modal-title").textContent = "Thêm Đầu Sách Mới";
+      document.getElementById("book-submit-button").textContent = "Lưu Đầu Sách";
+      document.getElementById("book-isbn").readOnly = false;
+      document.querySelector("#add-book-modal form").reset();
+      document.getElementById("add-book-modal").classList.add("open");
+    }
+
+    function editBook(isbn) {
+      const book = booksByIsbn[isbn];
+      if (!book) return;
+      editingBookIsbn = isbn;
+      document.getElementById("book-modal-title").textContent = "Cập Nhật Đầu Sách";
+      document.getElementById("book-submit-button").textContent = "Lưu Thay Đổi";
+      document.getElementById("book-isbn").value = book.isbn;
+      document.getElementById("book-isbn").readOnly = true;
+      document.getElementById("book-title").value = book.title;
+      document.getElementById("book-author").value = book.author;
+      document.getElementById("book-publisher").value = book.publisher || "";
+      document.getElementById("book-year").value = book.publishYear || "";
+      document.getElementById("book-category").value = book.category || "";
       document.getElementById("add-book-modal").classList.add("open");
     }
 
@@ -267,16 +296,35 @@
       };
 
       try {
-        await fetchAPI("/api/books", {
-          method: "POST",
+        await fetchAPI(editingBookIsbn
+          ? `/api/books/${encodeURIComponent(editingBookIsbn)}`
+          : "/api/books", {
+          method: editingBookIsbn ? "PUT" : "POST",
           body: JSON.stringify(book)
         });
-        showToast("Thêm đầu sách mới thành công!", "success");
+        showToast(editingBookIsbn ? "Cập nhật đầu sách thành công!" : "Thêm đầu sách mới thành công!", "success");
         closeAddBookModal();
         loadBooks();
       } catch (e) {}
     }
 
+    async function deleteBook(isbn) {
+      if (!confirm(`Xóa đầu sách ${isbn}? Hãy xóa các bản sao chưa có lịch sử mượn trước.`)) return;
+      try {
+        await fetchAPI(`/api/books/${encodeURIComponent(isbn)}`, { method: "DELETE" });
+        showToast("Xóa đầu sách thành công!", "success");
+        loadBooks();
+      } catch (e) {}
+    }
+
+    async function deleteCopy(copyId) {
+      if (!confirm(`Xóa bản sao ${copyId}? Không thể xóa bản sao có lịch sử mượn.`)) return;
+      try {
+        await fetchAPI(`/api/books/copies/${encodeURIComponent(copyId)}`, { method: "DELETE" });
+        showToast("Xóa bản sao thành công!", "success");
+        loadCopiesTable(currentIsbnForCopies);
+      } catch (e) {}
+    }
     document.addEventListener("DOMContentLoaded", () => {
       renderSidebar("books");
       loadBooks();

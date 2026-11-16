@@ -5,6 +5,7 @@ import com.slms.model.BookCopy;
 import com.slms.model.enums.CopyStatus;
 import com.slms.repository.BookRepository;
 import com.slms.repository.BookCopyRepository;
+import com.slms.repository.LoanRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,7 @@ public class BookService {
 
     private final BookRepository bookRepository;
     private final BookCopyRepository bookCopyRepository;
+    private final LoanRepository loanRepository;
 
     /**
      * Khởi tạo BookService với các repository mặc định.
@@ -26,6 +28,7 @@ public class BookService {
     public BookService() {
         this.bookRepository = new BookRepository();
         this.bookCopyRepository = new BookCopyRepository();
+        this.loanRepository = new LoanRepository();
     }
 
     // ========================== QUẢN LÝ SÁCH ==========================
@@ -61,6 +64,10 @@ public class BookService {
         if (book == null || book.getIsbn() == null || book.getIsbn().trim().isEmpty()) {
             throw new IllegalArgumentException("Thông tin sách không hợp lệ. ISBN không được để trống.");
         }
+        if (book.getTitle() == null || book.getTitle().trim().isEmpty()
+                || book.getAuthor() == null || book.getAuthor().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên sách và tác giả không được để trống.");
+        }
 
         // Kiểm tra sách đã tồn tại chưa
         Optional<Book> existing = bookRepository.findByIsbn(book.getIsbn());
@@ -83,6 +90,10 @@ public class BookService {
         if (book == null || book.getIsbn() == null || book.getIsbn().trim().isEmpty()) {
             throw new IllegalArgumentException("Thông tin sách không hợp lệ. ISBN không được để trống.");
         }
+        if (book.getTitle() == null || book.getTitle().trim().isEmpty()
+                || book.getAuthor() == null || book.getAuthor().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên sách và tác giả không được để trống.");
+        }
 
         // Kiểm tra sách có tồn tại không
         Optional<Book> existing = bookRepository.findByIsbn(book.getIsbn());
@@ -95,11 +106,11 @@ public class BookService {
 
     /**
      * Xóa sách khỏi hệ thống theo ISBN.
-     * Chỉ cho phép xóa khi không còn bản sao nào đang được mượn.
+     * Chỉ cho phép xóa khi đầu sách không còn bản sao vật lý.
      *
      * @param isbn mã ISBN của sách cần xóa
      * @return true nếu xóa thành công, false nếu không tìm thấy sách
-     * @throws IllegalStateException nếu sách vẫn còn bản sao đang được mượn
+     * @throws IllegalStateException nếu sách vẫn còn bản sao vật lý
      */
     public boolean deleteBook(String isbn) {
         if (isbn == null || isbn.trim().isEmpty()) {
@@ -112,19 +123,17 @@ public class BookService {
             return false;
         }
 
-        // Kiểm tra các bản sao - không cho xóa nếu có bản sao đang mượn
+        // Giữ nguyên đầu sách còn bản sao vật lý hoặc lịch sử lưu thông.
         List<BookCopy> copies = bookCopyRepository.findByIsbn(isbn);
-        boolean hasLoanedCopies = copies.stream()
-                .anyMatch(copy -> copy.getStatus() == CopyStatus.Loaned);
-        if (hasLoanedCopies) {
-            throw new IllegalStateException("Không thể xóa sách vì còn bản sao đang được mượn.");
+        if (!copies.isEmpty()) {
+            throw new IllegalStateException("Hãy xóa các bản sao không có lịch sử mượn trước khi xóa đầu sách.");
         }
 
         return bookRepository.delete(isbn);
     }
 
     /**
-     * Tìm kiếm sách theo từ khóa trong tiêu đề.
+     * Tìm kiếm sách theo từ khóa trong tiêu đề hoặc tác giả.
      *
      * @param keyword từ khóa tìm kiếm
      * @return danh sách sách phù hợp với từ khóa
@@ -195,6 +204,25 @@ public class BookService {
         }
 
         return bookCopyRepository.updateStatus(copyId, status);
+    }
+
+    public boolean deleteCopy(String copyId) {
+        if (copyId == null || copyId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã bản sao không được để trống.");
+        }
+
+        Optional<BookCopy> existing = bookCopyRepository.findById(copyId);
+        if (existing.isEmpty()) {
+            return false;
+        }
+        if (existing.get().getStatus() == CopyStatus.Loaned
+                || existing.get().getStatus() == CopyStatus.Reserved) {
+            throw new IllegalStateException("Không thể xóa bản sao đang được mượn hoặc đặt trước.");
+        }
+        if (loanRepository.hasLoansByCopyId(copyId)) {
+            throw new IllegalStateException("Không thể xóa bản sao đã có lịch sử mượn.");
+        }
+        return bookCopyRepository.delete(copyId);
     }
 
     /**

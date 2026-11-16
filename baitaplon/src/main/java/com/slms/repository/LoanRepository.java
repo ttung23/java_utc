@@ -43,7 +43,17 @@ public class LoanRepository {
 
     private static final String SQL_FIND_OVERDUE =
             "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
-                    + "FROM LOANS WHERE status = 'BORROWED' AND due_date < CURRENT_TIMESTAMP";
+                    + "FROM LOANS WHERE return_date IS NULL AND "
+                    + "(status = 'OVERDUE' OR (status = 'BORROWED' AND due_date < CURRENT_TIMESTAMP)) "
+                    + "ORDER BY due_date";
+
+    private static final String SQL_FIND_BORROWED =
+            "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
+                    + "FROM LOANS WHERE status = 'BORROWED' AND return_date IS NULL "
+                    + "AND due_date >= CURRENT_TIMESTAMP ORDER BY borrow_date DESC";
+
+    private static final String SQL_HAS_LOANS_BY_COPY =
+            "SELECT COUNT(*) FROM LOANS WHERE copy_id = ?";
 
     /**
      * Lưu phiếu mượn mới vào cơ sở dữ liệu.
@@ -208,6 +218,35 @@ public class LoanRepository {
             throw new RuntimeException("Lỗi khi tìm phiếu mượn quá hạn: " + e.getMessage(), e);
         }
         return loans;
+    }
+
+    public List<Loan> findBorrowedLoans() {
+        List<Loan> loans = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_FIND_BORROWED);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                loans.add(mapResultSetToLoan(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi tìm phiếu mượn đang trong hạn: " + e.getMessage(), e);
+        }
+        return loans;
+    }
+
+    public boolean hasLoansByCopyId(String copyId) {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_HAS_LOANS_BY_COPY)) {
+
+            ps.setString(1, copyId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi kiểm tra lịch sử mượn bản sao [" + copyId + "]: "
+                    + e.getMessage(), e);
+        }
     }
 
     // ==================== Phương thức hỗ trợ ====================
