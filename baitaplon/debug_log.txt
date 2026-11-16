@@ -1,0 +1,6 @@
+ERROR:
+ORA-12241: Windows service OracleServiceFREE is either not available or not
+running
+Help: https://docs.oracle.com/error-help/db/ora-12241/
+
+

@@ -15,6 +15,8 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE LOANS CASCADE CONSTRAINTS'; EXCEPTION WHEN O
 /
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE READERS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE STAFF_USERS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE BOOK_COPIES CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE BOOKS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -58,10 +60,26 @@ CREATE TABLE READERS (
     expiry_date     DATE            NOT NULL,
     balance_fine    NUMBER(12,2)    DEFAULT 0,
     status          VARCHAR2(20)    DEFAULT 'ACTIVE',
+    email           VARCHAR2(150),
+    phone           VARCHAR2(30),
+    password_hash   VARCHAR2(100),
     CONSTRAINT pk_readers PRIMARY KEY (reader_id),
     CONSTRAINT chk_reader_fine CHECK (balance_fine >= 0),
     CONSTRAINT chk_reader_type CHECK (reader_type IN ('STUDENT', 'LECTURER')),
     CONSTRAINT chk_reader_status CHECK (status IN ('ACTIVE', 'EXPIRED', 'BLOCKED'))
+);
+
+-- ============================================================
+-- 3b. BẢNG STAFF_USERS - Tài khoản cán bộ / thủ thư / admin
+-- ============================================================
+CREATE TABLE STAFF_USERS (
+    staff_id        VARCHAR2(20)    NOT NULL,
+    username        VARCHAR2(50)    NOT NULL UNIQUE,
+    full_name       VARCHAR2(100)   NOT NULL,
+    password_hash   VARCHAR2(100)   NOT NULL,
+    role            VARCHAR2(20)    NOT NULL,
+    status          VARCHAR2(20)    DEFAULT 'ACTIVE',
+    CONSTRAINT pk_staff_users PRIMARY KEY (staff_id)
 );
 
 -- ============================================================
@@ -206,20 +224,29 @@ VALUES ('CP015', '978-0-59-651798-4', 'BC-00015', DATE '2023-10-11', 300000, 'Av
 -- ============================================================
 -- DỮ LIỆU MẪU - 5 bạn đọc (3 STUDENT, 2 LECTURER)
 -- ============================================================
-INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
-VALUES ('RD001', 'Nguyen Van An', 'STUDENT', DATE '2025-12-31', 0, 'ACTIVE');
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash)
+VALUES ('RD001', 'Nguyen Van An', 'STUDENT', DATE '2027-12-31', 0, 'ACTIVE', 'an.nguyen@utc.edu.vn', '0901000001', NULL);
 
-INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
-VALUES ('RD002', 'Tran Thi Binh', 'STUDENT', DATE '2025-12-31', 15000, 'ACTIVE');
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash)
+VALUES ('RD002', 'Tran Thi Binh', 'STUDENT', DATE '2027-12-31', 15000, 'ACTIVE', 'binh.tran@utc.edu.vn', '0901000002', NULL);
 
-INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
-VALUES ('RD003', 'Le Hoang Cuong', 'STUDENT', DATE '2024-06-30', 0, 'EXPIRED');
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash)
+VALUES ('RD003', 'Le Hoang Cuong', 'STUDENT', DATE '2024-06-30', 0, 'EXPIRED', 'cuong.le@utc.edu.vn', '0901000003', NULL);
 
-INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
-VALUES ('RD004', 'Pham Minh Duc', 'LECTURER', DATE '2026-12-31', 0, 'ACTIVE');
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash)
+VALUES ('RD004', 'Pham Minh Duc', 'LECTURER', DATE '2028-12-31', 0, 'ACTIVE', 'duc.pham@utc.edu.vn', '0901000004', NULL);
 
-INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
-VALUES ('RD005', 'Vo Thi Hoa', 'LECTURER', DATE '2026-06-30', 25000, 'ACTIVE');
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status, email, phone, password_hash)
+VALUES ('RD005', 'Vo Thi Hoa', 'LECTURER', DATE '2028-06-30', 25000, 'ACTIVE', 'hoa.vo@utc.edu.vn', '0901000005', NULL);
+
+-- ============================================================
+-- DỮ LIỆU MẪU - Cán bộ / Thủ thư (Mật khẩu mặc định: 123456 / admin123)
+-- ============================================================
+INSERT INTO STAFF_USERS (staff_id, username, full_name, password_hash, role, status)
+VALUES ('ST001', 'librarian', 'Thu Thu Demo', '98cb15be62dbba48624deffbb8e52a514d18ec06f0e4fc0d63fe8300ab78f56e', 'LIBRARIAN', 'ACTIVE');
+
+INSERT INTO STAFF_USERS (staff_id, username, full_name, password_hash, role, status)
+VALUES ('ST002', 'admin', 'Admin SLMS', 'e50699cf9d75fc7dd70876527581fbff26e16548773fc0de4d805eb3df9b8f2c', 'ADMIN', 'ACTIVE');
 
 -- ============================================================
 -- DỮ LIỆU MẪU - Phiếu mượn

@@ -6,25 +6,20 @@ echo ====================================================================
 echo.
 
 cd /d "%~dp0"
-cd ..
 
-echo [1/2] Dang kiem tra ket noi Oracle qua sqlplus...
+REM Thiet lap bien moi truong Oracle 23ai
+set "ORACLE_HOME=C:\app\sumaytinh0912350956\product\26ai\dbhomeFree"
+set "ORACLE_SID=FREE"
+set "PATH=%ORACLE_HOME%\bin;%PATH%"
+
+echo Dang ket noi vao SQL*Plus va chay script setup_oracle_23ai.sql...
 echo.
 
-sqlplus / as sysdba @database/setup_oracle_23ai.sql
+sqlplus / as sysdba @setup_oracle_23ai.sql
 
-if %errorlevel% neq 0 (
-    echo.
-    echo [CANH BAO] Neu gap loi ORA-12241 (Service not running):
-    echo Hay mo CMD duoi quyen Administrator va chay 2 lenh sau de bat Oracle:
-    echo   net start OracleServiceFREE
-    echo   net start OracleOraDB26Home1TNSListener
-    echo Sau do chay lai file nay!
-    echo.
-) else (
-    echo.
-    echo [THANH CONG] Da nap toan bo database vao Oracle 23ai that!
-)
+echo.
+echo ====================================================================
+echo Hoan thanh tien trinh khoi tao!
+echo ====================================================================
 
 pause
-

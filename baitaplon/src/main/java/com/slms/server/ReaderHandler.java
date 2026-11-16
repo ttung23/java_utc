@@ -170,6 +170,8 @@ public class ReaderHandler implements HttpHandler {
         }
 
         return result;
+    }
+
     private void validateReader(Reader reader) {
         if (reader == null || reader.getReaderId() == null || reader.getReaderId().trim().isEmpty()
                 || reader.getFullName() == null || reader.getFullName().trim().isEmpty()

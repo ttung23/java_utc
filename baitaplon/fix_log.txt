@@ -1,0 +1,465 @@
+
+SQL*Plus: Release 23.26.3.0.0 - Production on Sun Nov 15 22:11:25 2026
+Version 23.26.3.0.0
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle AI Database 26ai Free Release 23.26.3.0.0 - Develop, Learn, and Run for Free
+Version 23.26.3.0.0
+
+[1/4] Dang offline toan bo cac datafile bai tap cu bi thieu (17, 18, 19)...
+
+Database altered.
+
+
+Database altered.
+
+ALTER DATABASE DATAFILE 19 OFFLINE DROP
+*
+ERROR at line 1:
+ORA-01516: nonexistent log file, data file, or temporary file "19" in the
+current container
+Help: https://docs.oracle.com/error-help/db/ora-01516/
+
+
+[2/4] Dang MO DATABASE ORACLE (ALTER DATABASE OPEN)...
+ALTER DATABASE OPEN
+*
+ERROR at line 1:
+ORA-01157: cannot identify/lock data file 19 - see DBWR trace file
+ORA-01110: data file 19:
+'C:\APP\SUMAYTINH0912350956\PRODUCT\26AI\ORADATA\FREE\FREEPDB1\TBS01.DBF'
+Help: https://docs.oracle.com/error-help/db/ora-01157/
+
+
+ALTER PLUGGABLE DATABASE ALL OPEN
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+[3/4] Kiem tra trang thai sau khi mo:
+
+INSTANCE_NAME	 STATUS
+---------------- ------------
+free		 MOUNTED
+
+
+NAME	  OPEN_MODE
+--------- --------------------
+FREE	  MOUNTED
+
+
+NAME
+--------------------------------------------------------------------------------
+OPEN_MODE
+----------
+PDB$SEED
+MOUNTED
+
+FREEPDB1
+MOUNTED
+
+
+[4/4] Dang tao user slms_user va nap toan bo 6 bang...
+
+Session altered.
+
+DROP USER slms_user CASCADE
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE USER slms_user IDENTIFIED BY slms_password DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+GRANT CONNECT, RESOURCE, DBA TO slms_user
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW, CREATE SEQUENCE TO slms_user
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+GRANT UNLIMITED TABLESPACE TO slms_user
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+ERROR:
+ORA-01435: user does not exist
+Help: https://docs.oracle.com/error-help/db/ora-01435/
+
+
+
+PL/SQL procedure successfully completed.
+
+
+PL/SQL procedure successfully completed.
+
+
+PL/SQL procedure successfully completed.
+
+
+PL/SQL procedure successfully completed.
+
+
+PL/SQL procedure successfully completed.
+
+
+PL/SQL procedure successfully completed.
+
+CREATE TABLE BOOKS (
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE TABLE BOOK_COPIES (
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE TABLE READERS (
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE TABLE LOANS (
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE TABLE FINES (
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE TABLE RESERVATIONS (
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE INDEX idx_copies_barcode ON BOOK_COPIES(barcode)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE INDEX idx_loans_reader	ON LOANS(reader_id)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE INDEX idx_loans_copy	ON LOANS(copy_id)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+CREATE INDEX idx_fines_loan	ON FINES(loan_id)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO READERS (reader_id, full_name, reader_type, expiry_date, balance_fine, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO LOANS (loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO LOANS (loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO LOANS (loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO LOANS (loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO LOANS (loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO FINES (fine_id, loan_id, reason, fine_amount, payment_status, payment_date)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+INSERT INTO FINES (fine_id, loan_id, reason, fine_amount, payment_status, payment_date)
+*
+ERROR at line 1:
+ORA-01109: database not open
+Help: https://docs.oracle.com/error-help/db/ora-01109/
+
+
+
+Commit complete.
+
+====================================================================
+CHUC MUNG! ORACLE DATABASE DA MO VA NAP 6 BANG THANH CONG 100%!
+====================================================================
+Disconnected from Oracle AI Database 26ai Free Release 23.26.3.0.0 - Develop, Learn, and Run for Free
+Version 23.26.3.0.0

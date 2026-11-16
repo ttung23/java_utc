@@ -427,3 +427,8 @@ tr:hover td {
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 }
 
+/* Ẩn hoàn toàn toast container ở góc dưới màn hình */
+#toast-container {
+  display: none !important;
+}
+

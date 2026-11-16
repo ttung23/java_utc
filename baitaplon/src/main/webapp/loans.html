@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>SLMS - Quầy Mượn & Trả Sách (UC21 & UC22)</title>
+  <title>SLMS - Quầy Mượn & Trả Sách</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,18 +12,18 @@
     <div class="top-header">
       <div>
         <h1 class="page-title">Quầy Mượn & Trả Sách</h1>
-        <p class="page-subtitle">Xử lý ca sử dụng Lập phiếu mượn (UC21) và Trả sách / Sự cố (UC22)</p>
+        <p class="page-subtitle">Xử lý ca sử dụng Lập phiếu mượn và Trả sách / Sự cố</p>
       </div>
     </div>
 
     <!-- Tabs điều hướng chức năng -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('borrow-tab')">📖 UC21: Lập Phiếu Mượn Sách</button>
-      <button class="tab-btn" onclick="switchTab('return-tab')">↩️ UC22: Nhận Trả Sách & Sự Cố</button>
-      <button class="tab-btn" onclick="switchTab('list-tab')">📋 Danh Sách Phiếu Mượn</button>
+      <button class="tab-btn active" onclick="switchTab('borrow-tab')">Lập Phiếu Mượn Sách</button>
+      <button class="tab-btn" onclick="switchTab('return-tab')">Nhận Trả Sách & Sự Cố</button>
+      <button class="tab-btn" onclick="switchTab('list-tab')">Danh Sách Phiếu Mượn</button>
     </div>
 
-    <!-- TAB 1: LẬP PHIẾU MƯỢN (UC21) -->
+    <!-- TAB 1: LẬP PHIẾU MƯỢN -->
     <div id="borrow-tab" class="tab-content active">
       <div class="panel">
         <h2 class="panel-title" style="margin-bottom:16px;">Bước 1: Quét & Kiểm tra Thẻ Độc Giả</h2>
@@ -55,7 +55,7 @@
       </div>
     </div>
 
-    <!-- TAB 2: NHẬN TRẢ SÁCH (UC22) -->
+    <!-- TAB 2: NHẬN TRẢ SÁCH -->
     <div id="return-tab" class="tab-content">
       <div class="panel">
         <h2 class="panel-title" style="margin-bottom:16px;">Tiếp Nhận Trả Sách & Xử Lý Sự Cố Vi Phạm</h2>
@@ -189,7 +189,7 @@
       }
     }
 
-    // Gửi yêu cầu mượn sách (UC21)
+    // Gửi yêu cầu mượn sách
     async function submitBorrow() {
       const readerId = document.getElementById("borrow-reader-id").value.trim();
       const barcode = document.getElementById("borrow-barcode").value.trim();
@@ -227,7 +227,7 @@
       }
     }
 
-    // Gửi yêu cầu trả sách (UC22)
+    // Gửi yêu cầu trả sách
     async function submitReturn() {
       const barcode = document.getElementById("return-barcode").value.trim();
       const condition = document.getElementById("return-condition").value;

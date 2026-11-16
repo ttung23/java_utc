@@ -31,26 +31,10 @@ async function fetchAPI(endpoint, options = {}) {
   }
 }
 
+// Đã tắt toàn bộ alert / toast ở góc dưới màn hình khi thực hiện action theo yêu cầu
 function showToast(message, type = "success") {
-  let toastContainer = document.getElementById("toast-container");
-  if (!toastContainer) {
-    toastContainer = document.createElement("div");
-    toastContainer.id = "toast-container";
-    toastContainer.style.cssText =
-      "position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;";
-    document.body.appendChild(toastContainer);
-  }
-  const toast = document.createElement("div");
-  const bg = type === "success" ? "#0f6e56" : type === "danger" ? "#b42318" : "#c45c26";
-  toast.style.cssText =
-    `background:${bg};color:#fff;padding:12px 20px;border-radius:10px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);font-size:14px;font-weight:500;`;
-  toast.innerHTML = `<span>${type === "success" ? "✓" : "⚠"}</span> <span>${message}</span>`;
-  toastContainer.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transition = "opacity 0.4s";
-    setTimeout(() => toast.remove(), 400);
-  }, 4000);
+  // Không hiển thị alert / toast ở góc dưới màn hình
+  console.log(`[SLMS Client ${type}]: ${message}`);
 }
 
 function formatCurrency(amount) {

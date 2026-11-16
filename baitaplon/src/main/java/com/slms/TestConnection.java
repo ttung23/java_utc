@@ -1,0 +1,46 @@
+package com.slms;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+public class TestConnection {
+    public static void main(String[] args) {
+        String[] urls = {
+            "jdbc:oracle:thin:@localhost:1521/FREE",
+            "jdbc:oracle:thin:@localhost:1521:FREE",
+            "jdbc:oracle:thin:@localhost:1521/FREEPDB1"
+        };
+
+        System.out.println("==================================================");
+        System.out.println("KIEM TRA KET NOI ORACLE 23ai CHI TIET:");
+        System.out.println("==================================================");
+
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (Exception e) {
+            System.out.println("Loi nap Driver: " + e.getMessage());
+            return;
+        }
+
+        for (String url : urls) {
+            System.out.println("\n--> Thu URL: " + url + " voi slms_user / slms_password");
+            try (Connection conn = DriverManager.getConnection(url, "slms_user", "slms_password")) {
+                System.out.println("    [THANH CONG!] Da ket noi duoc toi URL: " + url);
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM BOOKS")) {
+                    if (rs.next()) {
+                        System.out.println("    [DATA OK!] Bang BOOKS co so ban ghi: " + rs.getInt(1));
+                    }
+                } catch (Exception e) {
+                    System.out.println("    [CANH BAO] Ket noi duoc nhung chua co bang BOOKS: " + e.getMessage());
+                }
+                return;
+            } catch (Exception e) {
+                System.out.println("    [THAT BAI] Ma loi: " + e.getMessage());
+            }
+        }
+    }
+}
+

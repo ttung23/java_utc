@@ -34,34 +34,73 @@ public class DatabaseInitializer {
 
     /**
      * Nâng cấp schema hiện có: thêm cột auth/profile + bảng STAFF_USERS.
+     * Tương thích hoàn toàn cú pháp Oracle Database 23ai và H2 Database.
      */
     public static void upgradeSchema(Connection conn) {
-        String[] alters = new String[] {
-                "ALTER TABLE READERS ADD COLUMN email VARCHAR2(150)",
-                "ALTER TABLE READERS ADD COLUMN phone VARCHAR2(30)",
-                "ALTER TABLE READERS ADD COLUMN password_hash VARCHAR2(100)",
-                "CREATE TABLE IF NOT EXISTS STAFF_USERS (" +
-                        " staff_id VARCHAR2(20) NOT NULL," +
-                        " username VARCHAR2(50) NOT NULL UNIQUE," +
-                        " full_name VARCHAR2(100) NOT NULL," +
-                        " password_hash VARCHAR2(100) NOT NULL," +
-                        " role VARCHAR2(20) NOT NULL," +
-                        " status VARCHAR2(20) DEFAULT 'ACTIVE'," +
-                        " CONSTRAINT pk_staff_users PRIMARY KEY (staff_id)" +
-                        ")"
-        };
-        try (Statement stmt = conn.createStatement()) {
-            for (String sql : alters) {
-                try {
-                    stmt.execute(sql);
-                } catch (SQLException ignored) {
-                    // Cột/bảng đã tồn tại
+        addColumnIfMissing(conn, "READERS", "EMAIL", "VARCHAR2(150)");
+        addColumnIfMissing(conn, "READERS", "PHONE", "VARCHAR2(30)");
+        addColumnIfMissing(conn, "READERS", "PASSWORD_HASH", "VARCHAR2(100)");
+
+        createStaffTableIfMissing(conn);
+        System.out.println(">>> [DB] Schema upgrade (auth/profile) đã hoàn tất.");
+    }
+
+    private static void addColumnIfMissing(Connection conn, String tableName, String columnName, String columnType) {
+        if (!isColumnExist(conn, tableName, columnName)) {
+            // Cú pháp chuẩn Oracle: ALTER TABLE table_name ADD (column_name type)
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE " + tableName + " ADD (" + columnName + " " + columnType + ")");
+                System.out.println(">>> [DB] Đã thêm cột " + columnName + " vào bảng " + tableName);
+            } catch (SQLException e) {
+                // Thử cú pháp không ngoặc đơn nếu có hệ QT CSDL khác: ALTER TABLE table_name ADD column_name type
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("ALTER TABLE " + tableName + " ADD " + columnName + " " + columnType);
+                    System.out.println(">>> [DB] Đã thêm cột " + columnName + " vào bảng " + tableName);
+                } catch (SQLException ex) {
+                    // ORA-01430: column being added already exists in table
+                    if (ex.getErrorCode() != 1430 && !ex.getMessage().toLowerCase().contains("already exists")) {
+                        System.err.println(">>> [DB] Cảnh báo khi thêm cột " + columnName + ": " + ex.getMessage());
+                    }
                 }
             }
-            System.out.println(">>> [DB] Schema upgrade (auth/profile) đã kiểm tra.");
-        } catch (SQLException e) {
-            System.err.println(">>> [DB] Lỗi upgrade schema: " + e.getMessage());
         }
+    }
+
+    private static void createStaffTableIfMissing(Connection conn) {
+        if (!isTableExist(conn, "STAFF_USERS")) {
+            String sql = "CREATE TABLE STAFF_USERS (" +
+                    " staff_id VARCHAR2(20) NOT NULL," +
+                    " username VARCHAR2(50) NOT NULL UNIQUE," +
+                    " full_name VARCHAR2(100) NOT NULL," +
+                    " password_hash VARCHAR2(100) NOT NULL," +
+                    " role VARCHAR2(20) NOT NULL," +
+                    " status VARCHAR2(20) DEFAULT 'ACTIVE'," +
+                    " CONSTRAINT pk_staff_users PRIMARY KEY (staff_id)" +
+                    ")";
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+                System.out.println(">>> [DB] Đã tạo bảng STAFF_USERS thành công.");
+            } catch (SQLException e) {
+                // ORA-00955: name is already used by an existing object
+                if (e.getErrorCode() != 955 && !e.getMessage().toLowerCase().contains("already exists")) {
+                    System.err.println(">>> [DB] Cảnh báo khi tạo bảng STAFF_USERS: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static boolean isColumnExist(Connection conn, String tableName, String columnName) {
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            try (ResultSet rs = meta.getColumns(null, null, tableName.toUpperCase(), columnName.toUpperCase())) {
+                if (rs.next()) return true;
+            }
+            try (ResultSet rs = meta.getColumns(null, null, tableName.toLowerCase(), columnName.toLowerCase())) {
+                if (rs.next()) return true;
+            }
+        } catch (SQLException ignored) {
+        }
+        return false;
     }
 
     /**
@@ -91,13 +130,16 @@ public class DatabaseInitializer {
         }
     }
 
-    private static boolean isTableExist(Connection conn, String tableName) throws SQLException {
-        DatabaseMetaData meta = conn.getMetaData();
-        try (ResultSet rs = meta.getTables(null, null, tableName.toUpperCase(), new String[]{"TABLE"})) {
-            if (rs.next()) return true;
-        }
-        try (ResultSet rs = meta.getTables(null, null, tableName.toLowerCase(), new String[]{"TABLE"})) {
-            if (rs.next()) return true;
+    private static boolean isTableExist(Connection conn, String tableName) {
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            try (ResultSet rs = meta.getTables(null, null, tableName.toUpperCase(), new String[]{"TABLE"})) {
+                if (rs.next()) return true;
+            }
+            try (ResultSet rs = meta.getTables(null, null, tableName.toLowerCase(), new String[]{"TABLE"})) {
+                if (rs.next()) return true;
+            }
+        } catch (SQLException ignored) {
         }
         return false;
     }

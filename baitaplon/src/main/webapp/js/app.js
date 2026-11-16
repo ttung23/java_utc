@@ -31,27 +31,10 @@ async function fetchAPI(endpoint, options = {}) {
   }
 }
 
-// Hiển thị Toast thông báo góc phải màn hình
+// Đã tắt toàn bộ alert / toast ở góc dưới màn hình khi thực hiện action theo yêu cầu
 function showToast(message, type = "success") {
-  let toastContainer = document.getElementById("toast-container");
-  if (!toastContainer) {
-    toastContainer = document.createElement("div");
-    toastContainer.id = "toast-container";
-    toastContainer.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;";
-    document.body.appendChild(toastContainer);
-  }
-
-  const toast = document.createElement("div");
-  const bg = type === "success" ? "#16a34a" : type === "danger" ? "#dc2626" : "#d97706";
-  toast.style.cssText = `background:${bg};color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;animation:slideIn 0.3s ease;`;
-  toast.innerHTML = `<span>${type === 'success' ? '✓' : '⚠'}</span> <span>${message}</span>`;
-
-  toastContainer.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transition = "opacity 0.4s";
-    setTimeout(() => toast.remove(), 400);
-  }, 4000);
+  // Không hiển thị alert / toast ở góc dưới màn hình
+  console.log(`[SLMS ${type}]: ${message}`);
 }
 
 // Định dạng tiền tệ VNĐ
@@ -73,7 +56,7 @@ function renderSidebar(activeKey) {
 
   const menu = [
     { key: "dashboard", label: "Dashboard Thống kê", icon: "📊", href: "index.html" },
-    { key: "loans", label: "Mượn / Trả Sách (UC)", icon: "🔄", href: "loans.html" },
+    { key: "loans", label: "Mượn / Trả Sách", icon: "🔄", href: "loans.html" },
     { key: "books", label: "Quản lý Sách & Bản sao", icon: "📚", href: "books.html" },
     { key: "readers", label: "Quản lý Độc giả", icon: "👥", href: "readers.html" },
     { key: "fines", label: "Hóa đơn Phạt", icon: "💰", href: "fines.html" },
@@ -100,7 +83,6 @@ function renderSidebar(activeKey) {
     html += `
       <li class="nav-item ${isActive}">
         <a href="${item.href}">
-          <span style="font-size:18px;">${item.icon}</span>
           <span>${item.label}</span>
         </a>
       </li>
