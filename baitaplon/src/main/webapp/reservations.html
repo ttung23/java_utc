@@ -19,18 +19,6 @@
       </div>
     </div>
 
-    <!-- Quy định đặt trước -->
-    <div class="alert alert-info">
-      <div>
-        <strong>Quy tắc Đặt trước (Reservation Rules):</strong>
-        <div style="font-size:13px;margin-top:4px;">
-          • Chỉ được đặt trước khi đầu sách không còn bản sao khả dụng (Available = 0).<br>
-          • Khi có bản sao được trả về kho, hệ thống tự động gán trạng thái <strong>Reserved</strong> cho người đặt đầu tiên trong hàng chờ.<br>
-          • Thời hạn giữ chỗ là <strong>3 ngày</strong>. Quá 3 ngày không đến nhận, đơn đặt sẽ chuyển sang Expired và sách quay lại Available.
-        </div>
-      </div>
-    </div>
-
     <!-- Bảng danh sách đặt trước -->
     <div class="panel">
       <div class="panel-header">
@@ -72,7 +60,6 @@
           <div class="form-group" style="margin-bottom:18px;">
             <label>Mã ISBN đầu sách cần đặt:</label>
             <input type="text" id="res-isbn" required placeholder="VD: 978-0-13-468599-1">
-            <small style="color:var(--text-muted);font-size:12px;">Lưu ý: Chỉ đặt trước được khi tất cả bản sao của sách đã bị mượn hết.</small>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button type="button" class="btn btn-secondary" onclick="closeAddResModal()">Hủy</button>

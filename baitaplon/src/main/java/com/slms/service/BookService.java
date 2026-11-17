@@ -21,6 +21,7 @@ public class BookService {
     private final BookRepository bookRepository;
     private final BookCopyRepository bookCopyRepository;
     private final LoanRepository loanRepository;
+    private final com.slms.repository.CategoryRepository categoryRepository;
 
     /**
      * Khởi tạo BookService với các repository mặc định.
@@ -29,6 +30,7 @@ public class BookService {
         this.bookRepository = new BookRepository();
         this.bookCopyRepository = new BookCopyRepository();
         this.loanRepository = new LoanRepository();
+        this.categoryRepository = new com.slms.repository.CategoryRepository();
     }
 
     // ========================== QUẢN LÝ SÁCH ==========================
@@ -75,6 +77,7 @@ public class BookService {
             throw new IllegalArgumentException("Sách với ISBN '" + book.getIsbn() + "' đã tồn tại trong hệ thống.");
         }
 
+        syncBookCategory(book);
         bookRepository.save(book);
         return book;
     }
@@ -101,7 +104,22 @@ public class BookService {
             return false;
         }
 
+        syncBookCategory(book);
         return bookRepository.update(book);
+    }
+
+    private void syncBookCategory(Book book) {
+        if (book == null) return;
+        if (book.getCategoryId() != null && !book.getCategoryId().trim().isEmpty()) {
+            categoryRepository.findById(book.getCategoryId().trim()).ifPresent(c -> {
+                book.setCategoryId(c.getCategoryId());
+                book.setCategory(c.getCategoryName());
+            });
+        } else if (book.getCategory() != null && !book.getCategory().trim().isEmpty()) {
+            com.slms.model.Category c = categoryRepository.getOrCreateByName(book.getCategory().trim());
+            book.setCategoryId(c.getCategoryId());
+            book.setCategory(c.getCategoryName());
+        }
     }
 
     /**
@@ -146,6 +164,15 @@ public class BookService {
     }
 
     // ========================== QUẢN LÝ BẢN SAO SÁCH ==========================
+
+    /**
+     * Lấy danh sách tất cả bản sao sách trong toàn hệ thống thư viện.
+     *
+     * @return danh sách tất cả bản sao sách
+     */
+    public List<BookCopy> getAllCopies() {
+        return bookCopyRepository.findAll();
+    }
 
     /**
      * Lấy danh sách tất cả bản sao của một cuốn sách theo ISBN.

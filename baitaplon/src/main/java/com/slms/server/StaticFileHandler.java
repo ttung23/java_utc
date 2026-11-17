@@ -35,9 +35,9 @@ public class StaticFileHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
 
-        // Chuẩn hóa đường dẫn: nếu truy cập "/" thì chuyển về "index.html"
+        // Chuẩn hóa đường dẫn: nếu truy cập "/" thì chuyển về "books.html" làm trang chủ
         if (path == null || path.equals("/") || path.isEmpty()) {
-            path = "/index.html";
+            path = "/books.html";
         }
 
         // Loại bỏ dấu slash ở đầu

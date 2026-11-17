@@ -20,16 +20,20 @@ public class BookCopyRepository {
 
     // ==================== Câu lệnh SQL ====================
     private static final String SQL_FIND_ALL =
-            "SELECT copy_id, isbn, barcode, acquisition_date, price, status FROM BOOK_COPIES ORDER BY copy_id";
+            "SELECT c.copy_id, c.isbn, c.barcode, c.acquisition_date, c.price, c.status, b.title "
+            + "FROM BOOK_COPIES c LEFT JOIN BOOKS b ON c.isbn = b.isbn ORDER BY c.barcode";
 
     private static final String SQL_FIND_BY_ISBN =
-            "SELECT copy_id, isbn, barcode, acquisition_date, price, status FROM BOOK_COPIES WHERE isbn = ?";
+            "SELECT c.copy_id, c.isbn, c.barcode, c.acquisition_date, c.price, c.status, b.title "
+            + "FROM BOOK_COPIES c LEFT JOIN BOOKS b ON c.isbn = b.isbn WHERE c.isbn = ?";
 
     private static final String SQL_FIND_BY_ID =
-            "SELECT copy_id, isbn, barcode, acquisition_date, price, status FROM BOOK_COPIES WHERE copy_id = ?";
+            "SELECT c.copy_id, c.isbn, c.barcode, c.acquisition_date, c.price, c.status, b.title "
+            + "FROM BOOK_COPIES c LEFT JOIN BOOKS b ON c.isbn = b.isbn WHERE c.copy_id = ?";
 
     private static final String SQL_FIND_BY_BARCODE =
-            "SELECT copy_id, isbn, barcode, acquisition_date, price, status FROM BOOK_COPIES WHERE barcode = ?";
+            "SELECT c.copy_id, c.isbn, c.barcode, c.acquisition_date, c.price, c.status, b.title "
+            + "FROM BOOK_COPIES c LEFT JOIN BOOKS b ON c.isbn = b.isbn WHERE c.barcode = ?";
 
     private static final String SQL_INSERT =
             "INSERT INTO BOOK_COPIES (copy_id, isbn, barcode, acquisition_date, price, status) VALUES (?, ?, ?, ?, ?, ?)";
@@ -232,6 +236,13 @@ public class BookCopyRepository {
 
         // Chuyển đổi chuỗi trạng thái sang enum CopyStatus
         copy.setStatus(CopyStatus.valueOf(rs.getString("status")));
+
+        try {
+            copy.setBookTitle(rs.getString("title"));
+        } catch (SQLException ignored) {
+            // Không có cột title trong kết quả
+        }
+
         return copy;
     }
 }

@@ -62,6 +62,7 @@ public class App {
             server.createContext("/api/auth", new AuthHandler());
             server.createContext("/api/client", new ClientPortalHandler());
             server.createContext("/api/books", new BookHandler());
+            server.createContext("/api/categories", new com.slms.server.CategoryHandler());
             server.createContext("/api/readers", new ReaderHandler());
             server.createContext("/api/loans", new LoanHandler());
             server.createContext("/api/fines", new FineHandler());

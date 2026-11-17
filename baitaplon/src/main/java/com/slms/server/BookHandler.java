@@ -76,7 +76,8 @@ public class BookHandler implements HttpHandler {
                         List<BookCopy> copies = bookService.getCopiesByIsbn(isbn);
                         HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(copies));
                     } else {
-                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Thiếu tham số isbn"));
+                        List<BookCopy> copies = bookService.getAllCopies();
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(copies));
                     }
                 } else if ("POST".equals(method)) {
                     String body = HttpHelper.readRequestBody(exchange);

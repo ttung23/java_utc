@@ -87,7 +87,7 @@ body {
   flex: 1;
 }
 
-.nav-item a {
+.nav-item > a {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -100,15 +100,79 @@ body {
   transition: all 0.2s;
 }
 
-.nav-item a:hover {
+.nav-item > a:hover {
   background: #334155;
   color: #ffffff;
 }
 
-.nav-item.active a {
+.nav-item.active > a {
   background: var(--primary);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+/* Sidebar Sub-Menu */
+.nav-item.has-sub {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-submenu {
+  list-style: none;
+  padding: 6px 0 6px 14px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-submenu.show {
+  display: flex;
+}
+
+.nav-subitem a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-subitem a::before {
+  content: "•";
+  font-size: 16px;
+  line-height: 1;
+  color: #64748b;
+  transition: color 0.2s;
+}
+
+.nav-subitem a:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+.nav-subitem a:hover::before {
+  color: #93c5fd;
+}
+
+.nav-subitem.active a {
+  background: rgba(37, 99, 235, 0.25);
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.nav-subitem.active a::before {
+  color: #3b82f6;
+}
+
+.sub-arrow {
+  margin-left: auto;
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .sidebar-footer {
@@ -266,6 +330,12 @@ input:focus, select:focus, textarea:focus {
   border: none;
   transition: all 0.2s;
   text-decoration: none;
+}
+
+.btn:disabled, button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
 }
 
 .btn-primary {
@@ -427,8 +497,109 @@ tr:hover td {
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 }
 
+/* Ẩn icon cancel mặc định của input search trên Chromium để dùng nút x tùy biến đồng bộ */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: none;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 50%;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.clear-search-btn:hover {
+  color: #334155;
+  background-color: #f1f5f9;
+}
+
 /* Ẩn hoàn toàn toast container ở góc dưới màn hình */
 #toast-container {
   display: none !important;
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-container {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1050;
+  display: none;
+}
+
+.autocomplete-dropdown.show {
+  display: block;
+}
+
+.autocomplete-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease;
+  font-size: 13px;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background-color: #f1f5f9;
+}
+
+.autocomplete-item-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 3px;
+}
+
+.autocomplete-item-desc {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.autocomplete-empty {
+  padding: 14px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.autocomplete-hint {
+  font-size: 12px;
+  color: #059669;
+  margin-top: 4px;
+  font-weight: 500;
 }
 

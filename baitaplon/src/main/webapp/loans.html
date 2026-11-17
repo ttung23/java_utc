@@ -16,23 +16,17 @@
       </div>
     </div>
 
-    <!-- Tabs điều hướng chức năng -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('borrow-tab')">Lập Phiếu Mượn Sách</button>
-      <button class="tab-btn" onclick="switchTab('return-tab')">Nhận Trả Sách & Sự Cố</button>
-      <button class="tab-btn" onclick="switchTab('list-tab')">Danh Sách Phiếu Mượn</button>
-    </div>
-
     <!-- TAB 1: LẬP PHIẾU MƯỢN -->
     <div id="borrow-tab" class="tab-content active">
       <div class="panel">
         <h2 class="panel-title" style="margin-bottom:16px;">Bước 1: Quét & Kiểm tra Thẻ Độc Giả</h2>
-        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;">
-          <div class="form-group" style="flex:1;">
-            <label for="borrow-reader-id">Mã độc giả (Reader ID):</label>
-            <input type="text" id="borrow-reader-id" placeholder="Nhập mã ví dụ: RD001, RD002, RD003, RD004..." value="RD001">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="borrow-reader-id">Mã độc giả hoặc Họ tên (Reader ID / Name):</label>
+          <div class="autocomplete-container">
+            <input type="text" id="borrow-reader-id" placeholder="Gõ mã độc giả (RD...) hoặc tên để tìm kiếm và chọn..." autocomplete="off" style="width:100%;">
+            <div id="reader-dropdown" class="autocomplete-dropdown"></div>
           </div>
-          <button class="btn btn-secondary" onclick="checkReaderEligibility()">🔍 Kiểm Tra Thẻ</button>
+          <div id="reader-selected-hint" class="autocomplete-hint"></div>
         </div>
 
         <!-- Khung hiển thị thông tin & tính hợp lệ của độc giả -->
@@ -41,10 +35,14 @@
 
       <div class="panel">
         <h2 class="panel-title" style="margin-bottom:16px;">Bước 2: Quét Bản Sao Sách & Xác Nhận Mượn</h2>
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="borrow-barcode">Mã vạch bản sao (Barcode):</label>
-            <input type="text" id="borrow-barcode" placeholder="Nhập barcode ví dụ: BC-00001, BC-00003, BC-00004..." value="BC-00001">
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div class="form-group" style="flex:1;">
+            <label for="borrow-barcode">Mã sách / Mã vạch hoặc Tên sách (Barcode / Title):</label>
+            <div class="autocomplete-container">
+              <input type="text" id="borrow-barcode" placeholder="Gõ mã vạch (BC-...), mã sách (ISBN) hoặc tên sách để tìm kiếm và chọn..." autocomplete="off" style="width:100%;">
+              <div id="book-dropdown" class="autocomplete-dropdown"></div>
+            </div>
+            <div id="book-selected-hint" class="autocomplete-hint"></div>
           </div>
         </div>
         <button class="btn btn-primary" onclick="submitBorrow()" id="btn-submit-borrow">
@@ -77,7 +75,6 @@
         <div id="damage-percent-box" class="form-group" style="display:none;margin-bottom:16px;max-width:300px;">
           <label for="damage-percent">Mức bồi thường hư hỏng (%):</label>
           <input type="number" id="damage-percent" value="100" min="100" max="200" step="10">
-          <small style="color:var(--text-muted);font-size:12px;">Quy định: từ 100% đến 200% giá bìa sách.</small>
         </div>
 
         <button class="btn btn-success" onclick="submitReturn()">
@@ -129,12 +126,39 @@
     let currentEligibility = null;
 
     function switchTab(tabId) {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
       document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      const targetPanel = document.getElementById(tabId);
+      if (targetPanel) targetPanel.classList.add("active");
 
-      const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(b => b.getAttribute("onclick").includes(tabId));
-      if (activeBtn) activeBtn.classList.add("active");
-      document.getElementById(tabId).classList.add("active");
+      // Đồng bộ trạng thái active cho sub-menu bên dưới mục Mượn / Trả Sách ở sidebar
+      const keyMap = { "borrow-tab": "borrow", "return-tab": "return", "list-tab": "list" };
+      const currentSubKey = keyMap[tabId] || "borrow";
+
+      document.querySelectorAll(".nav-subitem").forEach(item => {
+        if (item.getAttribute("data-tab") === tabId || item.getAttribute("data-key") === currentSubKey) {
+          item.classList.add("active");
+        } else {
+          item.classList.remove("active");
+        }
+      });
+
+      // Cập nhật tiêu đề trang tương ứng với chức năng đang mở
+      const titleMap = {
+        "borrow-tab": { title: "Lập Phiếu Mượn Sách", subtitle: "Quét thẻ độc giả và bản sao sách để lập phiếu mượn" },
+        "return-tab": { title: "Nhận Trả Sách & Xử Lý Sự Cố", subtitle: "Nhận trả sách, xử lý quá hạn, hư hỏng hoặc bồi thường mất sách" },
+        "list-tab": { title: "Danh Sách Phiếu Mượn", subtitle: "Tra cứu, theo dõi tất cả phiếu mượn sách trong hệ thống" }
+      };
+      if (titleMap[tabId]) {
+        const pageTitle = document.querySelector(".page-title");
+        const pageSubtitle = document.querySelector(".page-subtitle");
+        if (pageTitle) pageTitle.textContent = titleMap[tabId].title;
+        if (pageSubtitle) pageSubtitle.textContent = titleMap[tabId].subtitle;
+      }
+
+      // Cập nhật URL query param để lưu trạng thái
+      if (window.history && window.history.replaceState) {
+        history.replaceState(null, '', '?tab=' + currentSubKey);
+      }
 
       if (tabId === "list-tab") {
         loadLoansList();
@@ -220,8 +244,13 @@
         `;
 
         showToast("Lập phiếu mượn thành công!", "success");
-        // Cập nhật lại trạng thái thẻ độc giả
+        // Xóa ô mã vạch vừa mượn để sẵn sàng cho cuốn tiếp theo
+        document.getElementById("borrow-barcode").value = "";
+        const bookHint = document.getElementById("book-selected-hint");
+        if (bookHint) bookHint.style.display = "none";
+        // Cập nhật lại trạng thái thẻ độc giả và dữ liệu gợi ý
         checkReaderEligibility();
+        loadAutocompleteData();
       } catch (e) {
         // Lỗi đã được hiển thị toast
       }
@@ -266,6 +295,7 @@
         `;
 
         showToast("Xử lý trả sách thành công!", "success");
+        loadAutocompleteData();
       } catch (e) {}
     }
 
@@ -308,9 +338,319 @@
       } catch (e) {}
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      renderSidebar("loans");
+    // ==================== AUTOCOMPLETE & GỢI Ý TÌM KIẾM ====================
+    let allReaders = [];
+    let allBookCopies = [];
+
+    function removeAccents(str) {
+      return (str || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    async function loadAutocompleteData() {
+      try {
+        allReaders = await fetchAPI("/api/readers") || [];
+      } catch (e) {
+        console.error("Lỗi tải độc giả:", e);
+      }
+
+      try {
+        allBookCopies = await fetchAPI("/api/books/copies") || [];
+      } catch (e) {
+        console.error("Lỗi tải bản sao sách:", e);
+      }
+
+      // Bổ sung tên sách từ /api/books nếu bản sao chưa có title
+      try {
+        const books = await fetchAPI("/api/books");
+        const bookMap = {};
+        (books || []).forEach(b => { bookMap[b.isbn] = b.title; });
+        (allBookCopies || []).forEach(c => {
+          if (!c.bookTitle && bookMap[c.isbn]) {
+            c.bookTitle = bookMap[c.isbn];
+          }
+        });
+      } catch (e) {}
+
+      updateInitialHints();
+    }
+
+    function updateInitialHints() {
+      const currentReaderId = document.getElementById("borrow-reader-id").value.trim();
+      if (currentReaderId && allReaders.length > 0) {
+        const r = allReaders.find(x => x.readerId.toLowerCase() === currentReaderId.toLowerCase());
+        const hint = document.getElementById("reader-selected-hint");
+        if (r && hint) {
+          hint.innerHTML = `✓ Đã chọn: <strong>${r.fullName}</strong> (${r.readerId})`;
+          hint.style.display = "block";
+        }
+      }
+
+      const currentBarcode = document.getElementById("borrow-barcode").value.trim();
+      if (currentBarcode && allBookCopies.length > 0) {
+        const c = allBookCopies.find(x => x.barcode.toLowerCase() === currentBarcode.toLowerCase());
+        const hint = document.getElementById("book-selected-hint");
+        if (c && hint) {
+          const isAvail = c.status === "Available";
+          hint.innerHTML = `✓ Đã chọn: <strong>${c.bookTitle || c.isbn}</strong> (${c.barcode} - ${isAvail ? 'Có sẵn' : c.status})`;
+          hint.style.display = "block";
+        }
+      }
+    }
+
+    // Bước 1: Tìm kiếm theo Mã độc giả hoặc Họ tên độc giả
+    function renderReaderDropdown(filterText) {
+      const dropdown = document.getElementById("reader-dropdown");
+      if (!dropdown) return;
+
+      const q = (filterText || "").trim().toLowerCase();
+      const qNoAccent = removeAccents(filterText || "");
+
+      let matches = allReaders;
+      if (q) {
+        matches = allReaders.filter(r => {
+          const id = (r.readerId || "").toLowerCase();
+          const name = (r.fullName || "").toLowerCase();
+          const nameNoAccent = removeAccents(r.fullName || "");
+          return id.includes(q) || name.includes(q) || nameNoAccent.includes(qNoAccent);
+        });
+      }
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = `<div class="autocomplete-empty">Không tìm thấy độc giả nào khớp với "${filterText}"</div>`;
+        dropdown.classList.add("show");
+        return;
+      }
+
+      const displayList = matches.slice(0, 15);
+      dropdown.innerHTML = displayList.map(r => `
+        <div class="autocomplete-item" onmousedown="selectReader('${r.readerId}')">
+          <div class="autocomplete-item-title">
+            <span><strong>${r.readerId}</strong> - ${r.fullName}</span>
+            <span class="badge ${r.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}">${r.status}</span>
+          </div>
+          <div class="autocomplete-item-desc">
+            <span>Loại: ${r.type === 'STUDENT' ? 'Sinh viên' : 'Giảng viên'}</span>
+            <span>•</span>
+            <span>Hạn thẻ: ${r.expiryDate || '-'}</span>
+            <span>•</span>
+            <span>Nợ phạt: ${formatCurrency(r.balanceFine)}</span>
+          </div>
+        </div>
+      `).join("");
+      dropdown.classList.add("show");
+    }
+
+    function selectReader(readerId) {
+      const input = document.getElementById("borrow-reader-id");
+      input.value = readerId;
+      const hint = document.getElementById("reader-selected-hint");
+      const r = allReaders.find(x => x.readerId === readerId);
+      if (r && hint) {
+        hint.innerHTML = `✓ Đã chọn: <strong>${r.fullName}</strong> (${r.readerId})`;
+        hint.style.display = "block";
+      }
+      document.getElementById("reader-dropdown")?.classList.remove("show");
       checkReaderEligibility();
+    }
+
+    // Bước 2: Tìm kiếm theo Mã sách (Barcode / ISBN) hoặc Tên sách
+    function renderBookDropdown(filterText) {
+      const dropdown = document.getElementById("book-dropdown");
+      if (!dropdown) return;
+
+      const q = (filterText || "").trim().toLowerCase();
+      const qNoAccent = removeAccents(filterText || "");
+
+      let matches = allBookCopies;
+      if (q) {
+        matches = allBookCopies.filter(c => {
+          const barcode = (c.barcode || "").toLowerCase();
+          const copyId = (c.copyId || "").toLowerCase();
+          const isbn = (c.isbn || "").toLowerCase();
+          const title = (c.bookTitle || "").toLowerCase();
+          const titleNoAccent = removeAccents(c.bookTitle || "");
+          return barcode.includes(q) || copyId.includes(q) || isbn.includes(q) || title.includes(q) || titleNoAccent.includes(qNoAccent);
+        });
+      }
+
+      // Ưu tiên hiển thị bản sao Available lên trước
+      matches.sort((a, b) => {
+        if (a.status === "Available" && b.status !== "Available") return -1;
+        if (a.status !== "Available" && b.status === "Available") return 1;
+        return 0;
+      });
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = `<div class="autocomplete-empty">Không tìm thấy sách hoặc bản sao nào khớp với "${filterText}"</div>`;
+        dropdown.classList.add("show");
+        return;
+      }
+
+      const displayList = matches.slice(0, 15);
+      dropdown.innerHTML = displayList.map(c => {
+        const isAvail = c.status === "Available";
+        const badgeClass = isAvail ? "badge-success" : (c.status === "Loaned" ? "badge-warning" : "badge-danger");
+        const statusText = isAvail ? "Có sẵn" : (c.status === "Loaned" ? "Đang mượn" : c.status);
+        return `
+          <div class="autocomplete-item" onmousedown="selectBookCopy('${c.barcode}')">
+            <div class="autocomplete-item-title">
+              <span><strong>${c.barcode}</strong> - ${c.bookTitle || 'Sách ' + c.isbn}</span>
+              <span class="badge ${badgeClass}">${statusText}</span>
+            </div>
+            <div class="autocomplete-item-desc">
+              <span>Mã bản sao: ${c.copyId}</span>
+              <span>•</span>
+              <span>ISBN: ${c.isbn}</span>
+              <span>•</span>
+              <span>Giá: ${formatCurrency(c.price)}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+      dropdown.classList.add("show");
+    }
+
+    function selectBookCopy(barcode) {
+      if (!barcode) return;
+      const input = document.getElementById("borrow-barcode");
+      if (input) input.value = barcode;
+      const hint = document.getElementById("book-selected-hint");
+      const c = allBookCopies.find(x => (x.barcode || "").toLowerCase() === barcode.toLowerCase());
+      if (c && hint) {
+        const isAvail = c.status === "Available";
+        hint.innerHTML = `✓ Đã chọn: <strong>${c.bookTitle || c.isbn}</strong> (${c.barcode} - ${isAvail ? 'Có sẵn' : c.status})`;
+        hint.style.display = "block";
+      } else if (hint) {
+        hint.innerHTML = `✓ Đã chọn mã vạch: <strong>${barcode}</strong>`;
+        hint.style.display = "block";
+      }
+      document.getElementById("book-dropdown")?.classList.remove("show");
+    }
+
+    function setupAutocompleteEvents() {
+      const readerInput = document.getElementById("borrow-reader-id");
+      const readerDropdown = document.getElementById("reader-dropdown");
+
+      readerInput.addEventListener("input", () => {
+        if (!readerInput.value.trim()) {
+          const hint = document.getElementById("reader-selected-hint");
+          if (hint) hint.style.display = "none";
+          const infoBox = document.getElementById("reader-info-box");
+          if (infoBox) infoBox.style.display = "none";
+        }
+        renderReaderDropdown(readerInput.value);
+      });
+      readerInput.addEventListener("focus", () => renderReaderDropdown(readerInput.value));
+      readerInput.addEventListener("click", () => renderReaderDropdown(readerInput.value));
+      readerInput.addEventListener("change", () => {
+        if (readerInput.value.trim()) {
+          checkReaderEligibility();
+        }
+      });
+
+      const bookInput = document.getElementById("borrow-barcode");
+      const bookDropdown = document.getElementById("book-dropdown");
+
+      bookInput.addEventListener("input", () => {
+        if (!bookInput.value.trim()) {
+          const hint = document.getElementById("book-selected-hint");
+          if (hint) hint.style.display = "none";
+        }
+        renderBookDropdown(bookInput.value);
+      });
+      bookInput.addEventListener("focus", () => renderBookDropdown(bookInput.value));
+      bookInput.addEventListener("click", () => renderBookDropdown(bookInput.value));
+
+      document.addEventListener("click", (e) => {
+        if (!readerInput.contains(e.target) && !readerDropdown.contains(e.target)) {
+          readerDropdown.classList.remove("show");
+        }
+        if (!bookInput.contains(e.target) && !bookDropdown.contains(e.target)) {
+          bookDropdown.classList.remove("show");
+        }
+      });
+
+      readerInput.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") readerDropdown.classList.remove("show");
+        if (e.key === "Enter") {
+          readerDropdown.classList.remove("show");
+          if (readerInput.value.trim()) {
+            checkReaderEligibility();
+          }
+        }
+      });
+
+      bookInput.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") bookDropdown.classList.remove("show");
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab") || "borrow";
+      const idMap = { "borrow": "borrow-tab", "return": "return-tab", "list": "list-tab" };
+      const initialTabId = idMap[tabParam] || "borrow-tab";
+
+      renderSidebar("loans", tabParam);
+      switchTab(initialTabId);
+
+      setupAutocompleteEvents();
+
+      const barcodeParam = urlParams.get("barcode");
+      const isbnParam = urlParams.get("isbn");
+      const readerParam = urlParams.get("readerId");
+
+      if (barcodeParam) {
+        const bookInput = document.getElementById("borrow-barcode");
+        if (bookInput) bookInput.value = barcodeParam;
+        const hint = document.getElementById("book-selected-hint");
+        if (hint) {
+          hint.innerHTML = `✓ Đã chọn: <strong>${barcodeParam}</strong>`;
+          hint.style.display = "block";
+        }
+      }
+      if (readerParam) {
+        const readerInput = document.getElementById("borrow-reader-id");
+        if (readerInput) readerInput.value = readerParam;
+      }
+      if (tabParam === "return" && barcodeParam) {
+        const returnInput = document.getElementById("return-barcode");
+        if (returnInput) returnInput.value = barcodeParam;
+      }
+
+      loadAutocompleteData().then(() => {
+        if (readerParam) {
+          selectReader(readerParam);
+        } else {
+          const id = document.getElementById("borrow-reader-id").value.trim();
+          if (id) {
+            checkReaderEligibility();
+          }
+        }
+
+        if (barcodeParam) {
+          selectBookCopy(barcodeParam);
+        } else if (isbnParam) {
+          const avail = allBookCopies.find(c => c.isbn === isbnParam && c.status === "Available");
+          if (avail) {
+            selectBookCopy(avail.barcode);
+          } else {
+            const anyCopy = allBookCopies.find(c => c.isbn === isbnParam);
+            if (anyCopy) selectBookCopy(anyCopy.barcode);
+          }
+        }
+
+        // Tự động focus vào ô quét thẻ độc giả nếu sách đã được chọn trước
+        if (barcodeParam || isbnParam) {
+          const readerInput = document.getElementById("borrow-reader-id");
+          if (readerInput && !readerInput.value) {
+            readerInput.focus();
+          }
+        }
+      });
     });
   </script>
 </body>

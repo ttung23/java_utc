@@ -21,8 +21,11 @@ public class Book {
     /** Năm xuất bản */
     private int publishYear;
 
-    /** Thể loại sách */
+    /** Thể loại sách (tên thể loại) */
     private String category;
+
+    /** Mã thể loại liên kết với bảng CATEGORIES */
+    private String categoryId;
 
     /**
      * Constructor mặc định.
@@ -98,6 +101,14 @@ public class Book {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(String categoryId) {
+        this.categoryId = categoryId;
     }
 
     // ======================== toString ========================

@@ -21,6 +21,18 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE BOOK_COPIES CASCADE CONSTRAINTS'; EXCEPTION 
 /
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE BOOKS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE CATEGORIES CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+
+-- ============================================================
+-- 0. BẢNG CATEGORIES - Thể loại sách
+-- ============================================================
+CREATE TABLE CATEGORIES (
+    category_id     VARCHAR2(50)    NOT NULL,
+    category_name   VARCHAR2(100)   NOT NULL UNIQUE,
+    description     VARCHAR2(255),
+    CONSTRAINT pk_categories PRIMARY KEY (category_id)
+);
 
 -- ============================================================
 -- 1. BẢNG BOOKS - Lưu thông tin sách (theo ISBN)
@@ -32,7 +44,9 @@ CREATE TABLE BOOKS (
     publisher       VARCHAR2(150),
     publish_year    NUMBER(4),
     category        VARCHAR2(100),
-    CONSTRAINT pk_books PRIMARY KEY (isbn)
+    category_id     VARCHAR2(50),
+    CONSTRAINT pk_books PRIMARY KEY (isbn),
+    CONSTRAINT fk_books_categories FOREIGN KEY (category_id) REFERENCES CATEGORIES(category_id)
 );
 
 -- ============================================================

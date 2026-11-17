@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SLMS - Nội Quy & Chính Sách Thư Viện</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/client.css">
+  <style>
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .rule-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .rule-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    .rule-card-icon {
+      font-size: 24px;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #eff6ff;
+    }
+    .rule-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0;
+    }
+    .rule-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rule-item {
+      display: flex;
+      gap: 10px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #334155;
+    }
+    .rule-bullet {
+      color: var(--primary);
+      font-weight: bold;
+    }
+    .rule-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .rule-table th, .rule-table td {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .rule-table th {
+      background: #f8fafc;
+      font-weight: 600;
+    }
+    .rule-callout {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .rule-callout.warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+    .rule-callout.danger {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      color: #991b1b;
+    }
+    .rule-callout.info {
+      background: #f0fdf4;
+      border-left: 4px solid #10b981;
+      color: #065f46;
+    }
+  </style>
+</head>
+<body class="client-body">
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Nội Quy & Quyền Lợi Độc Giả</h1>
+        <p class="page-subtitle">Chính sách mượn sách, biểu phí bồi thường và quy tắc sử dụng dịch vụ thư viện</p>
+      </div>
+    </div>
+
+    <!-- LƯỚI QUY ĐỊNH -->
+    <div class="rules-grid">
+
+      <!-- 1. QUY ĐỊNH MƯỢN SÁCH -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-card-icon">📚</div>
+          <div>
+            <h2 class="rule-card-title">1. Hạn Mức Mượn Sách</h2>
+            <div style="font-size:12px;color:#64748b;">Số lượng và thời hạn mượn</div>
+          </div>
+        </div>
+        <ul class="rule-list">
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Quy định theo đối tượng:</strong>
+              <table class="rule-table">
+                <thead>
+                  <tr>
+                    <th>Đối tượng</th>
+                    <th>Tối đa</th>
+                    <th>Thời hạn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Sinh viên</td>
+                    <td><span class="badge badge-primary">5 cuốn</span></td>
+                    <td>14 ngày</td>
+                  </tr>
+                  <tr>
+                    <td>Giảng viên</td>
+                    <td><span class="badge badge-success">10 cuốn</span></td>
+                    <td>30 ngày</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </li>
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Điều kiện mượn:</strong> Thẻ thư viện đang hoạt động (<code>ACTIVE</code>), còn hạn sử dụng và tổng nợ phạt <strong>≤ 50.000 VNĐ</strong>.
+            </div>
+          </li>
+        </ul>
+        <div class="rule-callout info">
+          💡 Độc giả có thể kiểm tra danh sách sách đang mượn và ngày đến hạn tại mục <strong>Sách đang mượn</strong>.
+        </div>
+      </div>
+
+      <!-- 2. QUY ĐỊNH TRẢ SÁCH & PHẠT -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-card-icon" style="background:#fff7ed;color:#ea580c;">🔄</div>
+          <div>
+            <h2 class="rule-card-title">2. Trả Sách & Xử Lý Phạt</h2>
+            <div style="font-size:12px;color:#64748b;">Trễ hạn, hư hỏng và bồi thường</div>
+          </div>
+        </div>
+        <ul class="rule-list">
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Trả đúng hạn:</strong> Độc giả trả lại sách nguyên vẹn trước hoặc đúng ngày đáo hạn, không phát sinh chi phí.
+            </div>
+          </li>
+          <li class="rule-item">
+            <span class="rule-bullet">⚠️</span>
+            <div>
+              <strong>Phí phạt trễ hạn:</strong> Tính <strong>5.000 VNĐ / ngày trễ / cuốn</strong>.
+            </div>
+          </li>
+          <li class="rule-item">
+            <span class="rule-bullet">⚠️</span>
+            <div>
+              <strong>Bồi thường sách hỏng / mất:</strong>
+              <br>• Sách hư hỏng: bồi thường từ <strong>100% đến 200%</strong> giá trị sách.
+              <br>• Báo mất sách: bồi thường <strong>200%</strong> giá trị sách.
+            </div>
+          </li>
+        </ul>
+        <div class="rule-callout danger">
+          🚨 Nếu tổng nợ phạt vượt quá <strong>50.000 VNĐ</strong>, bạn sẽ bị tạm khóa quyền mượn sách cho đến khi thanh toán.
+        </div>
+      </div>
+
+      <!-- 3. QUY TẮC ĐẶT TRƯỚC SÁCH -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-card-icon" style="background:#f5f3ff;color:#7c3aed;">🔖</div>
+          <div>
+            <h2 class="rule-card-title">3. Đặt Trước Sách Online</h2>
+            <div style="font-size:12px;color:#64748b;">Hàng chờ tự động</div>
+          </div>
+        </div>
+        <ul class="rule-list">
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Khi nào được đặt trước:</strong> Khi đầu sách trên hệ thống không còn bản sao nào có sẵn (Available = 0).
+            </div>
+          </li>
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Thời hạn giữ chỗ 3 ngày:</strong> Khi có sách trả về kho, hệ thống tự động gán cho độc giả đặt trước và giữ sách trong <strong>3 ngày</strong>.
+            </div>
+          </li>
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Hủy đơn đặt trước:</strong> Bạn có thể tự bấm hủy đặt trước bất cứ lúc nào trong mục <strong>Đặt trước</strong>.
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4. TÀI KHOẢN VÀ THẺ -->
+      <div class="rule-card">
+        <div class="rule-card-header">
+          <div class="rule-card-icon" style="background:#f0fdf4;color:#16a34a;">👤</div>
+          <div>
+            <h2 class="rule-card-title">4. Tài Khoản & Bảo Mật</h2>
+            <div style="font-size:12px;color:#64748b;">Thông tin thẻ và mật khẩu</div>
+          </div>
+        </div>
+        <ul class="rule-list">
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Bảo mật mật khẩu:</strong> Nên đổi mật khẩu mặc định sang mật khẩu cá nhân tại mục <strong>Hồ sơ & mật khẩu</strong>.
+            </div>
+          </li>
+          <li class="rule-item">
+            <span class="rule-bullet">✓</span>
+            <div>
+              <strong>Gia hạn thẻ:</strong> Khi thẻ sắp hết hạn hoặc hết hạn, vui lòng mang thẻ sinh viên/căn cước đến quầy thư viện để được gia hạn.
+            </div>
+          </li>
+        </ul>
+        <div class="rule-callout warning">
+          ⚠️ Tuyệt đối không chia sẻ mật khẩu tài khoản cổng độc giả cho người khác.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- HỖ TRỢ -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Hỗ Trợ & Liên Hệ Thư Viện</h2>
+      </div>
+      <div style="font-size:14px;line-height:1.8;color:#475569;">
+        <div>📍 <strong>Địa chỉ:</strong> Nhà thư viện - Trường Đại học Giao thông Vận tải (UTC)</div>
+        <div>⏰ <strong>Giờ làm việc:</strong> Thứ 2 - Thứ 6 (07:30 - 17:00), Thứ 7 (08:00 - 11:30)</div>
+        <div>📧 <strong>Email:</strong> thuvien@utc.edu.vn | 📞 <strong>Hotline:</strong> 024.37663311</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/client.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      renderClientSidebar("rules");
+    });
+  </script>
+</body>
+</html>
+

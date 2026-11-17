@@ -17,10 +17,12 @@
       </div>
     </div>
     <div class="panel" style="margin-bottom:20px;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <input type="text" id="search-q" placeholder="Nhập tên sách..." style="flex:1;min-width:220px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="position:relative;flex:1;display:flex;align-items:center;">
+          <input type="search" id="search-q" placeholder="Nhập tên sách..." style="width:100%;padding-right:34px;">
+          <button id="clear-catalog-btn" class="clear-search-btn" type="button" onclick="clearCatalogSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
+        </div>
         <button class="btn btn-primary" onclick="loadCatalog()">Tìm kiếm</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('search-q').value=''; loadCatalog();">Tất cả</button>
       </div>
     </div>
     <div class="panel">
@@ -36,10 +38,43 @@
   <script>
     const readerId = requireLogin();
     if (readerId) { renderClientSidebar("catalog"); loadCatalog(); }
-    document.getElementById("search-q").addEventListener("keydown", e => { if (e.key === "Enter") loadCatalog(); });
+
+    const searchInput = document.getElementById("search-q");
+    const clearBtn = document.getElementById("clear-catalog-btn");
+
+    function updateClearBtn() {
+      if (searchInput && clearBtn) {
+        clearBtn.style.display = searchInput.value.trim().length > 0 ? "block" : "none";
+      }
+    }
+
+    function clearCatalogSearch() {
+      if (searchInput) {
+        searchInput.value = "";
+        searchInput.focus();
+      }
+      if (clearBtn) clearBtn.style.display = "none";
+      loadCatalog();
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") loadCatalog();
+        else if (e.key === "Escape") clearCatalogSearch();
+      });
+      searchInput.addEventListener("input", () => {
+        updateClearBtn();
+        if (!searchInput.value.trim()) loadCatalog();
+      });
+      searchInput.addEventListener("search", () => {
+        updateClearBtn();
+        if (!searchInput.value.trim()) loadCatalog();
+      });
+    }
 
     async function loadCatalog() {
       const q = document.getElementById("search-q").value.trim();
+      updateClearBtn();
       const tbody = document.getElementById("catalog-body");
       tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>`;
       try {

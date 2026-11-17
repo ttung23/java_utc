@@ -42,7 +42,10 @@ public class DatabaseInitializer {
         addColumnIfMissing(conn, "READERS", "PASSWORD_HASH", "VARCHAR2(100)");
 
         createStaffTableIfMissing(conn);
-        System.out.println(">>> [DB] Schema upgrade (auth/profile) đã hoàn tất.");
+        createCategoriesTableIfMissing(conn);
+        addColumnIfMissing(conn, "BOOKS", "CATEGORY_ID", "VARCHAR2(50)");
+        migrateBookCategories(conn);
+        System.out.println(">>> [DB] Schema upgrade (auth/profile/categories) đã hoàn tất.");
     }
 
     private static void addColumnIfMissing(Connection conn, String tableName, String columnName, String columnType) {
@@ -86,6 +89,76 @@ public class DatabaseInitializer {
                     System.err.println(">>> [DB] Cảnh báo khi tạo bảng STAFF_USERS: " + e.getMessage());
                 }
             }
+        }
+    }
+
+    private static void createCategoriesTableIfMissing(Connection conn) {
+        if (!isTableExist(conn, "CATEGORIES")) {
+            String sql = "CREATE TABLE CATEGORIES (" +
+                    "    category_id VARCHAR2(50) NOT NULL," +
+                    "    category_name VARCHAR2(100) NOT NULL UNIQUE," +
+                    "    description VARCHAR2(255)," +
+                    "    CONSTRAINT pk_categories PRIMARY KEY (category_id)" +
+                    ")";
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+                System.out.println(">>> [DB] Đã tạo bảng CATEGORIES thành công.");
+            } catch (SQLException e) {
+                if (e.getErrorCode() != 955 && !e.getMessage().toLowerCase().contains("already exists")) {
+                    System.err.println(">>> [DB] Cảnh báo khi tạo bảng CATEGORIES: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void migrateBookCategories(Connection conn) {
+        try {
+            // Lấy danh sách category từ bảng BOOKS
+            java.util.Set<String> distinctCategories = new java.util.LinkedHashSet<>();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT DISTINCT category FROM BOOKS WHERE category IS NOT NULL")) {
+                while (rs.next()) {
+                    String cat = rs.getString(1);
+                    if (cat != null && !cat.trim().isEmpty()) {
+                        distinctCategories.add(cat.trim());
+                    }
+                }
+            }
+
+            // Nếu chưa có thể loại nào thì thêm một số thể loại cơ bản
+            if (distinctCategories.isEmpty()) {
+                distinctCategories.add("Software Engineering");
+                distinctCategories.add("Programming");
+                distinctCategories.add("Database");
+                distinctCategories.add("General");
+                distinctCategories.add("Khoa học máy tính");
+            }
+
+            CategoryRepository catRepo = new CategoryRepository();
+            for (String catName : distinctCategories) {
+                catRepo.getOrCreateByName(catName);
+            }
+
+            // Cập nhật category_id trong BOOKS cho những cuốn chưa có
+            java.util.List<com.slms.model.Category> allCats = catRepo.findAll();
+            for (com.slms.model.Category c : allCats) {
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE BOOKS SET category_id = ? WHERE (category_id IS NULL OR category_id = '') AND LOWER(TRIM(category)) = LOWER(TRIM(?))")) {
+                    ps.setString(1, c.getCategoryId());
+                    ps.setString(2, c.getCategoryName());
+                    ps.executeUpdate();
+                }
+            }
+
+            // Thử thêm ràng buộc khóa ngoại (nếu chưa có)
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE BOOKS ADD CONSTRAINT fk_books_categories FOREIGN KEY (category_id) REFERENCES CATEGORIES(category_id)");
+                System.out.println(">>> [DB] Đã thêm ràng buộc khóa ngoại fk_books_categories.");
+            } catch (SQLException ignored) {
+                // Ràng buộc đã tồn tại hoặc không hỗ trợ
+            }
+        } catch (Exception e) {
+            System.err.println(">>> [DB] Cảnh báo khi migrate categories: " + e.getMessage());
         }
     }
 
@@ -287,6 +360,11 @@ public class DatabaseInitializer {
         } catch (SQLException e) {
             System.err.println("Lỗi khi thực thi script tạo database: " + e.getMessage());
         }
+    }
+
+    public static void main(String[] args) {
+        initialize();
+        System.out.println(">>> [DB] DatabaseInitializer main() executed successfully!");
     }
 }
 

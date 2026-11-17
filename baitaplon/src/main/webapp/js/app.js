@@ -50,17 +50,28 @@ function formatDateTime(dateStr) {
 }
 
 // Render Sidebar động cho tất cả các trang
-function renderSidebar(activeKey) {
+function renderSidebar(activeKey, activeSubKey = "borrow") {
   const sidebar = document.querySelector(".sidebar");
   if (!sidebar) return;
 
   const menu = [
-    { key: "dashboard", label: "Dashboard Thống kê", icon: "📊", href: "index.html" },
-    { key: "loans", label: "Mượn / Trả Sách", icon: "🔄", href: "loans.html" },
-    { key: "books", label: "Quản lý Sách & Bản sao", icon: "📚", href: "books.html" },
+    { key: "books", label: "Quản lý Sách", icon: "📚", href: "books.html" },
+    {
+      key: "loans",
+      label: "Mượn / Trả Sách",
+      icon: "🔄",
+      href: "loans.html",
+      children: [
+        { key: "borrow", label: "Lập Phiếu Mượn Sách", href: "loans.html?tab=borrow", tabId: "borrow-tab" },
+        { key: "return", label: "Nhận Trả Sách & Sự Cố", href: "loans.html?tab=return", tabId: "return-tab" },
+        { key: "list", label: "Danh Sách Phiếu Mượn", href: "loans.html?tab=list", tabId: "list-tab" }
+      ]
+    },
     { key: "readers", label: "Quản lý Độc giả", icon: "👥", href: "readers.html" },
     { key: "fines", label: "Hóa đơn Phạt", icon: "💰", href: "fines.html" },
     { key: "reservations", label: "Đặt trước Sách", icon: "🔖", href: "reservations.html" },
+    { key: "dashboard", label: "Dashboard Thống kê", icon: "📊", href: "dashboard.html" },
+    { key: "rules", label: "Nội quy & Chính sách", icon: "📜", href: "rules.html" },
     { key: "client", label: "Cổng độc giả", icon: "🧑‍🎓", href: "client/login.html" }
   ];
 
@@ -68,7 +79,7 @@ function renderSidebar(activeKey) {
   const staffRole = sessionStorage.getItem("slms_staff_role") || "";
 
   let html = `
-    <div class="brand">
+    <div class="brand" style="cursor: pointer;" onclick="window.location.href='books.html'">
       <div class="brand-icon">🏛️</div>
       <div>
         <div class="brand-title">SLMS Library</div>
@@ -80,13 +91,41 @@ function renderSidebar(activeKey) {
 
   menu.forEach(item => {
     const isActive = item.key === activeKey ? "active" : "";
-    html += `
-      <li class="nav-item ${isActive}">
-        <a href="${item.href}">
-          <span>${item.label}</span>
-        </a>
-      </li>
-    `;
+    const hasChildren = item.children && item.children.length > 0;
+
+    if (!hasChildren) {
+      html += `
+        <li class="nav-item ${isActive}">
+          <a href="${item.href}">
+            <span>${item.label}</span>
+          </a>
+        </li>
+      `;
+    } else {
+      // Menu cha có sub-menu con (Mượn / Trả Sách)
+      html += `
+        <li class="nav-item has-sub ${isActive}">
+          <a href="${item.href}" class="nav-parent" onclick="handleMenuParentClick(event, '${item.key}')">
+            <span>${item.label}</span>
+            <span class="sub-arrow">${isActive ? '▾' : '▸'}</span>
+          </a>
+          <ul class="nav-submenu ${isActive ? 'show' : ''}" id="submenu-${item.key}">
+      `;
+      item.children.forEach(sub => {
+        const isSubActive = isActive && (sub.key === activeSubKey);
+        html += `
+          <li class="nav-subitem ${isSubActive ? 'active' : ''}" data-tab="${sub.tabId}" data-key="${sub.key}">
+            <a href="${sub.href}" onclick="handleSubItemClick(event, '${sub.tabId}', '${sub.key}')">
+              <span>${sub.label}</span>
+            </a>
+          </li>
+        `;
+      });
+      html += `
+          </ul>
+        </li>
+      `;
+    }
   });
 
   html += `
@@ -100,6 +139,26 @@ function renderSidebar(activeKey) {
   `;
 
   sidebar.innerHTML = html;
+}
+
+function handleMenuParentClick(event, menuKey) {
+  const currentPath = window.location.pathname.toLowerCase();
+  if (currentPath.includes("loans.html") || currentPath.endsWith("/loans") || currentPath.endsWith("loans")) {
+    event.preventDefault();
+    if (typeof switchTab === "function") {
+      switchTab("borrow-tab");
+    }
+  }
+}
+
+function handleSubItemClick(event, tabId, subKey) {
+  const currentPath = window.location.pathname.toLowerCase();
+  if (currentPath.includes("loans.html") || currentPath.endsWith("/loans") || currentPath.endsWith("loans")) {
+    event.preventDefault();
+    if (typeof switchTab === "function") {
+      switchTab(tabId);
+    }
+  }
 }
 
 function staffLogout() {
@@ -153,5 +212,23 @@ function staffLogout() {
     }
   }, 1000);
 })();
+
+// ==================== TỰ ĐỘNG ĐÓNG POP-UP (MODAL) KHI NHẤP RA NGOÀI ====================
+// Đóng tất cả pop-up (modal) khi người dùng nhấp ra ngoài phần nội dung (nhấp vào modal-overlay)
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains("modal-overlay")) {
+    e.target.classList.remove("open");
+  }
+});
+
+// Đóng modal khi nhấn phím Escape
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open").forEach(modal => {
+      modal.classList.remove("open");
+    });
+  }
+});
+
 
 

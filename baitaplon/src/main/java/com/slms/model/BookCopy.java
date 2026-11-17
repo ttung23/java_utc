@@ -28,6 +28,9 @@ public class BookCopy {
     /** Trạng thái hiện tại của bản sao */
     private CopyStatus status;
 
+    /** Tên cuốn sách liên kết (phục vụ hiển thị và tìm kiếm) */
+    private String bookTitle;
+
     /**
      * Constructor mặc định.
      */
@@ -113,6 +116,14 @@ public class BookCopy {
 
     public void setStatus(CopyStatus status) {
         this.status = status;
+    }
+
+    public String getBookTitle() {
+        return bookTitle;
+    }
+
+    public void setBookTitle(String bookTitle) {
+        this.bookTitle = bookTitle;
     }
 
     // ======================== toString ========================

@@ -36,6 +36,26 @@ public class TestConnection {
                 } catch (Exception e) {
                     System.out.println("    [CANH BAO] Ket noi duoc nhung chua co bang BOOKS: " + e.getMessage());
                 }
+
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT category_id, category_name FROM CATEGORIES ORDER BY category_id")) {
+                    System.out.println("    [CATEGORIES IN DATABASE]:");
+                    while (rs.next()) {
+                        System.out.println("      - " + rs.getString(1) + ": " + rs.getString(2));
+                    }
+                } catch (Exception e) {
+                    System.out.println("    [CANH BAO] Loi doc bang CATEGORIES: " + e.getMessage());
+                }
+
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT isbn, title, category_id, category FROM BOOKS FETCH FIRST 5 ROWS ONLY")) {
+                    System.out.println("    [BOOKS SAMPLE WITH CATEGORY_ID]:");
+                    while (rs.next()) {
+                        System.out.println("      - " + rs.getString("isbn") + " | " + rs.getString("title") + " | category_id=" + rs.getString("category_id") + " | category=" + rs.getString("category"));
+                    }
+                } catch (Exception e) {
+                    System.out.println("    [CANH BAO] Loi doc BOOKS: " + e.getMessage());
+                }
                 return;
             } catch (Exception e) {
                 System.out.println("    [THAT BAI] Ma loi: " + e.getMessage());

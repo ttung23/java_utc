@@ -21,10 +21,12 @@
 
     <!-- Thanh tìm kiếm -->
     <div class="panel" style="padding:16px 20px;">
-      <div style="display:flex;gap:12px;">
-        <input type="text" id="search-keyword" placeholder="Nhập tên sách, tác giả cần tìm..." style="flex:1;">
-        <button class="btn btn-primary" onclick="searchBooks()">🔍 Tìm Kiếm</button>
-        <button class="btn btn-secondary" onclick="loadBooks()">Tất cả</button>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="position:relative;flex:1;display:flex;align-items:center;">
+          <input type="search" id="search-keyword" placeholder="Nhập tên sách, tác giả cần tìm..." style="width:100%;padding-right:34px;">
+          <button id="clear-search-btn" class="clear-search-btn" type="button" onclick="clearSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
+        </div>
+        <button class="btn btn-primary" onclick="searchBooks()">Tìm Kiếm</button>
       </div>
     </div>
 
@@ -128,8 +130,32 @@
             </div>
           </div>
           <div class="form-group" style="margin-bottom:18px;">
-            <label>Thể loại / Chuyên ngành:</label>
-            <input type="text" id="book-category" placeholder="VD: Công nghệ thông tin, Lập trình...">
+            <label for="book-category-select">Thể loại sách:</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="book-category-select" required style="flex:1;">
+                <option value="">-- Chọn thể loại sách --</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddCategoryInline()" title="Thêm thể loại mới nếu chưa có trong danh sách">
+                + Thêm mới
+              </button>
+            </div>
+
+            <!-- Khung tạo thể loại mới ngay trên form -->
+            <div id="inline-add-category-box" style="display:none;margin-top:10px;padding:12px 14px;background:#f8fafc;border-radius:8px;border:1px dashed #94a3b8;">
+              <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#1e293b;">
+                Tạo thể loại mới nhanh:
+              </div>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="new-category-name" placeholder="Nhập tên thể loại (VD: AI & Robotics, Kỹ năng mềm...)" style="flex:1;padding:8px 12px;font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCreateCategory();}">
+                <button type="button" class="btn btn-success btn-sm" onclick="submitCreateCategory()">
+                  ✓ Lưu & Chọn
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddCategoryInline(false)">
+                  Hủy
+                </button>
+              </div>
+              <div id="category-create-msg" style="font-size:12px;margin-top:6px;display:none;"></div>
+            </div>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button type="button" class="btn btn-secondary" onclick="closeAddBookModal()">Hủy</button>
@@ -146,13 +172,21 @@
     let editingBookIsbn = null;
     let booksByIsbn = {};
 
+    function goToBorrow(barcode) {
+      if (!barcode) return;
+      window.location.href = `loans.html?tab=borrow&barcode=${encodeURIComponent(barcode)}`;
+    }
+
     async function loadBooks(query = "") {
       const tbody = document.getElementById("books-table-body");
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
 
       try {
         const endpoint = query ? `/api/books?q=${encodeURIComponent(query)}` : "/api/books";
-        const books = await fetchAPI(endpoint);
+        const [books, allCopies] = await Promise.all([
+          fetchAPI(endpoint),
+          fetchAPI("/api/books/copies").catch(() => [])
+        ]);
 
         if (books.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không tìm thấy sách nào</td></tr>`;
@@ -160,29 +194,77 @@
         }
 
         booksByIsbn = Object.fromEntries(books.map(book => [book.isbn, book]));
-        tbody.innerHTML = books.map(b => `
-          <tr>
-            <td><code>${b.isbn}</code></td>
-            <td><strong>${b.title}</strong></td>
-            <td>${b.author}</td>
-            <td>${b.publisher || "-"}</td>
-            <td>${b.publishYear || "-"}</td>
-            <td><span class="badge badge-gray">${b.category || "General"}</span></td>
-            <td>
-              <button class="btn btn-secondary btn-sm" onclick="viewCopies('${b.isbn}', '${b.title.replace(/'/g, "\\'")}')">
-                📦 Xem Bản Sao
-              </button>
-              <button class="btn btn-secondary btn-sm" onclick="editBook('${b.isbn}')">Sửa</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteBook('${b.isbn}')">Xóa</button>
-            </td>
-          </tr>
-        `).join("");
-      } catch (e) {}
+
+        // Gom danh sách bản sao theo ISBN để kiểm tra bản sao có sẵn
+        const copiesByIsbn = {};
+        (allCopies || []).forEach(c => {
+          if (!copiesByIsbn[c.isbn]) copiesByIsbn[c.isbn] = [];
+          copiesByIsbn[c.isbn].push(c);
+        });
+
+        tbody.innerHTML = books.map(b => {
+          const copies = copiesByIsbn[b.isbn] || [];
+          const availCopies = copies.filter(c => c.status === "Available");
+          const hasAvailable = availCopies.length > 0;
+          const firstBarcode = hasAvailable ? availCopies[0].barcode : "";
+
+          return `
+            <tr>
+              <td><code>${b.isbn}</code></td>
+              <td><strong>${b.title}</strong></td>
+              <td>${b.author}</td>
+              <td>${b.publisher || "-"}</td>
+              <td>${b.publishYear || "-"}</td>
+              <td><span class="badge badge-gray">${b.category || "General"}</span></td>
+              <td>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  ${hasAvailable ? `
+                    <button class="btn btn-primary btn-sm" onclick="goToBorrow('${firstBarcode}')" title="Còn ${availCopies.length} bản sao sẵn sàng cho mượn">
+                      Mượn
+                    </button>
+                  ` : `
+                    <button class="btn btn-primary btn-sm" disabled style="opacity:0.45;cursor:not-allowed;" title="Đã hết bản sao cho mượn">
+                      Mượn
+                    </button>
+                  `}
+                  <button class="btn btn-secondary btn-sm" onclick="viewCopies('${b.isbn}', '${b.title.replace(/'/g, "\\'")}')">
+                    Bản Sao (${copies.length})
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="editBook('${b.isbn}')">Sửa</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteBook('${b.isbn}')">Xóa</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {
+        console.error("Lỗi khi tải danh sách sách:", e);
+      }
     }
 
     function searchBooks() {
       const kw = document.getElementById("search-keyword").value.trim();
+      updateClearBtn();
       loadBooks(kw);
+    }
+
+    function clearSearch() {
+      const input = document.getElementById("search-keyword");
+      const btn = document.getElementById("clear-search-btn");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      if (btn) btn.style.display = "none";
+      loadBooks("");
+    }
+
+    function updateClearBtn() {
+      const input = document.getElementById("search-keyword");
+      const btn = document.getElementById("clear-search-btn");
+      if (input && btn) {
+        btn.style.display = input.value.trim().length > 0 ? "block" : "none";
+      }
     }
 
     async function viewCopies(isbn, title) {
@@ -214,8 +296,17 @@
               <td><code>${c.barcode}</code></td>
               <td>${formatCurrency(c.price)}</td>
               <td><span class="badge ${badge}">${c.status}</span></td>
-              <td>${c.status === "Loaned" || c.status === "Reserved" ? "-"
-                : `<button class="btn btn-danger btn-sm" onclick="deleteCopy('${c.copyId}')">Xóa</button>`}</td>
+              <td>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  ${c.status === "Available" ? `
+                    <button class="btn btn-primary btn-sm" onclick="goToBorrow('${c.barcode}')">Mượn</button>
+                  ` : `
+                    <button class="btn btn-primary btn-sm" disabled style="opacity:0.45;cursor:not-allowed;" title="Bản sao đang ở trạng thái: ${c.status}">Mượn</button>
+                  `}
+                  ${c.status === "Loaned" || c.status === "Reserved" ? ""
+                  : `<button class="btn btn-danger btn-sm" onclick="deleteCopy('${c.copyId}')">Xóa</button>`}
+                </div>
+              </td>
             </tr>
           `;
         }).join("");
@@ -248,11 +339,95 @@
         document.getElementById("new-copy-id").value = "";
         document.getElementById("new-copy-barcode").value = "";
         loadCopiesTable(currentIsbnForCopies);
+        loadBooks();
       } catch (e) {}
     }
 
     function closeCopiesModal() {
       document.getElementById("copies-modal").classList.remove("open");
+    }
+
+    let allCategories = [];
+
+    async function loadCategories(selectedIdOrName = "") {
+      const select = document.getElementById("book-category-select");
+      if (!select) return;
+      try {
+        allCategories = await fetchAPI("/api/categories") || [];
+        select.innerHTML = '<option value="">-- Chọn thể loại sách --</option>' +
+          allCategories.map(c => `
+            <option value="${c.categoryId}" data-name="${c.categoryName}">
+              ${c.categoryName}
+            </option>
+          `).join("");
+
+        if (selectedIdOrName) {
+          const matchById = allCategories.find(c => c.categoryId === selectedIdOrName);
+          if (matchById) {
+            select.value = matchById.categoryId;
+          } else {
+            const matchByName = allCategories.find(c => c.categoryName.toLowerCase() === selectedIdOrName.toLowerCase());
+            if (matchByName) {
+              select.value = matchByName.categoryId;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Lỗi tải thể loại:", e);
+      }
+    }
+
+    function toggleAddCategoryInline(show = null) {
+      const box = document.getElementById("inline-add-category-box");
+      const input = document.getElementById("new-category-name");
+      const msg = document.getElementById("category-create-msg");
+      if (!box) return;
+      const isVisible = (box.style.display !== "none");
+      const nextShow = (show !== null) ? show : !isVisible;
+      box.style.display = nextShow ? "block" : "none";
+      if (msg) msg.style.display = "none";
+      if (nextShow && input) {
+        input.value = "";
+        input.focus();
+      }
+    }
+
+    async function submitCreateCategory() {
+      const input = document.getElementById("new-category-name");
+      const msg = document.getElementById("category-create-msg");
+      const name = (input ? input.value : "").trim();
+      if (!name) {
+        if (msg) {
+          msg.textContent = "Vui lòng nhập tên thể loại!";
+          msg.style.color = "var(--danger)";
+          msg.style.display = "block";
+        }
+        return;
+      }
+
+      try {
+        const saved = await fetchAPI("/api/categories", {
+          method: "POST",
+          body: JSON.stringify({ categoryName: name })
+        });
+
+        // Tải lại danh sách thể loại và tự động chọn thể loại vừa tạo
+        await loadCategories(saved.categoryId);
+        toggleAddCategoryInline(false);
+
+        if (msg) {
+          msg.textContent = `✓ Đã tạo và chọn thể loại: ${saved.categoryName}`;
+          msg.style.color = "var(--success)";
+          msg.style.display = "block";
+        }
+        showToast(`Đã thêm thể loại: ${saved.categoryName}`, "success");
+      } catch (err) {
+        if (msg) {
+          msg.textContent = err.message || "Không thể tạo thể loại";
+          msg.style.color = "var(--danger)";
+          msg.style.display = "block";
+        }
+      }
     }
 
     function openAddBookModal() {
@@ -261,6 +436,8 @@
       document.getElementById("book-submit-button").textContent = "Lưu Đầu Sách";
       document.getElementById("book-isbn").readOnly = false;
       document.querySelector("#add-book-modal form").reset();
+      toggleAddCategoryInline(false);
+      loadCategories();
       document.getElementById("add-book-modal").classList.add("open");
     }
 
@@ -276,7 +453,8 @@
       document.getElementById("book-author").value = book.author;
       document.getElementById("book-publisher").value = book.publisher || "";
       document.getElementById("book-year").value = book.publishYear || "";
-      document.getElementById("book-category").value = book.category || "";
+      toggleAddCategoryInline(false);
+      loadCategories(book.categoryId || book.category);
       document.getElementById("add-book-modal").classList.add("open");
     }
 
@@ -286,13 +464,19 @@
 
     async function submitAddBook(e) {
       e.preventDefault();
+      const catSelect = document.getElementById("book-category-select");
+      const categoryId = catSelect.value;
+      const selectedOption = catSelect.options[catSelect.selectedIndex];
+      const categoryName = selectedOption ? (selectedOption.dataset.name || selectedOption.textContent.trim()) : "";
+
       const book = {
         isbn: document.getElementById("book-isbn").value.trim(),
         title: document.getElementById("book-title").value.trim(),
         author: document.getElementById("book-author").value.trim(),
         publisher: document.getElementById("book-publisher").value.trim(),
         publishYear: parseInt(document.getElementById("book-year").value) || null,
-        category: document.getElementById("book-category").value.trim()
+        categoryId: categoryId,
+        category: categoryName
       };
 
       try {
@@ -323,11 +507,35 @@
         await fetchAPI(`/api/books/copies/${encodeURIComponent(copyId)}`, { method: "DELETE" });
         showToast("Xóa bản sao thành công!", "success");
         loadCopiesTable(currentIsbnForCopies);
+        loadBooks();
       } catch (e) {}
     }
     document.addEventListener("DOMContentLoaded", () => {
       renderSidebar("books");
       loadBooks();
+
+      const searchInput = document.getElementById("search-keyword");
+      if (searchInput) {
+        searchInput.addEventListener("input", () => {
+          updateClearBtn();
+          if (!searchInput.value.trim()) {
+            loadBooks("");
+          }
+        });
+        searchInput.addEventListener("search", () => {
+          updateClearBtn();
+          if (!searchInput.value.trim()) {
+            loadBooks("");
+          }
+        });
+        searchInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            searchBooks();
+          } else if (e.key === "Escape") {
+            clearSearch();
+          }
+        });
+      }
     });
   </script>
 </body>

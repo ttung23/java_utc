@@ -18,23 +18,29 @@ public class BookRepository {
 
     // ==================== Câu lệnh SQL ====================
     private static final String SQL_FIND_ALL =
-            "SELECT isbn, title, author, publisher, publish_year, category FROM BOOKS ORDER BY title";
+            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, "
+            + "COALESCE(c.category_name, b.category) AS category "
+            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id ORDER BY b.title";
 
     private static final String SQL_FIND_BY_ISBN =
-            "SELECT isbn, title, author, publisher, publish_year, category FROM BOOKS WHERE isbn = ?";
+            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, "
+            + "COALESCE(c.category_name, b.category) AS category "
+            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id WHERE b.isbn = ?";
 
     private static final String SQL_INSERT =
-            "INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category) VALUES (?, ?, ?, ?, ?, ?)";
+            "INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_UPDATE =
-            "UPDATE BOOKS SET title = ?, author = ?, publisher = ?, publish_year = ?, category = ? WHERE isbn = ?";
+            "UPDATE BOOKS SET title = ?, author = ?, publisher = ?, publish_year = ?, category = ?, category_id = ? WHERE isbn = ?";
 
     private static final String SQL_DELETE =
             "DELETE FROM BOOKS WHERE isbn = ?";
 
     private static final String SQL_SEARCH_BY_TITLE =
-            "SELECT isbn, title, author, publisher, publish_year, category FROM BOOKS "
-                    + "WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ?";
+            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, "
+            + "COALESCE(c.category_name, b.category) AS category "
+            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id "
+            + "WHERE LOWER(b.title) LIKE ? OR LOWER(b.author) LIKE ? OR LOWER(COALESCE(c.category_name, b.category)) LIKE ?";
 
     /**
      * Lấy danh sách tất cả sách, sắp xếp theo tên.
@@ -94,6 +100,7 @@ public class BookRepository {
             ps.setString(4, book.getPublisher());
             ps.setInt(5, book.getPublishYear());
             ps.setString(6, book.getCategory());
+            ps.setString(7, book.getCategoryId());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi thêm sách [" + book.getIsbn() + "]: " + e.getMessage(), e);
@@ -116,7 +123,8 @@ public class BookRepository {
             ps.setString(3, book.getPublisher());
             ps.setInt(4, book.getPublishYear());
             ps.setString(5, book.getCategory());
-            ps.setString(6, book.getIsbn());
+            ps.setString(6, book.getCategoryId());
+            ps.setString(7, book.getIsbn());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi cập nhật sách [" + book.getIsbn() + "]: " + e.getMessage(), e);
@@ -141,10 +149,10 @@ public class BookRepository {
     }
 
     /**
-     * Tìm kiếm sách theo từ khóa trong tiêu đề (không phân biệt hoa thường).
+     * Tìm kiếm sách theo từ khóa trong tiêu đề, tác giả hoặc thể loại (không phân biệt hoa thường).
      *
      * @param keyword từ khóa tìm kiếm
-     * @return danh sách sách có tiêu đề chứa từ khóa
+     * @return danh sách sách khớp với từ khóa
      */
     public List<Book> searchByTitle(String keyword) {
         List<Book> books = new ArrayList<>();
@@ -155,13 +163,14 @@ public class BookRepository {
             String pattern = "%" + keyword.toLowerCase() + "%";
             ps.setString(1, pattern);
             ps.setString(2, pattern);
+            ps.setString(3, pattern);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     books.add(mapResultSetToBook(rs));
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Lỗi khi tìm kiếm sách theo tiêu đề [" + keyword + "]: " + e.getMessage(), e);
+            throw new RuntimeException("Lỗi khi tìm kiếm sách [" + keyword + "]: " + e.getMessage(), e);
         }
         return books;
     }
@@ -182,6 +191,9 @@ public class BookRepository {
         book.setAuthor(rs.getString("author"));
         book.setPublisher(rs.getString("publisher"));
         book.setPublishYear(rs.getInt("publish_year"));
+        try {
+            book.setCategoryId(rs.getString("category_id"));
+        } catch (SQLException ignored) {}
         book.setCategory(rs.getString("category"));
         return book;
     }

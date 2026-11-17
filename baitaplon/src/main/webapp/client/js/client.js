@@ -106,6 +106,7 @@ function renderClientSidebar(activeKey) {
     { key: "loans", label: "Sách đang mượn", icon: "📖", href: "loans.html" },
     { key: "reservations", label: "Đặt trước", icon: "🔖", href: "reservations.html" },
     { key: "fines", label: "Tiền phạt", icon: "💰", href: "fines.html" },
+    { key: "rules", label: "Nội quy & Chính sách", icon: "📜", href: "rules.html" },
     { key: "profile", label: "Hồ sơ & mật khẩu", icon: "👤", href: "profile.html" }
   ];
 
@@ -157,3 +158,16 @@ function renderClientSidebar(activeKey) {
     }
   }, 1000);
 })();
+
+// Đóng modal khi click ra ngoài hoặc bấm Escape
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains("modal-overlay")) {
+    e.target.classList.remove("open");
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  }
+});
+
