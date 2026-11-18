@@ -186,12 +186,39 @@ public class CmsService {
                 .stream().map(f -> {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("bookId", f.getBookId());
-                    String title = bookRepository.findByIdAndDeletedAtIsNull(f.getBookId())
-                            .map(Book::getTitle).orElse(null);
-                    m.put("bookTitle", title);
                     m.put("createdAt", f.getCreatedAt());
+                    bookRepository.findByIdAndDeletedAtIsNull(f.getBookId()).ifPresent(book -> {
+                        m.put("bookTitle", book.getTitle());
+                        m.put("title", book.getTitle());
+                        m.put("coverUrl", book.getCoverUrl());
+                        m.put("isbn13", book.getIsbn13());
+                        m.put("avgRating", book.getAvgRating());
+                        m.put("ratingCount", book.getRatingCount());
+                        m.put("borrowCount", book.getBorrowCount());
+                        m.put("publishYear", book.getPublishYear());
+                        m.put("classificationCode", book.getClassificationCode());
+                        if (book.getPublisher() != null) {
+                            m.put("publisherName", book.getPublisher().getName());
+                        }
+                    });
                     return m;
                 }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> myReviews() {
+        return reviewRepository
+                .findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(SecurityUtils.requireCurrentUser().getId())
+                .stream()
+                .map(r -> {
+                    Map<String, Object> m = reviewMap(r);
+                    if (r.getBook() != null) {
+                        m.put("bookTitle", r.getBook().getTitle());
+                        m.put("coverUrl", r.getBook().getCoverUrl());
+                    }
+                    return m;
+                })
+                .toList();
     }
 
     // ---- Reviews ----

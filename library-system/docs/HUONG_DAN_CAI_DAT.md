@@ -2,6 +2,8 @@
 
 Sau khi `git pull`, làm theo thứ tự dưới đây để chạy **cả 3 phần**: Backend + **Admin** + **Client**.
 
+> Máy **Windows** (PowerShell / CMD, Docker hoặc Postgres native): xem [`HUONG_DAN_CAI_DAT_WINDOWS.md`](./HUONG_DAN_CAI_DAT_WINDOWS.md).
+
 ## Yêu cầu máy
 
 | Công cụ | Gợi ý |

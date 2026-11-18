@@ -56,11 +56,12 @@ public class SecurityConfig {
                                 "/api/v1/languages", "/api/v1/languages/**",
                                 "/api/v1/document-types", "/api/v1/document-types/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/books/*/copies").authenticated()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/books",
                                 "/api/v1/books/new",
                                 "/api/v1/books/popular",
+                                "/api/v1/books/*/copies",
+                                "/api/v1/books/*/related",
                                 "/api/v1/books/*"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
