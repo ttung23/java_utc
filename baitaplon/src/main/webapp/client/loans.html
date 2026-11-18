@@ -3,98 +3,271 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Sách đang mượn</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Phiếu Mượn Của Tôi - Thư Viện UTC</title>
   <link rel="stylesheet" href="css/client.css">
 </head>
 <body class="client-body">
-  <aside class="sidebar"></aside>
-  <main class="main-wrapper">
-    <div class="top-header">
-      <div>
-        <h1 class="page-title">Phiếu mượn của tôi</h1>
-        <p class="page-subtitle">Gia hạn online nếu chưa quá hạn. Trả sách vẫn tại quầy.</p>
-      </div>
-      <button class="btn btn-secondary" onclick="loadLoans()">Làm mới</button>
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <div class="cl-breadcrumb">
+      <a href="index.html">Trang chủ</a> <span class="sep">/</span>
+      <span class="current">Phiếu mượn của tôi</span>
     </div>
-    <div class="panel">
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã phiếu</th><th>Bản sao</th><th>Ngày mượn</th><th>Hạn trả</th><th>Trạng thái</th><th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="loans-body"><tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr></tbody>
-        </table>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div>
+        <h1 style="font-size:24px;font-weight:800;color:var(--cl-navy);margin:0;">
+          Phiếu Mượn &amp; Lịch Sử Mượn Trả
+        </h1>
+        <p style="font-size:13px;color:var(--cl-muted);margin-top:2px;">
+          Gia hạn trực tuyến tối đa 02 lần nếu chưa quá hạn. Trả sách trực tiếp tại quầy thủ thư.
+        </p>
       </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="loadLoans()">
+          🔄 Làm mới
+        </button>
+        <a href="catalog.html" class="btn btn-primary btn-sm">
+          + Mượn thêm sách
+        </a>
+      </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="label">Sách đang mượn</div>
+        <div class="val" id="kpi-borrowing" style="color:var(--cl-blue);">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Sắp đến hạn / Quá hạn</div>
+        <div class="val" id="kpi-overdue" style="color:var(--cl-danger);">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Đã hoàn thành trả</div>
+        <div class="val" id="kpi-returned" style="color:var(--cl-success);">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Tổng số lượt mượn</div>
+        <div class="val" id="kpi-total">-</div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="cl-tabs">
+      <button type="button" class="cl-tab-btn active" onclick="setTab('all', this)">Tất cả phiếu mượn</button>
+      <button type="button" class="cl-tab-btn" onclick="setTab('borrowing', this)">Đang mượn</button>
+      <button type="button" class="cl-tab-btn" onclick="setTab('overdue', this)">Quá hạn</button>
+      <button type="button" class="cl-tab-btn" onclick="setTab('returned', this)">Đã trả</button>
+    </div>
+
+    <!-- Loans List -->
+    <div id="loans-container">
+      <div style="text-align:center;padding:50px;color:var(--cl-muted);">Đang tải danh sách phiếu mượn...</div>
     </div>
   </main>
+
+  <footer class="cl-footer"></footer>
+
   <script src="js/client.js"></script>
   <script>
-    const readerId = requireLogin();
-    if (readerId) { renderClientSidebar("loans"); loadLoans(); }
+    renderClientHeader("loans");
+    renderFloatingCartBar();
+    renderClientFooter();
 
-    function statusBadge(status) {
-      const s = (status || "").toUpperCase();
-      if (s === "BORROWED") return `<span class="badge badge-warning">Đang mượn</span>`;
-      if (s === "RETURNED") return `<span class="badge badge-success">Đã trả</span>`;
-      if (s === "OVERDUE") return `<span class="badge badge-danger">Quá hạn</span>`;
-      return `<span class="badge">${status || "-"}</span>`;
+    let allLoans = [];
+    let currentTab = "all";
+
+    function setTab(tab, el) {
+      currentTab = tab;
+      document.querySelectorAll(".cl-tab-btn").forEach(b => b.classList.remove("active"));
+      el.classList.add("active");
+      renderLoans();
     }
 
     async function loadLoans() {
-      const tbody = document.getElementById("loans-body");
+      const readerId = requireLogin();
+      if (!readerId) return;
+
+      const container = document.getElementById("loans-container");
+      container.innerHTML = `<div style="text-align:center;padding:50px;color:var(--cl-muted);">Đang tải dữ liệu phiếu mượn...</div>`;
+
       try {
-        const loans = await fetchAPI("/api/loans?readerId=" + encodeURIComponent(readerId));
-        if (!loans.length) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có phiếu mượn</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = loans.map(l => {
-          const isOverdue = Date.parse((l.dueDate || "").replace(" ", "T")) < Date.now();
-          const isBorrowed = (l.status || "").toUpperCase() === "BORROWED";
-          const renewalCount = l.renewalCount || 0;
-          const canRenew = isBorrowed && !isOverdue && renewalCount < 2;
+        const [loans, books, copies] = await Promise.all([
+          fetchAPI("/api/loans?readerId=" + encodeURIComponent(readerId)),
+          fetchAPI("/api/books").catch(() => []),
+          fetchAPI("/api/books/copies").catch(() => [])
+        ]);
 
-          const renewalBadge = renewalCount > 0
-            ? `<span class="badge badge-primary" style="font-size:10px;margin-left:4px;padding:2px 5px;" title="Đã gia hạn ${renewalCount} lần">+${renewalCount}</span>`
-            : "";
+        const copyMap = new Map();
+        copies.forEach(c => copyMap.set(c.barcode || c.copyId, c));
 
-          let actionContent = "-";
-          if (isBorrowed) {
-            if (canRenew) {
-              actionContent = `<button class="btn btn-primary btn-sm" onclick="renewLoan('${l.loanId}', ${renewalCount})">Gia hạn (${renewalCount}/2)</button>`;
-            } else if (isOverdue) {
-              actionContent = `<span style="font-size:12px;color:var(--danger);font-weight:600;">Quá hạn</span>`;
-            } else if (renewalCount >= 2) {
-              actionContent = `<span style="font-size:12px;color:var(--text-muted);">Hết lượt (2/2)</span>`;
-            }
-          }
+        const bookMap = new Map();
+        books.forEach(b => bookMap.set(b.isbn, b));
 
-          return `<tr>
-            <td><strong>${l.loanId}</strong></td><td>${l.copyId}</td>
-            <td>${formatDateTime(l.borrowDate)}</td><td>${formatDateTime(l.dueDate)}${renewalBadge}</td>
-            <td>${statusBadge(l.status)}</td>
-            <td>${actionContent}</td>
-          </tr>`;
-        }).join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+        allLoans = loans.map(l => {
+          const cp = copyMap.get(l.copyId) || copyMap.get(l.barcode);
+          const bk = cp ? bookMap.get(cp.isbn) : null;
+          return {
+            ...l,
+            bookTitle: bk ? bk.title : "Tài liệu chuyên ngành (Ấn bản thư viện)",
+            author: bk ? bk.author : "Nhiều tác giả",
+            shelf: cp ? (cp.shelfLocation || "Khu A - Tầng 2") : "Khu A - Tầng 2"
+          };
+        });
+
+        // Compute KPIs
+        const borrowing = allLoans.filter(l => (l.status || "").toUpperCase() === "BORROWED");
+        const returned = allLoans.filter(l => (l.status || "").toUpperCase() === "RETURNED");
+        const overdue = allLoans.filter(l => {
+          const isOver = Date.parse((l.dueDate || "").replace(" ", "T")) < Date.now();
+          return isOver && (l.status || "").toUpperCase() === "BORROWED";
+        });
+
+        document.getElementById("kpi-borrowing").textContent = `${borrowing.length} cuốn`;
+        document.getElementById("kpi-returned").textContent = `${returned.length} cuốn`;
+        document.getElementById("kpi-overdue").textContent = `${overdue.length} cuốn`;
+        document.getElementById("kpi-total").textContent = `${allLoans.length} lượt`;
+
+        renderLoans();
+      } catch (err) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:50px;color:var(--cl-danger);">
+            Lỗi khi tải phiếu mượn: ${escapeHtml(err.message)}
+          </div>
+        `;
       }
     }
 
-    async function renewLoan(loanId, currentRenewalCount) {
-      if (!confirm(`Xác nhận gia hạn phiếu mượn [${loanId}] (Lần ${(currentRenewalCount || 0) + 1}/2)?`)) return;
+    function renderLoans() {
+      const container = document.getElementById("loans-container");
+
+      const filtered = allLoans.filter(l => {
+        const st = (l.status || "").toUpperCase();
+        const isOver = Date.parse((l.dueDate || "").replace(" ", "T")) < Date.now();
+        if (currentTab === "borrowing") return st === "BORROWED" && !isOver;
+        if (currentTab === "overdue") return st === "BORROWED" && isOver;
+        if (currentTab === "returned") return st === "RETURNED";
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:60px;background:#fff;border-radius:16px;border:1px solid var(--cl-border);">
+            <div style="font-size:42px;margin-bottom:12px;">📖</div>
+            <h4 style="color:var(--cl-navy);margin-bottom:6px;">Không có phiếu mượn nào</h4>
+            <p style="color:var(--cl-muted);font-size:13px;margin-bottom:16px;">
+              ${currentTab === "all" ? "Bạn chưa có phiếu mượn nào trong hệ thống." : "Không có phiếu mượn nào trong mục này."}
+            </p>
+            <a href="catalog.html" class="btn btn-primary btn-sm">Tra Cứu Học Liệu Để Mượn Sách →</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(l => {
+        const st = (l.status || "").toUpperCase();
+        const isBorrowed = st === "BORROWED";
+        const isReturned = st === "RETURNED";
+        const dueDateMs = Date.parse((l.dueDate || "").replace(" ", "T"));
+        const isOverdue = dueDateMs < Date.now();
+        const renewalCount = l.renewalCount || 0;
+        const canRenew = isBorrowed && !isOverdue && renewalCount < 2;
+
+        let duePillHtml = "";
+        if (isReturned) {
+          duePillHtml = `<span class="due-pill ok">✓ Đã trả sách xong</span>`;
+        } else if (isOverdue) {
+          const daysLate = Math.ceil((Date.now() - dueDateMs) / (1000 * 3600 * 24));
+          duePillHtml = `<span class="due-pill overdue">⚠ Quá hạn ${daysLate} ngày (Phạt 5.000 đ/ngày)</span>`;
+        } else {
+          const daysLeft = Math.ceil((dueDateMs - Date.now()) / (1000 * 3600 * 24));
+          if (daysLeft <= 3) {
+            duePillHtml = `<span class="due-pill warn">🕒 Còn ${daysLeft} ngày (Sắp đến hạn)</span>`;
+          } else {
+            duePillHtml = `<span class="due-pill ok">✓ Còn ${daysLeft} ngày</span>`;
+          }
+        }
+
+        let actionHtml = "";
+        if (isBorrowed) {
+          if (canRenew) {
+            actionHtml = `
+              <button type="button" class="btn btn-primary btn-sm" onclick="renewLoan('${l.loanId}', ${renewalCount})">
+                🔄 Gia Hạn (+14 ngày)
+              </button>
+            `;
+          } else if (isOverdue) {
+            actionHtml = `
+              <a href="fines.html" class="btn btn-secondary btn-sm" style="color:var(--cl-danger);border-color:#fca5a5;">
+                💰 Xem Phạt &amp; Trả Quầy
+              </a>
+            `;
+          } else if (renewalCount >= 2) {
+            actionHtml = `<span style="font-size:12px;color:var(--cl-muted);font-weight:600;">Đã hết lượt gia hạn (2/2)</span>`;
+          }
+        }
+
+        return `
+          <div class="borrow-card">
+            <div class="borrow-card-head">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:22px;">📋</span>
+                <div>
+                  <strong style="font-size:15px;color:var(--cl-navy);">Phiếu mượn: ${escapeHtml(l.loanId)}</strong>
+                  <div class="meta">
+                    Ngày mượn: <strong>${formatDateTime(l.borrowDate)}</strong> · Hạn trả: <strong>${formatDateTime(l.dueDate)}</strong>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${duePillHtml}
+                <span class="badge ${isBorrowed ? 'badge-info' : 'badge-success'}">
+                  ${isBorrowed ? 'Đang mượn' : 'Đã hoàn tất'}
+                </span>
+              </div>
+            </div>
+
+            <div class="borrow-card-body">
+              <div style="display:flex;gap:14px;align-items:center;">
+                <div style="width:48px;height:60px;border-radius:8px;background:linear-gradient(155deg,#1e3a8a,#0b1f3a);color:#fff;display:grid;place-items:center;font-size:20px;flex-shrink:0;">
+                  📖
+                </div>
+                <div>
+                  <h4 style="font-size:15px;font-weight:700;color:var(--cl-navy);margin-bottom:2px;">
+                    ${escapeHtml(l.bookTitle)}
+                  </h4>
+                  <div style="font-size:12px;color:var(--cl-muted);">Tác giả: ${escapeHtml(l.author)}</div>
+                  <div style="font-size:12px;color:#475569;margin-top:2px;">
+                    Mã vạch bản sao: <strong>${escapeHtml(l.copyId || l.barcode)}</strong> · Vị trí: <strong>${escapeHtml(l.shelf)}</strong>
+                    ${renewalCount > 0 ? ` · <span class="badge badge-info" style="font-size:10px;">Đã gia hạn: ${renewalCount}/2 lần</span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                ${actionHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function renewLoan(loanId, currentCount) {
+      if (!confirm(`Xác nhận gia hạn phiếu mượn [${loanId}] thêm 14 ngày (Lần ${currentCount + 1}/2)?`)) return;
       try {
-        const loan = await fetchAPI("/api/loans/renew", {
+        const renewed = await fetchAPI("/api/loans/renew", {
           method: "POST",
           body: JSON.stringify({ loanId })
         });
-        alert(`🎉 Đã gia hạn thành công!\nHạn trả mới: ${formatDateTime(loan.dueDate)}\nSố lần đã gia hạn: ${loan.renewalCount}/2`);
+        showToast(`🎉 Gia hạn thành công! Hạn trả mới: ${formatDateTime(renewed.dueDate)}`, "success");
         loadLoans();
       } catch (e) {}
     }
+
+    loadLoans();
   </script>
 </body>
 </html>

@@ -3,71 +3,193 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Tiền phạt</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Tiền Phạt &amp; Dư Nợ - Thư Viện UTC</title>
   <link rel="stylesheet" href="css/client.css">
 </head>
 <body class="client-body">
-  <aside class="sidebar"></aside>
-  <main class="main-wrapper">
-    <div class="top-header">
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <div class="cl-breadcrumb">
+      <a href="index.html">Trang chủ</a> <span class="sep">/</span>
+      <span class="current">Khoản phạt &amp; Hóa đơn</span>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
       <div>
-        <h1 class="page-title">Khoản phạt của tôi</h1>
-        <p class="page-subtitle">Thanh toán online (giả lập) hoặc tại quầy thủ thư</p>
+        <h1 style="font-size:24px;font-weight:800;color:var(--cl-navy);margin:0;">
+          Khoản Phạt &amp; Dư Nợ Độc Giả
+        </h1>
+        <p style="font-size:13px;color:var(--cl-muted);margin-top:2px;">
+          Theo dõi các khoản phạt trễ hạn hoặc bồi thường sách. Thanh toán trực tuyến hoặc tại quầy thủ thư.
+        </p>
       </div>
-      <button class="btn btn-secondary" onclick="loadFines()">Làm mới</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="loadFines()">
+        🔄 Làm mới
+      </button>
     </div>
-    <div class="stat-card" style="margin-bottom:20px;max-width:360px;">
-      <div><div class="stat-label">Tổng nợ chưa thanh toán</div><div class="stat-value" id="total-unpaid" style="font-size:22px;color:var(--danger);">-</div></div>
+
+    <!-- Debt Summary Banner -->
+    <div class="home-reader" style="margin-top:0;margin-bottom:24px;">
+      <div>
+        <div style="font-size:12px;color:var(--cl-muted);text-transform:uppercase;font-weight:700;">TỔNG DƯ NỢ CHƯA THANH TOÁN</div>
+        <div style="font-size:32px;font-weight:800;margin-top:4px;" id="total-debt-val">0 VNĐ</div>
+        <div style="font-size:12.5px;color:var(--cl-muted);margin-top:4px;" id="debt-status-hint">
+          Tài khoản thẻ hoàn toàn trong sạch, đủ điều kiện mượn sách.
+        </div>
+      </div>
+
+      <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid var(--cl-border);font-size:12.5px;color:#475569;line-height:1.55;">
+        🛡 <strong>Quy tắc nợ phạt (BR-04):</strong> Độc giả có dư nợ phạt vượt quá <strong>50.000 VNĐ</strong> sẽ bị tạm khóa quyền mượn sách mới trên hệ thống cho tới khi hoàn tất thanh toán. Phạt trễ hạn áp dụng <strong>5.000 VNĐ/ngày/cuốn</strong>.
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button type="button" class="btn btn-primary btn-sm" id="btn-pay-all" style="display:none;" onclick="payAllFines()">
+          💳 Nộp Phạt Trực Tuyến
+        </button>
+        <a href="rules.html" class="btn btn-secondary btn-sm">Xem biểu phí phạt →</a>
+      </div>
     </div>
-    <div class="panel">
-      <div class="table-responsive">
-        <table>
+
+    <!-- Fines List Table -->
+    <div class="cart-card" style="padding:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--cl-border);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:16px;color:var(--cl-navy);margin:0;">Lịch Sử Hóa Đơn &amp; Khoản Phạt</h3>
+        <span class="badge badge-info" id="fines-count-badge">0 hóa đơn</span>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="bd-copy-table" style="margin:0;">
           <thead>
-            <tr><th>Mã phạt</th><th>Phiếu mượn</th><th>Số tiền</th><th>Lý do</th><th>Trạng thái</th><th></th></tr>
+            <tr>
+              <th>Mã hóa đơn</th>
+              <th>Mã phiếu mượn</th>
+              <th>Lý do vi phạm</th>
+              <th>Số tiền phạt</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
           </thead>
-          <tbody id="fines-body"><tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr></tbody>
+          <tbody id="fines-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--cl-muted);">Đang tải dữ liệu khoản phạt...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
   </main>
+
+  <footer class="cl-footer"></footer>
+
   <script src="js/client.js"></script>
   <script>
-    const readerId = requireLogin();
-    if (readerId) { renderClientSidebar("fines"); loadFines(); }
+    renderClientHeader("fines");
+    renderFloatingCartBar();
+    renderClientFooter();
+
+    let myFines = [];
 
     async function loadFines() {
-      const tbody = document.getElementById("fines-body");
+      const readerId = requireLogin();
+      if (!readerId) return;
+
+      const tbody = document.getElementById("fines-tbody");
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--cl-muted);">Đang tải danh sách khoản phạt...</td></tr>`;
+
       try {
-        const fines = await fetchAPI("/api/fines?readerId=" + encodeURIComponent(readerId));
-        if (!fines.length) {
-          document.getElementById("total-unpaid").textContent = formatCurrency(0);
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Không có khoản phạt chưa thanh toán</td></tr>`;
+        myFines = await fetchAPI("/api/fines?readerId=" + encodeURIComponent(readerId));
+        document.getElementById("fines-count-badge").textContent = `${myFines.length} hóa đơn`;
+
+        const unpaid = myFines.filter(f => (f.paymentStatus || "").toLowerCase() !== "paid");
+        const totalUnpaid = unpaid.reduce((sum, f) => sum + (Number(f.fineAmount) || 0), 0);
+
+        const debtVal = document.getElementById("total-debt-val");
+        const debtHint = document.getElementById("debt-status-hint");
+        const payAllBtn = document.getElementById("btn-pay-all");
+
+        debtVal.textContent = formatCurrency(totalUnpaid);
+
+        if (totalUnpaid > 0) {
+          debtVal.style.color = "var(--cl-danger)";
+          debtHint.textContent = `Bạn đang có ${unpaid.length} khoản phạt chưa thanh toán. Vui lòng thanh toán sớm để đảm bảo quyền mượn sách.`;
+          debtHint.style.color = "var(--cl-danger)";
+          payAllBtn.style.display = "block";
+        } else {
+          debtVal.style.color = "var(--cl-success)";
+          debtHint.textContent = "Tài khoản thẻ hoàn toàn trong sạch, không có nợ đọng, đủ điều kiện mượn sách.";
+          debtHint.style.color = "var(--cl-success)";
+          payAllBtn.style.display = "none";
+        }
+
+        if (myFines.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align:center;padding:50px 20px;">
+                <div style="font-size:36px;margin-bottom:8px;">✓</div>
+                <div style="font-size:15px;font-weight:700;color:var(--cl-navy);">Tuyệt vời! Không có khoản phạt nào</div>
+                <div style="font-size:12.5px;color:var(--cl-muted);margin-top:4px;">Bạn luôn tuân thủ nội quy mượn trả tài liệu rất tốt.</div>
+              </td>
+            </tr>
+          `;
           return;
         }
-        const total = fines.reduce((s, f) => s + (Number(f.fineAmount) || 0), 0);
-        document.getElementById("total-unpaid").textContent = formatCurrency(total);
-        tbody.innerHTML = fines.map(f => `
-          <tr>
-            <td>${f.fineId}</td><td>${f.loanId || "-"}</td>
-            <td><strong>${formatCurrency(f.fineAmount)}</strong></td>
-            <td>${f.reason || "-"}</td>
-            <td><span class="badge badge-danger">${f.paymentStatus || "Unpaid"}</span></td>
-            <td><button class="btn btn-primary btn-sm" onclick="payFine('${f.fineId}')">Thanh toán</button></td>
-          </tr>`).join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+
+        tbody.innerHTML = myFines.map(f => {
+          const isPaid = (f.paymentStatus || "").toLowerCase() === "paid";
+          const statusBadge = isPaid
+            ? `<span class="badge badge-success">✓ Đã thanh toán</span>`
+            : `<span class="badge badge-danger">● Chưa thanh toán</span>`;
+
+          const action = isPaid
+            ? `<span style="font-size:12px;color:var(--cl-muted);">Đã hoàn tất</span>`
+            : `<button class="btn btn-primary btn-sm" onclick="payFine('${f.fineId}', ${f.fineAmount})">Thanh toán ngay</button>`;
+
+          return `
+            <tr>
+              <td><strong>${escapeHtml(f.fineId)}</strong></td>
+              <td>${escapeHtml(f.loanId || "—")}</td>
+              <td>${escapeHtml(f.reason || "Trễ hạn trả tài liệu")}</td>
+              <td><strong style="color:var(--cl-navy);">${formatCurrency(f.fineAmount)}</strong></td>
+              <td>${statusBadge}</td>
+              <td>${action}</td>
+            </tr>
+          `;
+        }).join("");
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--cl-danger);">Lỗi tải: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
-    async function payFine(fineId) {
-      if (!confirm("Xác nhận thanh toán hóa đơn " + fineId + "?")) return;
+    async function payFine(fineId, amount) {
+      if (!confirm(`Xác nhận thanh toán khoản phạt ${fineId} (${formatCurrency(amount)}) qua cổng thanh toán sinh viên?`)) return;
       try {
-        await fetchAPI("/api/fines/pay", { method: "POST", body: JSON.stringify({ fineId }) });
-        showToast("Thanh toán thành công", "success");
+        await fetchAPI("/api/fines/pay", {
+          method: "POST",
+          body: JSON.stringify({ fineId })
+        });
+        showToast("🎉 Thanh toán khoản phạt thành công!", "success");
         loadFines();
       } catch (e) {}
     }
+
+    async function payAllFines() {
+      const unpaid = myFines.filter(f => (f.paymentStatus || "").toLowerCase() !== "paid");
+      if (unpaid.length === 0) return;
+      if (!confirm(`Xác nhận thanh toán toàn bộ ${unpaid.length} khoản phạt chưa thanh toán?`)) return;
+
+      for (const f of unpaid) {
+        try {
+          await fetchAPI("/api/fines/pay", {
+            method: "POST",
+            body: JSON.stringify({ fineId: f.fineId })
+          });
+        } catch (e) {}
+      }
+      showToast("🎉 Đã thanh toán toàn bộ khoản phạt!", "success");
+      loadFines();
+    }
+
+    loadFines();
   </script>
 </body>
 </html>

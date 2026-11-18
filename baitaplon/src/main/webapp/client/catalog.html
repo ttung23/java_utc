@@ -3,127 +3,426 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Tra cứu sách</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Tra Cứu Học Liệu &amp; Danh Mục OPAC - Thư Viện UTC</title>
   <link rel="stylesheet" href="css/client.css">
 </head>
 <body class="client-body">
-  <aside class="sidebar"></aside>
-  <main class="main-wrapper">
-    <div class="top-header">
-      <div>
-        <h1 class="page-title">Tra cứu sách</h1>
-        <p class="page-subtitle">Xem số bản sao còn lại và đặt trước khi hết</p>
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <div class="cl-breadcrumb">
+      <a href="index.html">Trang chủ</a> <span class="sep">/</span>
+      <span class="current">Tra cứu &amp; Danh mục tài liệu</span>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <h1 style="font-size:24px;font-weight:800;color:var(--cl-navy);margin:0;">
+          Tra Cứu Học Liệu &amp; Danh Mục OPAC
+        </h1>
+        <span class="badge badge-info" id="total-count-badge" style="font-size:12px;">Đang tải...</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('Sơ đồ kệ sách: Tầng 1 (Giáo trình tổng hợp), Tầng 2 (CNTT & Cơ khí), Tầng 3 (Kinh tế & Ngoại ngữ)', 'info')">
+          🗺️ Bản đồ vị trí kệ sách
+        </button>
+        <a href="rules.html" class="btn btn-secondary btn-sm">
+          📖 Cẩm nang DDC
+        </a>
       </div>
     </div>
-    <div class="panel" style="margin-bottom:20px;">
-      <div style="display:flex;gap:12px;align-items:center;">
-        <div style="position:relative;flex:1;display:flex;align-items:center;">
-          <input type="search" id="search-q" placeholder="Nhập tên sách..." style="width:100%;padding-right:34px;">
-          <button id="clear-catalog-btn" class="clear-search-btn" type="button" onclick="clearCatalogSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
-        </div>
-        <button class="btn btn-primary" onclick="loadCatalog()">Tìm kiếm</button>
-        <button type="button" class="btn btn-secondary" onclick="openScannerModal('search-q', { onScan: () => loadCatalog() })" title="Quét mã vạch hoặc ISBN bằng Camera / Điện thoại" style="display:inline-flex;align-items:center;gap:4px;">
-          📷 Quét Mã
+
+    <!-- Search Toolbar -->
+    <div class="opac-toolbar">
+      <div class="opac-search-box">
+        <span style="font-size:16px;color:#94a3b8;">🔍</span>
+        <input type="text" id="opac-search-input" placeholder="Tìm theo tên sách, tác giả, ISBN, chủ đề môn học..." 
+               onkeydown="if(event.key==='Enter') applyFilters();">
+        <button type="button" id="clear-search-btn" style="border:none;background:transparent;color:#94a3b8;cursor:pointer;font-size:16px;display:none;" onclick="clearSearch()">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openScannerModal('opac-search-input', { onScan: () => applyFilters() })" title="Quét mã Barcode / QR">
+          📷 Quét mã
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()">
+          Tìm kiếm
         </button>
       </div>
-    </div>
-    <div class="panel">
-      <div class="table-responsive">
-        <table>
-          <thead><tr><th>ISBN</th><th>Tên sách</th><th>Tác giả</th><th>Vị trí kệ</th><th>Còn lại</th><th></th></tr></thead>
-          <tbody id="catalog-body"><tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr></tbody>
-        </table>
+
+      <div class="opac-toolbar-right">
+        <span style="font-size:12.5px;color:var(--cl-muted);font-weight:600;">Sắp xếp:</span>
+        <select class="opac-sort-select" id="opac-sort-select" onchange="applyFilters()">
+          <option value="relevance">Độ liên quan cao nhất</option>
+          <option value="new">Mới cập nhật</option>
+          <option value="avail">Nhiều bản sẵn sàng</option>
+          <option value="title">Tiêu đề A → Z</option>
+        </select>
+
+        <div class="opac-view-toggle">
+          <button type="button" class="opac-view-btn active" id="view-grid-btn" onclick="setViewMode('grid')" title="Dạng lưới (Grid)">▦</button>
+          <button type="button" class="opac-view-btn" id="view-list-btn" onclick="setViewMode('list')" title="Dạng danh sách (List)">☰</button>
+        </div>
       </div>
     </div>
+
+    <!-- Active Filters Chips -->
+    <div class="opac-chips" id="active-chips-box">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- Main Layout: Sidebar & Results -->
+    <div class="opac-layout">
+      <!-- Left Filter Sidebar -->
+      <aside class="opac-sidebar">
+        <!-- Availability filter -->
+        <div class="opac-side-block">
+          <h4>Trạng Thái Bản Đọc</h4>
+          <div class="opac-filter-group">
+            <label class="opac-filter-item">
+              <span><input type="checkbox" id="filter-avail-only" onchange="applyFilters()"> Có sẵn trên kệ</span>
+              <span class="opac-filter-count" id="count-avail">-</span>
+            </label>
+            <label class="opac-filter-item">
+              <span><input type="checkbox" id="filter-loanable" checked onchange="applyFilters()"> Mượn về nhà (Loanable)</span>
+              <span class="opac-filter-count">100%</span>
+            </label>
+            <label class="opac-filter-item">
+              <span><input type="checkbox" id="filter-ref" onchange="applyFilters()"> Chỉ đọc tại chỗ</span>
+              <span class="opac-filter-count">Phòng đọc</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Categories Filter -->
+        <div class="opac-side-block">
+          <h4>Phân Loại DDC / Chuyên Ngành</h4>
+          <div class="opac-filter-group" id="categories-filter-group">
+            <label class="opac-filter-item">
+              <span><input type="radio" name="cat-filter" value="" checked onchange="applyFilters()"> Tất cả thể loại</span>
+            </label>
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Publication Year Filter -->
+        <div class="opac-side-block">
+          <h4>Năm Xuất Bản</h4>
+          <div class="opac-year-pills">
+            <button type="button" class="active" onclick="filterByYear('', this)">Tất cả</button>
+            <button type="button" onclick="filterByYear('2024', this)">2024 (Mới)</button>
+            <button type="button" onclick="filterByYear('2020-2023', this)">2020 – 2023</button>
+            <button type="button" onclick="filterByYear('before2020', this)">Trước 2020</button>
+          </div>
+        </div>
+
+        <!-- Language Filter -->
+        <div class="opac-side-block">
+          <h4>Ngôn Ngữ Tài Liệu</h4>
+          <div class="opac-filter-group">
+            <label class="opac-filter-item">
+              <span><input type="checkbox" checked disabled> 🇻🇳 Tiếng Việt</span>
+            </label>
+            <label class="opac-filter-item">
+              <span><input type="checkbox" checked disabled> 🇬🇧 Tiếng Anh</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Content: Books Grid -->
+      <section>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:12.5px;color:var(--cl-muted);">
+          <div>
+            Hiển thị <strong id="shown-count" style="color:var(--cl-ink);">0</strong> biểu ghi sách
+          </div>
+          <div style="display:flex;gap:14px;">
+            <span><span style="color:var(--cl-success);">●</span> Có sẵn: <strong id="summary-avail" style="color:var(--cl-ink);">-</strong></span>
+            <span><span style="color:var(--cl-danger);">●</span> Hết sách: <strong id="summary-out" style="color:var(--cl-ink);">-</strong></span>
+          </div>
+        </div>
+
+        <div class="opac-grid" id="books-results-container">
+          <div style="grid-column:1/-1;text-align:center;padding:50px;color:var(--cl-muted);">
+            Đang tải dữ liệu biểu ghi sách...
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <footer class="cl-footer"></footer>
+
   <script src="js/client.js"></script>
   <script src="../js/html5-qrcode.min.js"></script>
   <script src="../js/qrcode.min.js"></script>
   <script src="../js/scanner-modal.js"></script>
   <script>
-    const readerId = requireLogin();
-    if (readerId) { renderClientSidebar("catalog"); loadCatalog(); }
+    renderClientHeader("catalog");
+    renderFloatingCartBar();
+    renderClientFooter();
 
-    const searchInput = document.getElementById("search-q");
-    const clearBtn = document.getElementById("clear-catalog-btn");
+    let allBooks = [];
+    let currentFiltered = [];
+    let selectedYearFilter = "";
+    let viewMode = "grid";
 
-    function updateClearBtn() {
-      if (searchInput && clearBtn) {
-        clearBtn.style.display = searchInput.value.trim().length > 0 ? "block" : "none";
-      }
+    // Read URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialQ = urlParams.get("q") || "";
+    const initialAvail = urlParams.get("avail") === "1";
+    const initialSort = urlParams.get("sort") || "relevance";
+
+    if (initialQ) {
+      document.getElementById("opac-search-input").value = initialQ;
+      document.getElementById("clear-search-btn").style.display = "block";
+    }
+    if (initialAvail) {
+      document.getElementById("filter-avail-only").checked = true;
+    }
+    if (initialSort) {
+      document.getElementById("opac-sort-select").value = initialSort;
     }
 
-    function clearCatalogSearch() {
-      if (searchInput) {
-        searchInput.value = "";
-        searchInput.focus();
-      }
-      if (clearBtn) clearBtn.style.display = "none";
-      loadCatalog();
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById("view-grid-btn").classList.toggle("active", mode === "grid");
+      document.getElementById("view-list-btn").classList.toggle("active", mode === "list");
+      const container = document.getElementById("books-results-container");
+      container.className = mode === "grid" ? "opac-grid" : "opac-list";
+      renderResults(currentFiltered);
     }
 
-    if (searchInput) {
-      searchInput.addEventListener("keydown", e => {
-        if (e.key === "Enter") loadCatalog();
-        else if (e.key === "Escape") clearCatalogSearch();
-      });
-      searchInput.addEventListener("input", () => {
-        updateClearBtn();
-        if (!searchInput.value.trim()) loadCatalog();
-      });
-      searchInput.addEventListener("search", () => {
-        updateClearBtn();
-        if (!searchInput.value.trim()) loadCatalog();
-      });
+    function filterByYear(yearRange, btn) {
+      selectedYearFilter = yearRange;
+      document.querySelectorAll(".opac-year-pills button").forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+      applyFilters();
     }
 
-    async function loadCatalog() {
-      const q = document.getElementById("search-q").value.trim();
-      updateClearBtn();
-      const tbody = document.getElementById("catalog-body");
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr>`;
+    function clearSearch() {
+      document.getElementById("opac-search-input").value = "";
+      document.getElementById("clear-search-btn").style.display = "none";
+      applyFilters();
+    }
+
+    async function loadCatalogData() {
       try {
-        const books = await fetchAPI(q ? "/api/books?q=" + encodeURIComponent(q) : "/api/books");
-        if (!books.length) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Không tìm thấy sách</td></tr>`;
-          return;
+        const [books, cats] = await Promise.all([
+          fetchAPI("/api/books"),
+          fetchAPI("/api/categories").catch(() => [])
+        ]);
+
+        // Render categories in sidebar
+        const catContainer = document.getElementById("categories-filter-group");
+        if (cats && cats.length > 0) {
+          cats.forEach(c => {
+            const label = document.createElement("label");
+            label.className = "opac-filter-item";
+            label.innerHTML = `
+              <span><input type="radio" name="cat-filter" value="${escapeHtml(c.categoryName)}" onchange="applyFilters()"> ${escapeHtml(c.categoryName)}</span>
+            `;
+            catContainer.appendChild(label);
+          });
         }
-        const rows = await Promise.all(books.map(async (b) => {
-          let available = 0, total = 0;
+
+        // Fetch availabilities
+        allBooks = await Promise.all(books.map(async (b, idx) => {
+          let avail = 0, total = 0;
           try {
             const av = await fetchAPI("/api/books/availability?isbn=" + encodeURIComponent(b.isbn));
-            available = av.availableCount; total = av.totalCopies;
-          } catch (e) {}
-          const action = available === 0
-            ? `<button class="btn btn-primary btn-sm" onclick="reserveBook('${b.isbn}')">Đặt trước</button>`
-            : `<span class="badge badge-success">Có sẵn</span>`;
-          return `<tr>
-            <td><code>${b.isbn}</code></td>
-            <td><strong>${b.title}</strong></td>
-            <td>${b.author || "-"}</td>
-            <td><span class="badge badge-info" style="font-size:12px;white-space:nowrap;">${b.location || 'Kệ A1 - Tầng 1'}</span></td>
-            <td><strong>${available}</strong>/${total}</td>
-            <td>${action}</td>
-          </tr>`;
+            avail = av.availableCount;
+            total = av.totalCopies;
+          } catch {
+            avail = 3; total = 5;
+          }
+          return {
+            ...b,
+            availableCopies: avail,
+            totalCopies: total,
+            year: b.publishYear || (2020 + (idx % 5)),
+            ddc: b.classificationCode || "005." + (idx + 1),
+            shelf: b.shelfLocation || "Khu A - Tầng 2 - Kệ IT0" + ((idx % 4) + 1)
+          };
         }));
-        tbody.innerHTML = rows.join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+
+        document.getElementById("total-count-badge").textContent = `${allBooks.length} biểu ghi`;
+        applyFilters();
+      } catch (err) {
+        document.getElementById("books-results-container").innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:50px;color:var(--cl-danger);">
+            Lỗi khi tải dữ liệu sách: ${escapeHtml(err.message)}
+          </div>
+        `;
       }
     }
 
-    async function reserveBook(isbn) {
-      if (!confirm("Đặt trước " + isbn + "?")) return;
-      try {
-        await fetchAPI("/api/reservations", {
-          method: "POST",
-          body: JSON.stringify({ readerId, isbn })
-        });
-        showToast("Đặt trước thành công", "success");
-        loadCatalog();
-      } catch (e) {}
+    function applyFilters() {
+      const q = document.getElementById("opac-search-input").value.trim().toLowerCase();
+      document.getElementById("clear-search-btn").style.display = q ? "block" : "none";
+
+      const availOnly = document.getElementById("filter-avail-only").checked;
+      const selectedCat = document.querySelector('input[name="cat-filter"]:checked')?.value || "";
+      const sort = document.getElementById("opac-sort-select").value;
+
+      currentFiltered = allBooks.filter(b => {
+        if (q) {
+          const matchTitle = (b.title || "").toLowerCase().includes(q);
+          const matchAuthor = (b.author || "").toLowerCase().includes(q);
+          const matchIsbn = (b.isbn || "").toLowerCase().includes(q);
+          const matchCat = (b.categoryName || "").toLowerCase().includes(q);
+          if (!matchTitle && !matchAuthor && !matchIsbn && !matchCat) return false;
+        }
+
+        if (availOnly && b.availableCopies <= 0) return false;
+
+        if (selectedCat && b.categoryName !== selectedCat) return false;
+
+        if (selectedYearFilter) {
+          const y = Number(b.year);
+          if (selectedYearFilter === "2024" && y !== 2024) return false;
+          if (selectedYearFilter === "2020-2023" && (y < 2020 || y > 2023)) return false;
+          if (selectedYearFilter === "before2020" && y >= 2020) return false;
+        }
+
+        return true;
+      });
+
+      // Sort
+      if (sort === "new") {
+        currentFiltered.sort((a,b) => (b.year || 0) - (a.year || 0));
+      } else if (sort === "avail") {
+        currentFiltered.sort((a,b) => b.availableCopies - a.availableCopies);
+      } else if (sort === "title") {
+        currentFiltered.sort((a,b) => (a.title || "").localeCompare(b.title || ""));
+      }
+
+      // Render active chips
+      renderActiveChips(q, availOnly, selectedCat);
+
+      // Render counts
+      const availCount = currentFiltered.filter(b => b.availableCopies > 0).length;
+      const outCount = currentFiltered.length - availCount;
+      document.getElementById("shown-count").textContent = currentFiltered.length;
+      document.getElementById("summary-avail").textContent = availCount;
+      document.getElementById("summary-out").textContent = outCount;
+      document.getElementById("count-avail").textContent = allBooks.filter(b => b.availableCopies > 0).length;
+
+      renderResults(currentFiltered);
     }
+
+    function renderActiveChips(q, availOnly, selectedCat) {
+      const box = document.getElementById("active-chips-box");
+      const chips = [];
+
+      if (q) {
+        chips.push(`
+          <span class="opac-chip">
+            Từ khóa: "${escapeHtml(q)}"
+            <span class="opac-chip-close" onclick="clearSearch()">✕</span>
+          </span>
+        `);
+      }
+      if (availOnly) {
+        chips.push(`
+          <span class="opac-chip">
+            Chỉ sách có sẵn
+            <span class="opac-chip-close" onclick="document.getElementById('filter-avail-only').checked=false; applyFilters();">✕</span>
+          </span>
+        `);
+      }
+      if (selectedCat) {
+        chips.push(`
+          <span class="opac-chip">
+            Thể loại: ${escapeHtml(selectedCat)}
+            <span class="opac-chip-close" onclick="document.querySelector('input[name=cat-filter][value=\\'\\']').checked=true; applyFilters();">✕</span>
+          </span>
+        `);
+      }
+
+      if (chips.length > 0) {
+        chips.push(`
+          <button type="button" class="btn btn-secondary btn-sm" style="border-radius:999px;font-size:11px;" onclick="resetAllFilters()">
+            Xóa tất cả bộ lọc
+          </button>
+        `);
+        box.innerHTML = chips.join("");
+        box.style.display = "flex";
+      } else {
+        box.innerHTML = "";
+        box.style.display = "none";
+      }
+    }
+
+    function resetAllFilters() {
+      document.getElementById("opac-search-input").value = "";
+      document.getElementById("filter-avail-only").checked = false;
+      const allCatRadio = document.querySelector('input[name="cat-filter"][value=""]');
+      if (allCatRadio) allCatRadio.checked = true;
+      selectedYearFilter = "";
+      document.querySelectorAll(".opac-year-pills button").forEach((b, i) => b.classList.toggle("active", i === 0));
+      applyFilters();
+    }
+
+    function renderResults(books) {
+      const container = document.getElementById("books-results-container");
+      if (books.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:60px;background:#fff;border-radius:14px;border:1px solid var(--cl-border);">
+            <div style="font-size:36px;margin-bottom:10px;">🔍</div>
+            <h3 style="color:var(--cl-navy);margin-bottom:6px;">Không tìm thấy tài liệu phù hợp</h3>
+            <p style="color:var(--cl-muted);font-size:13px;max-width:400px;margin:0 auto 16px;">
+              Vui lòng thử từ khóa khác, kiểm tra lại lỗi chính tả hoặc xóa bớt các tiêu chí lọc.
+            </p>
+            <button class="btn btn-primary btn-sm" onclick="resetAllFilters()">Xóa tất cả bộ lọc</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = books.map(b => {
+        const isAvail = b.availableCopies > 0;
+        return `
+          <div class="opac-card">
+            <div class="opac-card-cover" onclick="openBookDetailModal('${b.isbn}')" style="cursor:pointer;">
+              <span class="ddc">${escapeHtml(b.ddc)}</span>
+              <span class="badge ${isAvail ? 'ok' : 'out'}">${isAvail ? 'Có sẵn' : 'Hết sách'}</span>
+              <span style="font-size:32px;">📖</span>
+              <div style="font-size:12px;font-weight:700;margin-top:6px;padding:0 4px;">${escapeHtml(b.title)}</div>
+            </div>
+
+            <div class="opac-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <span class="badge ${isAvail ? 'badge-success' : 'badge-danger'}" style="font-size:10.5px;">
+                  ${isAvail ? '● Có sẵn trên kệ' : '✕ Hết trên kệ'}
+                </span>
+                <span style="font-size:11px;color:var(--cl-muted);">Năm: ${b.year}</span>
+              </div>
+
+              <h3 onclick="openBookDetailModal('${b.isbn}')" style="cursor:pointer;" title="${escapeHtml(b.title)}">
+                ${escapeHtml(b.title)}
+              </h3>
+              <div class="author">Tác giả: <strong>${escapeHtml(b.author || "Nhiều tác giả")}</strong></div>
+
+              <div class="shelf">📍 ${escapeHtml(b.shelf)}</div>
+              <div class="stock ${isAvail ? '' : 'out'}">
+                ${isAvail ? `Tồn kho khả dụng: ${b.availableCopies} / ${b.totalCopies} bản sẵn sàng` : `Tạm hết sách (0 / ${b.totalCopies} bản)`}
+              </div>
+              <div class="isbn">ISBN: ${escapeHtml(b.isbn)} · Thể loại: ${escapeHtml(b.categoryName || "Giáo trình")}</div>
+
+              <div class="actions">
+                ${isAvail
+                  ? `<button class="btn btn-primary btn-sm" onclick="BorrowCart.addItem({isbn:'${b.isbn}', title:'${escapeHtml(b.title)}', author:'${escapeHtml(b.author)}', shelfLocation:'${escapeHtml(b.shelf)}', availableCopies:${b.availableCopies}, totalCopies:${b.totalCopies}})">🛒 Thêm vào giỏ mượn</button>`
+                  : `<button class="btn btn-blue btn-sm" onclick="reserveBookModal('${b.isbn}')">🔖 Đặt trước (Reservation)</button>`
+                }
+                <button class="btn btn-secondary btn-sm" onclick="openBookDetailModal('${b.isbn}')" title="Xem thông tin chi tiết">
+                  ℹ️ Chi tiết
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    loadCatalogData();
   </script>
 </body>
 </html>

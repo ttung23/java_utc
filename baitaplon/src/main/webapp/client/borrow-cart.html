@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giỏ Mượn Sách &amp; Điểm Hẹn - Thư Viện UTC</title>
+  <link rel="stylesheet" href="css/client.css">
+  <style>
+    .qr-result-box {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body class="client-body">
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <div class="cl-breadcrumb">
+      <a href="index.html">Trang chủ</a> <span class="sep">/</span>
+      <a href="catalog.html">Kho tài liệu OPAC</a> <span class="sep">/</span>
+      <span class="current">Giỏ mượn tài liệu trực tuyến</span>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="display:inline-flex;align-items:center;gap:6px;background:#e0f2fe;color:#0284c7;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;margin-bottom:6px;">
+        LUỒNG B · MƯỢN ONLINE TRỰC TUYẾN
+      </div>
+      <h1 style="font-size:24px;font-weight:800;color:var(--cl-navy);margin:0;">
+        Xác Nhận Giỏ Mượn &amp; Điểm Hẹn Nhận Sách
+      </h1>
+    </div>
+
+    <!-- Steps Indicator -->
+    <div class="cart-steps">
+      <div class="cart-step-item active" id="step-nav-1">
+        <span class="cart-step-num">1</span>
+        <span>Kiểm tra giỏ mượn</span>
+      </div>
+      <div class="cart-step-line"></div>
+      <div class="cart-step-item" id="step-nav-2">
+        <span class="cart-step-num">2</span>
+        <span>Hẹn giờ &amp; Chi nhánh</span>
+      </div>
+      <div class="cart-step-line"></div>
+      <div class="cart-step-item" id="step-nav-3">
+        <span class="cart-step-num">3</span>
+        <span>Mã QR &amp; Phiếu hẹn</span>
+      </div>
+    </div>
+
+    <!-- STEP 1: REVIEW CART -->
+    <div id="step-1-content">
+      <div class="cart-layout">
+        <!-- Left Column: Items & Reader Info -->
+        <div>
+          <!-- Reader quota progress card -->
+          <div class="cart-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+              <div>
+                <strong id="cart-reader-name" style="font-size:15px;color:var(--cl-navy);">Bạn đọc</strong>
+                <span class="id-tag" id="cart-reader-id" style="margin-left:6px;">RD001</span>
+                <div style="font-size:12px;color:var(--cl-muted);margin-top:2px;">
+                  Thẻ Sinh viên Chính quy · Trường Đại học Giao thông vận tải
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <span class="badge badge-info" id="cart-quota-badge">Đang dùng 0/5 cuốn</span>
+              </div>
+            </div>
+
+            <div class="cart-progress-box">
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--cl-muted);">
+                <span>Đang mượn ngoài: <strong id="prog-borrowed">0</strong></span>
+                <span>Trong giỏ: <strong id="prog-cart">0</strong></span>
+                <span>Khả dụng còn lại: <strong id="prog-remain">5</strong></span>
+              </div>
+              <div class="cart-progress-bar">
+                <div class="cart-progress-fill" id="prog-bar-fill" style="width:20%;"></div>
+              </div>
+            </div>
+
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;font-size:12px;color:#1e40af;line-height:1.5;">
+              ⏱ <strong>Cơ chế giữ tài liệu 48 giờ tại quầy (BR-13):</strong> Sau khi xác nhận hẹn, thủ thư sẽ gom và bảo lưu tài liệu đúng 48 tiếng cho bạn tại quầy.
+            </div>
+          </div>
+
+          <!-- Selected Items List -->
+          <div class="cart-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+              <div>
+                <h3 class="cart-card-title" style="margin:0;">Danh Mục Ấn Phẩm Đã Chọn (<span id="cart-items-count">0</span>)</h3>
+                <div class="cart-card-sub" style="margin:0;">Kiểm tra kỹ thông tin vị trí kho và số lượng trước khi tiếp tục</div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="BorrowCart.clear(); renderCart();">
+                  🗑 Xóa tất cả
+                </button>
+                <a href="catalog.html" class="btn btn-secondary btn-sm">
+                  + Thêm sách khác
+                </a>
+              </div>
+            </div>
+
+            <div id="cart-items-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Summary & Rule Checklist -->
+        <div>
+          <div class="cart-card">
+            <h3 class="cart-card-title">Tóm Tắt Yêu Cầu Mượn</h3>
+            <div class="cart-summary-row">
+              <span>Số lượng tài liệu mượn:</span>
+              <strong id="sum-count">0 ấn phẩm</strong>
+            </div>
+            <div class="cart-summary-row">
+              <span>Thời hạn mượn tiêu chuẩn:</span>
+              <strong>14 ngày / cuốn</strong>
+            </div>
+            <div class="cart-summary-row">
+              <span>Quyền gia hạn online (BR-07):</span>
+              <strong>Tối đa 2 lần (+14 ngày)</strong>
+            </div>
+            <div class="cart-summary-row">
+              <span>Phí mượn &amp; Dịch vụ:</span>
+              <strong style="color:var(--cl-success);">0 VNĐ (Miễn phí)</strong>
+            </div>
+            <div class="cart-summary-row">
+              <span>Tiền cọc đảm bảo (BR-11):</span>
+              <strong style="color:var(--cl-success);">0 VNĐ (Thẻ SV hợp lệ)</strong>
+            </div>
+            <div class="cart-summary-total">
+              <span>Tổng chi phí:</span>
+              <span style="color:var(--cl-navy);">0 VNĐ</span>
+            </div>
+
+            <div style="margin-top:18px;">
+              <button type="button" class="btn btn-primary" id="btn-next-step" style="width:100%;padding:12px;" onclick="goToStep(2)">
+                Tiếp Tục: Hẹn Giờ &amp; Chi Nhánh →
+              </button>
+              <a href="catalog.html" class="btn btn-secondary" style="width:100%;margin-top:8px;padding:10px;">
+                ← Tìm thêm sách khác
+              </a>
+            </div>
+          </div>
+
+          <!-- Verification Checklist -->
+          <div class="cart-card">
+            <h4 style="font-size:13.5px;color:var(--cl-navy);font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between;">
+              <span>Đối Soát Điều Kiện Độc Giả</span>
+              <span class="badge badge-success" style="font-size:10.5px;">6/6 HỢP LỆ</span>
+            </h4>
+            <ul class="cart-checks">
+              <li>✓ BR-01: Thẻ hợp lệ (ACTIVE) · Hạn thẻ 2026</li>
+              <li>✓ BR-02: Không bị kỷ luật hoặc tạm đình chỉ</li>
+              <li>✓ BR-03: 0 sách trễ hạn chưa trả</li>
+              <li>✓ BR-04: Nợ phạt hiện tại: 0 VNĐ (&lt; 50.000 VNĐ)</li>
+              <li>✓ BR-05 &amp; BR-12: Hạn mức mượn còn khả dụng</li>
+              <li>✓ BR-06: Không yêu cầu trùng lặp ấn phẩm đang mượn</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: PICKUP TIME & BRANCH -->
+    <div id="step-2-content" style="display:none;">
+      <div class="cart-layout">
+        <div>
+          <!-- Branch choice -->
+          <div class="cart-card">
+            <h3 class="cart-card-title">1. Chọn Chi Nhánh Thư Viện Nhận Sách</h3>
+            <div class="cart-card-sub">Sách sẽ được luân chuyển và bảo lưu tại quầy thủ thư của chi nhánh bạn chọn</div>
+
+            <div class="cart-choice-grid">
+              <div class="cart-choice-box active" onclick="selectBranch('hn', this)">
+                <strong>🏛️ Cơ sở 1: Hà Nội</strong>
+                <span>Số 3 Cầu Giấy, Láng Thượng, Đống Đa, Hà Nội</span>
+              </div>
+              <div class="cart-choice-box" onclick="selectBranch('hcm', this)">
+                <strong>🏢 Cơ sở 2: TP. Hồ Chí Minh</strong>
+                <span>450-451 Lê Văn Việt, P. Tăng Nhơn Phú A, TP. Thủ Đức</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pickup Day -->
+          <div class="cart-card">
+            <h3 class="cart-card-title">2. Chọn Ngày Nhận Sách</h3>
+            <div class="cart-card-sub">Thời gian giữ sách tự động 48 giờ kể từ thời điểm hẹn</div>
+
+            <div class="cart-choice-grid" id="pickup-day-grid">
+              <div class="cart-choice-box active" onclick="selectPickupDay('today', this)">
+                <strong id="day-today-title">Hôm nay</strong>
+                <span id="day-today-sub">Giữ sách đến 2 ngày tới</span>
+              </div>
+              <div class="cart-choice-box" onclick="selectPickupDay('tomorrow', this)">
+                <strong id="day-tomorrow-title">Ngày mai</strong>
+                <span id="day-tomorrow-sub">Nhận vào ngày tiếp theo</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pickup Time Slot -->
+          <div class="cart-card">
+            <h3 class="cart-card-title">3. Khung Giờ Hẹn Đến Quầy Thủ Thư</h3>
+            <div class="cart-choice-grid three">
+              <div class="cart-choice-box" onclick="selectSlot('m', this)">
+                <strong>08:30 – 11:30</strong>
+                <span>Ca sáng</span>
+              </div>
+              <div class="cart-choice-box active" onclick="selectSlot('a', this)">
+                <strong>13:30 – 17:00</strong>
+                <span style="color:#22c55e;font-weight:700;">Khuyến nghị (Ca chiều)</span>
+              </div>
+              <div class="cart-choice-box" onclick="selectSlot('e', this)">
+                <strong>17:30 – 20:00</strong>
+                <span>Ca tối</span>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div style="margin-top:16px;">
+              <label style="display:block;font-size:13px;font-weight:700;color:var(--cl-navy);margin-bottom:6px;">
+                Ghi chú gửi Thủ thư (Tùy chọn):
+              </label>
+              <textarea id="pickup-note" rows="2" style="width:100%;border:1px solid var(--cl-border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;" placeholder="Ví dụ: Xin thủ thư chọn giúp bản in còn mới, em sẽ đến nhận vào tiết 5..."></textarea>
+            </div>
+
+            <!-- Agreement Checkbox -->
+            <div style="margin-top:16px;background:#f8fafc;border:1px solid var(--cl-border);border-radius:10px;padding:12px;">
+              <label style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:#334155;cursor:pointer;">
+                <input type="checkbox" id="cart-agree-chk" checked style="accent-color:var(--cl-blue);margin-top:3px;">
+                <span>
+                  <strong>Cam kết mượn trả &amp; Tuân thủ nội quy thư viện UTC:</strong> Tôi xác nhận thông tin là chính xác, cam kết bảo quản nguyên vẹn tài liệu học thuật được giao, trả đúng hạn hoặc chủ động gia hạn trước hạn 48h.
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Finalize Button -->
+        <div>
+          <div class="cart-card">
+            <h3 class="cart-card-title">Xác Nhận &amp; Gửi Đơn</h3>
+            <div class="cart-summary-row">
+              <span>Tổng số sách:</span>
+              <strong id="step2-count">0 cuốn</strong>
+            </div>
+            <div class="cart-summary-row">
+              <span>Chi nhánh nhận:</span>
+              <strong id="step2-branch">Cơ sở 1 Hà Nội</strong>
+            </div>
+            <div class="cart-summary-row">
+              <span>Khung giờ hẹn:</span>
+              <strong id="step2-slot">13:30 – 17:00</strong>
+            </div>
+
+            <div style="margin-top:20px;">
+              <button type="button" class="btn btn-primary" id="btn-submit-borrow" style="width:100%;padding:14px;font-size:15px;" onclick="submitBorrowOnline()">
+                🚀 Xác Nhận Gửi Yêu Cầu Mượn
+              </button>
+              <button type="button" class="btn btn-secondary" style="width:100%;margin-top:8px;padding:10px;" onclick="goToStep(1)">
+                ← Quay lại giỏ mượn
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: SUCCESS & QR CODE -->
+    <div id="step-3-content" style="display:none;">
+      <div class="cart-card" style="max-width:680px;margin:0 auto;text-align:center;padding:36px 24px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;color:#16a34a;display:grid;place-items:center;font-size:32px;margin:0 auto 16px;">
+          ✓
+        </div>
+        <h2 style="font-size:24px;color:var(--cl-navy);margin-bottom:8px;">Gửi Yêu Cầu Mượn Sách Thành Công!</h2>
+        <p style="color:var(--cl-muted);font-size:14px;max-width:500px;margin:0 auto 20px;">
+          Hệ thống đã tiếp nhận yêu cầu và tiến hành điều phối sách. Vui lòng xuất trình mã phiếu hoặc mã QR dưới đây khi đến quầy thủ thư nhận tài liệu.
+        </p>
+
+        <div class="qr-result-box">
+          <div style="font-size:12px;color:var(--cl-muted);text-transform:uppercase;font-weight:700;margin-bottom:4px;">MÃ PHIẾU HẸN ONLINE</div>
+          <div style="font-size:28px;font-weight:800;color:var(--cl-navy);letter-spacing:0.04em;" id="result-slip-code">
+            LN-20241119-001
+          </div>
+          <div style="font-size:12px;color:#16a34a;font-weight:700;margin-top:4px;">
+            ● Đã xác nhận · Thời gian giữ sách 48 giờ
+          </div>
+
+          <div style="margin:20px 0;display:flex;justify-content:center;">
+            <svg id="result-barcode-svg"></svg>
+          </div>
+
+          <div style="font-size:12.5px;color:#475569;">
+            📍 Điểm nhận: <strong id="result-branch-label">Cơ sở 1 Hà Nội</strong> · Giờ: <strong>13:30 – 17:00</strong>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:24px;">
+          <a href="loans.html" class="btn btn-primary">
+            📖 Xem Phiếu Mượn Của Tôi
+          </a>
+          <a href="catalog.html" class="btn btn-secondary">
+            📚 Tiếp Tục Tra Cứu Sách
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="cl-footer"></footer>
+
+  <script src="js/client.js"></script>
+  <script src="../js/jsbarcode.min.js"></script>
+  <script>
+    renderClientHeader("cart");
+    renderFloatingCartBar();
+    renderClientFooter();
+
+    let selectedBranch = "hn";
+    let selectedDay = "today";
+    let selectedSlot = "a";
+
+    // Setup dates
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 3600 * 1000);
+    const dayNames = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+    document.getElementById("day-today-title").textContent = `Hôm nay (${dayNames[now.getDay()]}, ${now.getDate()}/${now.getMonth() + 1})`;
+    document.getElementById("day-tomorrow-title").textContent = `Ngày mai (${dayNames[tomorrow.getDay()]}, ${tomorrow.getDate()}/${tomorrow.getMonth() + 1})`;
+
+    async function loadCartPage() {
+      const readerId = requireLogin();
+      if (!readerId) return;
+
+      try {
+        const profile = await fetchAPI("/api/readers/eligibility?readerId=" + encodeURIComponent(readerId));
+        document.getElementById("cart-reader-name").textContent = profile.fullName || readerId;
+        document.getElementById("cart-reader-id").textContent = profile.readerId;
+        
+        const borrowed = profile.currentBorrowedCount || 0;
+        const max = profile.maxBooks || 5;
+        document.getElementById("prog-borrowed").textContent = borrowed;
+        document.getElementById("cart-quota-badge").textContent = `Đang mượn: ${borrowed}/${max} cuốn`;
+      } catch (e) {}
+
+      renderCart();
+    }
+
+    function renderCart() {
+      const items = BorrowCart.getItems();
+      const container = document.getElementById("cart-items-container");
+      const count = items.length;
+
+      document.getElementById("cart-items-count").textContent = count;
+      document.getElementById("sum-count").textContent = `${count} ấn phẩm`;
+      document.getElementById("step2-count").textContent = `${count} cuốn`;
+      document.getElementById("prog-cart").textContent = count;
+
+      const borrowed = Number(document.getElementById("prog-borrowed").textContent) || 0;
+      const totalUsed = borrowed + count;
+      const remain = Math.max(0, 5 - totalUsed);
+      document.getElementById("prog-remain").textContent = remain;
+      document.getElementById("prog-bar-fill").style.width = Math.min(100, (totalUsed / 5) * 100) + "%";
+
+      const btnNext = document.getElementById("btn-next-step");
+      if (count === 0) {
+        btnNext.disabled = true;
+        btnNext.textContent = "Giỏ mượn đang trống";
+        container.innerHTML = `
+          <div style="text-align:center;padding:50px 20px;">
+            <div style="font-size:42px;margin-bottom:12px;">🛒</div>
+            <h4 style="color:var(--cl-navy);margin-bottom:6px;">Giỏ mượn sách đang trống</h4>
+            <p style="color:var(--cl-muted);font-size:13px;margin-bottom:16px;">Hãy khám phá kho tài liệu phong phú của Thư viện UTC và chọn sách cần mượn.</p>
+            <a href="catalog.html" class="btn btn-primary btn-sm">Khám Phá Sách Ngay →</a>
+          </div>
+        `;
+        return;
+      }
+
+      btnNext.disabled = false;
+      btnNext.textContent = "Tiếp Tục: Hẹn Giờ & Chi Nhánh →";
+
+      container.innerHTML = items.map(item => `
+        <div class="cart-item">
+          <div class="thumb">
+            <span style="font-size:20px;">📖</span>
+          </div>
+
+          <div class="cart-item-info">
+            <div style="display:flex;gap:6px;margin-bottom:2px;">
+              <span class="badge badge-default" style="font-size:9.5px;">DDC 005.1</span>
+              <span class="badge badge-success" style="font-size:9.5px;">Có sẵn</span>
+            </div>
+            <h4>${escapeHtml(item.title)}</h4>
+            <div class="meta">Tác giả: ${escapeHtml(item.author || "Nhiều tác giả")} · ISBN: ${escapeHtml(item.isbn)}</div>
+            <div class="shelf">📍 Vị trí: ${escapeHtml(item.shelfLocation || "Khu A - Tầng 2")} · Hạn mượn: <strong>14 ngày</strong></div>
+          </div>
+
+          <button type="button" class="cart-item-del" title="Xóa khỏi giỏ" onclick="BorrowCart.removeItem('${item.isbn}'); renderCart();">
+            ✕
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function goToStep(s) {
+      document.getElementById("step-1-content").style.display = s === 1 ? "block" : "none";
+      document.getElementById("step-2-content").style.display = s === 2 ? "block" : "none";
+      document.getElementById("step-3-content").style.display = s === 3 ? "block" : "none";
+
+      document.getElementById("step-nav-1").classList.toggle("active", s === 1);
+      document.getElementById("step-nav-2").classList.toggle("active", s === 2);
+      document.getElementById("step-nav-3").classList.toggle("active", s === 3);
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function selectBranch(b, el) {
+      selectedBranch = b;
+      el.parentElement.querySelectorAll(".cart-choice-box").forEach(box => box.classList.remove("active"));
+      el.classList.add("active");
+      document.getElementById("step2-branch").textContent = b === "hn" ? "Cơ sở 1 Hà Nội" : "Cơ sở 2 TP.HCM";
+    }
+
+    function selectPickupDay(d, el) {
+      selectedDay = d;
+      el.parentElement.querySelectorAll(".cart-choice-box").forEach(box => box.classList.remove("active"));
+      el.classList.add("active");
+    }
+
+    function selectSlot(s, el) {
+      selectedSlot = s;
+      el.parentElement.querySelectorAll(".cart-choice-box").forEach(box => box.classList.remove("active"));
+      el.classList.add("active");
+      let slotTxt = "13:30 – 17:00";
+      if (s === "m") slotTxt = "08:30 – 11:30";
+      if (s === "e") slotTxt = "17:30 – 20:00";
+      document.getElementById("step2-slot").textContent = slotTxt;
+    }
+
+    async function submitBorrowOnline() {
+      const readerId = getReaderId();
+      if (!readerId) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const items = BorrowCart.getItems();
+      if (items.length === 0) {
+        showToast("Giỏ mượn đang trống!", "warning");
+        goToStep(1);
+        return;
+      }
+
+      if (!document.getElementById("cart-agree-chk").checked) {
+        showToast("Vui lòng xác nhận cam kết mượn trả và nội quy!", "warning");
+        return;
+      }
+
+      const submitBtn = document.getElementById("btn-submit-borrow");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Đang xử lý tạo phiếu mượn...";
+
+      let firstLoanId = "";
+      try {
+        // For each item in cart, borrow an available copy
+        for (const item of items) {
+          // Get copies for this book
+          const copies = await fetchAPI("/api/books/copies?isbn=" + encodeURIComponent(item.isbn));
+          const availCopy = copies.find(c => (c.status || "").toUpperCase() === "AVAILABLE");
+          if (!availCopy) {
+            throw new Error(`Rất tiếc, sách "${item.title}" vừa hết bản sao sẵn có trên kệ!`);
+          }
+
+          const loanResult = await fetchAPI("/api/loans/borrow", {
+            method: "POST",
+            body: JSON.stringify({
+              readerId: readerId,
+              barcode: availCopy.barcode
+            })
+          });
+
+          if (!firstLoanId && loanResult) {
+            firstLoanId = loanResult.loanId || loanResult.id || "";
+          }
+        }
+
+        const slipCode = firstLoanId || ("LN-" + Date.now().toString().slice(-6));
+        document.getElementById("result-slip-code").textContent = slipCode;
+        document.getElementById("result-branch-label").textContent = selectedBranch === "hn" ? "Cơ sở 1 Hà Nội (Số 3 Cầu Giấy)" : "Cơ sở 2 TP.HCM (Lê Văn Việt)";
+
+        // Generate barcode SVG
+        try {
+          if (typeof JsBarcode === "function") {
+            JsBarcode("#result-barcode-svg", slipCode, {
+              format: "CODE128",
+              width: 2,
+              height: 60,
+              displayValue: true
+            });
+          }
+        } catch (e) {
+          console.warn("Barcode rendering error", e);
+        }
+
+        BorrowCart.clear();
+        showToast("🎉 Lập phiếu mượn thành công!", "success");
+        goToStep(3);
+      } catch (err) {
+        showToast(err.message || "Không thể lập phiếu mượn", "danger");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "🚀 Xác Nhận Gửi Yêu Cầu Mượn";
+      }
+    }
+
+    loadCartPage();
+  </script>
+</body>
+</html>

@@ -3,80 +3,206 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Đặt trước</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Đặt Trước Tài Liệu - Thư Viện UTC</title>
   <link rel="stylesheet" href="css/client.css">
 </head>
 <body class="client-body">
-  <aside class="sidebar"></aside>
-  <main class="main-wrapper">
-    <div class="top-header">
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <div class="cl-breadcrumb">
+      <a href="index.html">Trang chủ</a> <span class="sep">/</span>
+      <span class="current">Sách đặt trước</span>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
       <div>
-        <h1 class="page-title">Đặt trước của tôi</h1>
-        <p class="page-subtitle">Theo dõi vị trí hàng chờ và hủy đơn Pending</p>
+        <h1 style="font-size:24px;font-weight:800;color:var(--cl-navy);margin:0;">
+          Đặt Trước Tài Liệu (Reservations)
+        </h1>
+        <p style="font-size:13px;color:var(--cl-muted);margin-top:2px;">
+          Theo dõi vị trí hàng chờ khi sách tạm hết bản sao và nhận thông báo ngay khi sách được trả về kho.
+        </p>
       </div>
       <div style="display:flex;gap:8px;">
-        <a href="catalog.html" class="btn btn-primary">+ Đặt từ catalog</a>
-        <button class="btn btn-secondary" onclick="loadReservations()">Làm mới</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="loadReservations()">
+          🔄 Làm mới
+        </button>
+        <a href="catalog.html" class="btn btn-primary btn-sm">
+          + Đặt thêm từ OPAC
+        </a>
       </div>
     </div>
-    <div class="panel">
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr><th>Mã</th><th>ISBN</th><th>Ngày đặt</th><th>Hạn nhận</th><th>Hàng chờ</th><th>Trạng thái</th><th></th></tr>
-          </thead>
-          <tbody id="res-body"><tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr></tbody>
-        </table>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="label">Đang chờ sách (Pending)</div>
+        <div class="val" id="kpi-pending" style="color:var(--cl-warning);">-</div>
       </div>
+      <div class="kpi-card">
+        <div class="label">Sẵn sàng nhận tại quầy</div>
+        <div class="val" id="kpi-ready" style="color:var(--cl-success);">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Đã hoàn thành / Hủy</div>
+        <div class="val" id="kpi-closed">-</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Tổng số lượt đặt</div>
+        <div class="val" id="kpi-total">-</div>
+      </div>
+    </div>
+
+    <!-- Reservations List -->
+    <div id="reservations-container">
+      <div style="text-align:center;padding:50px;color:var(--cl-muted);">Đang tải danh sách đặt trước...</div>
     </div>
   </main>
+
+  <footer class="cl-footer"></footer>
+
   <script src="js/client.js"></script>
   <script>
-    const readerId = requireLogin();
-    if (readerId) { renderClientSidebar("reservations"); loadReservations(); }
+    renderClientHeader("reservations");
+    renderFloatingCartBar();
+    renderClientFooter();
 
     async function loadReservations() {
-      const tbody = document.getElementById("res-body");
+      const readerId = requireLogin();
+      if (!readerId) return;
+
+      const container = document.getElementById("reservations-container");
+      container.innerHTML = `<div style="text-align:center;padding:50px;color:var(--cl-muted);">Đang tải dữ liệu hàng chờ đặt trước...</div>`;
+
       try {
-        const list = await fetchAPI("/api/reservations?readerId=" + encodeURIComponent(readerId));
-        if (!list.length) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có đơn đặt trước</td></tr>`;
+        const [list, books] = await Promise.all([
+          fetchAPI("/api/reservations?readerId=" + encodeURIComponent(readerId)),
+          fetchAPI("/api/books").catch(() => [])
+        ]);
+
+        const bookMap = new Map();
+        books.forEach(b => bookMap.set(b.isbn, b));
+
+        const pending = list.filter(r => (r.status || "").toLowerCase() === "pending");
+        const ready = list.filter(r => ["ready", "available"].includes((r.status || "").toLowerCase()));
+        const closed = list.filter(r => ["cancelled", "fulfilled", "expired"].includes((r.status || "").toLowerCase()));
+
+        document.getElementById("kpi-pending").textContent = pending.length;
+        document.getElementById("kpi-ready").textContent = ready.length;
+        document.getElementById("kpi-closed").textContent = closed.length;
+        document.getElementById("kpi-total").textContent = list.length;
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center;padding:60px;background:#fff;border-radius:16px;border:1px solid var(--cl-border);">
+              <div style="font-size:42px;margin-bottom:12px;">🔖</div>
+              <h4 style="color:var(--cl-navy);margin-bottom:6px;">Chưa có yêu cầu đặt trước nào</h4>
+              <p style="color:var(--cl-muted);font-size:13px;margin-bottom:16px;">
+                Khi đầu sách bạn cần đã hết sạch bản sao trên kệ, bạn có thể bấm "Đặt trước" trên OPAC để xếp hàng giữ chỗ.
+              </p>
+              <a href="catalog.html" class="btn btn-primary btn-sm">Tra Cứu Học Liệu Ngay →</a>
+            </div>
+          `;
           return;
         }
-        const rows = await Promise.all(list.map(async (r) => {
-          let queue = "-";
-          if (r.status === "Pending") {
+
+        // Fetch queue info for pending reservations
+        const enrichedList = await Promise.all(list.map(async (r) => {
+          let queueInfo = "-";
+          if ((r.status || "").toLowerCase() === "pending") {
             try {
               const q = await fetchAPI("/api/client/queue/" + encodeURIComponent(r.reservationId));
-              queue = "#" + q.queuePosition + " / " + q.queueLength;
-            } catch (e) { queue = "?"; }
+              queueInfo = `Hàng chờ: vị trí #${q.queuePosition} / ${q.queueLength} người`;
+            } catch {
+              queueInfo = "Đang trong hàng chờ xếp sách";
+            }
           }
-          const canCancel = r.status === "Pending";
-          return `<tr>
-            <td>${r.reservationId}</td><td>${r.isbn}</td>
-            <td>${formatDateTime(r.reservationDate)}</td><td>${formatDateTime(r.expiryDate)}</td>
-            <td>${queue}</td><td>${r.status}</td>
-            <td>${canCancel ? `<button class="btn btn-secondary btn-sm" onclick="cancelReservation('${r.reservationId}')">Hủy</button>` : "-"}</td>
-          </tr>`;
+          const bk = bookMap.get(r.isbn);
+          return {
+            ...r,
+            bookTitle: bk ? bk.title : "Tài liệu học thuật (ISBN: " + r.isbn + ")",
+            author: bk ? bk.author : "Nhiều tác giả",
+            queueInfo
+          };
         }));
-        tbody.innerHTML = rows.join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+
+        container.innerHTML = enrichedList.map(r => {
+          const isPending = (r.status || "").toLowerCase() === "pending";
+          const isReady = ["ready", "available"].includes((r.status || "").toLowerCase());
+          
+          let statusBadge = `<span class="badge badge-default">${escapeHtml(r.status)}</span>`;
+          if (isPending) statusBadge = `<span class="badge badge-warning">Đang xếp hàng chờ</span>`;
+          if (isReady) statusBadge = `<span class="badge badge-success">✓ Sẵn sàng nhận tại quầy</span>`;
+
+          return `
+            <div class="borrow-card">
+              <div class="borrow-card-head">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:22px;">🔖</span>
+                  <div>
+                    <strong style="font-size:15px;color:var(--cl-navy);">Đơn đặt trước: ${escapeHtml(r.reservationId)}</strong>
+                    <div class="meta">
+                      Ngày đặt: <strong>${formatDateTime(r.reservationDate)}</strong> · Hạn nhận/Hết hạn: <strong>${formatDateTime(r.expiryDate)}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  ${statusBadge}
+                </div>
+              </div>
+
+              <div class="borrow-card-body">
+                <div style="display:flex;gap:14px;align-items:center;">
+                  <div style="width:48px;height:60px;border-radius:8px;background:linear-gradient(155deg,#0369a1,#0b1f3a);color:#fff;display:grid;place-items:center;font-size:20px;flex-shrink:0;">
+                    📚
+                  </div>
+                  <div>
+                    <h4 style="font-size:15px;font-weight:700;color:var(--cl-navy);margin-bottom:2px;">
+                      ${escapeHtml(r.bookTitle)}
+                    </h4>
+                    <div style="font-size:12px;color:var(--cl-muted);">Tác giả: ${escapeHtml(r.author)} · ISBN: ${escapeHtml(r.isbn)}</div>
+                    <div style="font-size:12.5px;color:var(--cl-blue);font-weight:700;margin-top:4px;">
+                      ● ${escapeHtml(r.queueInfo)}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  ${isPending
+                    ? `<button type="button" class="btn btn-secondary btn-sm" style="color:var(--cl-danger);border-color:#fca5a5;" onclick="cancelReservation('${r.reservationId}')">✕ Hủy Đơn</button>`
+                    : (isReady
+                      ? `<a href="borrow-cart.html" class="btn btn-primary btn-sm">Nhận Sách Ngay →</a>`
+                      : '<span style="font-size:12px;color:var(--cl-muted);">Đã kết thúc</span>'
+                    )
+                  }
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:50px;color:var(--cl-danger);">
+            Lỗi khi tải thông tin đặt trước: ${escapeHtml(err.message)}
+          </div>
+        `;
       }
     }
 
     async function cancelReservation(reservationId) {
-      if (!confirm("Hủy đơn " + reservationId + "?")) return;
+      if (!confirm(`Xác nhận hủy yêu cầu đặt trước [${reservationId}]?`)) return;
       try {
         await fetchAPI("/api/reservations/cancel", {
           method: "POST",
           body: JSON.stringify({ reservationId })
         });
-        showToast("Đã hủy đơn", "success");
+        showToast("Đã hủy đơn đặt trước thành công!", "info");
         loadReservations();
       } catch (e) {}
     }
+
+    loadReservations();
   </script>
 </body>
 </html>

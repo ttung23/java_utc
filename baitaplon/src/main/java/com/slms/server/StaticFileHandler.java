@@ -50,6 +50,10 @@ public class StaticFileHandler implements HttpHandler {
             return;
         }
 
+        if (Files.isDirectory(targetFile)) {
+            targetFile = targetFile.resolve("index.html");
+        }
+
         if (Files.exists(targetFile) && !Files.isDirectory(targetFile)) {
             String mimeType = getMimeType(targetFile.toString());
             exchange.getResponseHeaders().set("Content-Type", mimeType + "; charset=UTF-8");

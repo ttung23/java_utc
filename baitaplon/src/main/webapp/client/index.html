@@ -3,95 +3,398 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Trang độc giả</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Cổng Thư Viện Số - Trường Đại học Giao thông vận tải</title>
   <link rel="stylesheet" href="css/client.css">
 </head>
 <body class="client-body">
-  <aside class="sidebar"></aside>
-  <main class="main-wrapper">
-    <div class="hero-card">
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <!-- Hero Section -->
+    <section class="home-hero">
+      <div class="home-pill">📖 CỔNG TRA CỨU TRỰC TUYẾN OPAC V2.4</div>
+      <h1>Khám Phá Tri Thức<br>&amp; Kho Học Liệu Số</h1>
+      <p class="sub">
+        Hơn 14.800 đầu sách, luận văn, giáo trình và tài liệu nghiên cứu chuyên sâu luôn sẵn sàng đồng hành
+        cùng bạn trên con đường học thuật tại Trường Đại học Giao thông vận tải.
+      </p>
+
+      <div class="home-search">
+        <select id="home-doc-type">
+          <option value="all">Tất cả tài liệu</option>
+          <option value="book">Sách giáo trình</option>
+          <option value="ref">Sách tham khảo</option>
+          <option value="thesis">Luận văn &amp; Đề tài</option>
+        </select>
+        <input type="text" id="home-search-q" placeholder="Nhập tên sách, tác giả, chuyên ngành, mã môn học..." 
+               onkeydown="if(event.key==='Enter') doHomeSearch();">
+        <button type="button" onclick="doHomeSearch()">
+          Tra Cứu <span>→</span>
+        </button>
+      </div>
+
+      <div class="home-keywords">
+        <span class="label">Từ khóa phổ biến:</span>
+        <button type="button" onclick="quickSearch('Data Science')">Data Science</button>
+        <button type="button" onclick="quickSearch('Trí tuệ nhân tạo')">Trí tuệ nhân tạo</button>
+        <button type="button" onclick="quickSearch('Kinh tế vi mô')">Kinh tế vi mô</button>
+        <button type="button" onclick="quickSearch('Agile &amp; DevOps')">Agile &amp; DevOps</button>
+        <button type="button" onclick="quickSearch('Kỹ thuật giao thông')">Kỹ thuật giao thông</button>
+        <button type="button" onclick="quickSearch('Logistics')">Logistics</button>
+      </div>
+
+      <div class="home-quick">
+        <a href="catalog.html" class="home-quick-card" style="text-decoration:none;">
+          <div class="label">Phân loại</div>
+          <div class="value">📚 Tra cứu mã DDC</div>
+        </a>
+        <a href="catalog.html?avail=1" class="home-quick-card" style="text-decoration:none;">
+          <div class="label">Lọc nhanh</div>
+          <div class="value" style="color:var(--cl-success);">✓ Sách đang có sẵn</div>
+        </a>
+        <a href="rules.html" class="home-quick-card" style="text-decoration:none;">
+          <div class="label">Quy chế</div>
+          <div class="value">📖 Chỉ đọc tại chỗ</div>
+        </a>
+        <div class="home-quick-card">
+          <div class="label">Thời gian làm việc</div>
+          <div class="value">🕒 07:30 – 20:30 Hôm nay</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logged in Reader Summary Bar -->
+    <div id="home-reader-bar" style="display:none;" class="home-reader">
       <div>
-        <h2>Xin chào, <span id="welcome-name">...</span></h2>
-        <p id="hero-reason">Đang tải hồ sơ thẻ thư viện...</p>
-        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-          <a href="catalog.html" class="btn btn-primary">Tra cứu sách</a>
-          <a href="profile.html" class="btn btn-secondary">Cập nhật hồ sơ</a>
+        <div class="name-row">
+          <span style="font-size:24px;">🪪</span>
+          <strong id="hr-name">Độc giả</strong>
+          <span class="id-tag" id="hr-id">RD001</span>
+          <span class="status-tag">Thẻ Hợp Lệ</span>
+        </div>
+        <div class="hint" id="hr-desc">Khoa Công nghệ Thông tin · Quyền mượn tối đa: 5 cuốn / 14 ngày</div>
+      </div>
+
+      <div class="home-reader-stats">
+        <div class="stat">
+          <div class="k">Đang mượn</div>
+          <div class="v" id="hr-borrowed">0/5</div>
+          <div class="s">cuốn</div>
+        </div>
+        <div class="stat">
+          <div class="k">Hạn trả gần nhất</div>
+          <div class="v" id="hr-due" style="font-size:16px;">—</div>
+          <div class="s" id="hr-due-sub">Chưa có hạn</div>
+        </div>
+        <div class="stat">
+          <div class="k">Tiền phạt nợ</div>
+          <div class="v" id="hr-fine" style="color:var(--cl-success);">0 VNĐ</div>
+          <div class="s">Hợp lệ (&lt;50k)</div>
+        </div>
+        <div class="stat">
+          <div class="k">Đặt trước sẵn sàng</div>
+          <div class="v" id="hr-res">0</div>
+          <div class="s">Tại quầy 01</div>
         </div>
       </div>
-      <div class="stats-grid" style="margin:0;">
-        <div class="stat-card" style="margin:0;">
-          <div><div class="stat-label">Đang mượn</div><div class="stat-value" id="stat-borrowed">-</div></div>
-        </div>
-        <div class="stat-card" style="margin:0;">
-          <div><div class="stat-label">Nợ phạt</div><div class="stat-value" id="stat-fine" style="font-size:20px;">-</div></div>
-        </div>
+
+      <div class="home-reader-actions">
+        <a href="loans.html" class="btn btn-secondary btn-sm">🔄 Gia Hạn Nhanh</a>
+        <a href="borrow-cart.html" class="btn btn-primary btn-sm">🛒 Giỏ Mượn (<span class="cart-badge-count">0</span>)</a>
       </div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card"><div><div class="stat-label">Tổng phiếu mượn</div><div class="stat-value" id="s-total">-</div></div></div>
-      <div class="stat-card"><div><div class="stat-label">Đã trả</div><div class="stat-value" id="s-returned">-</div></div></div>
-      <div class="stat-card"><div><div class="stat-label">Quá hạn</div><div class="stat-value" id="s-overdue" style="color:var(--danger);">-</div></div></div>
-      <div class="stat-card"><div><div class="stat-label">Đặt trước Pending</div><div class="stat-value" id="s-res">-</div></div></div>
-    </div>
+    <!-- Category / Collection Grid -->
+    <section class="home-section">
+      <div class="home-section-head">
+        <div>
+          <div class="subhead">PHÂN LOẠI TRI THỨC</div>
+          <h2>Thể Loại &amp; Bộ Sưu Tập Nổi Bật</h2>
+        </div>
+        <a href="catalog.html" class="action-link">Xem toàn bộ sơ đồ phân loại DDC →</a>
+      </div>
 
-    <div class="panel" style="margin-bottom:20px;">
-      <div class="panel-header"><h2 class="panel-title">Thông báo</h2></div>
-      <div id="notes" class="note-list" style="padding:4px 2px 12px;">Đang tải...</div>
-    </div>
+      <div class="home-cat-grid">
+        <a href="catalog.html?cat=it" class="home-cat-card">
+          <div class="home-cat-icon">💻</div>
+          <div class="home-cat-info">
+            <h3>Công nghệ thông tin &amp; KH Máy tính</h3>
+            <p>Lập trình, AI, An ninh mạng, Điện toán đám mây, Cơ sở dữ liệu...</p>
+            <div class="home-cat-meta">3.420 đầu sách · DDC 004–006</div>
+          </div>
+        </a>
 
-    <div class="panel">
-      <div class="panel-header"><h2 class="panel-title">Thông tin thẻ</h2></div>
-      <table>
-        <tbody>
-          <tr><th style="width:220px;">Mã thẻ</th><td id="info-id">-</td></tr>
-          <tr><th>Loại</th><td id="info-type">-</td></tr>
-          <tr><th>Trạng thái</th><td id="info-status">-</td></tr>
-          <tr><th>Hạn thẻ</th><td id="info-expiry">-</td></tr>
-          <tr><th>Hạn mức</th><td id="info-limit">-</td></tr>
-        </tbody>
-      </table>
-    </div>
+        <a href="catalog.html?cat=eco" class="home-cat-card">
+          <div class="home-cat-icon">📊</div>
+          <div class="home-cat-info">
+            <h3>Kinh tế, Tài chính &amp; Vận tải</h3>
+            <p>Kinh tế vận tải, Quản trị Logistics, Tài chính doanh nghiệp...</p>
+            <div class="home-cat-meta">2.850 đầu sách · DDC 330–339</div>
+          </div>
+        </a>
+
+        <a href="catalog.html?cat=eng" class="home-cat-card">
+          <div class="home-cat-icon">🏗️</div>
+          <div class="home-cat-info">
+            <h3>Khoa học Kỹ thuật &amp; Giao thông</h3>
+            <p>Kỹ thuật cầu đường, Công trình ngầm, Cơ khí giao thông, Đường sắt cao tốc...</p>
+            <div class="home-cat-meta">4.120 đầu sách · DDC 620–629</div>
+          </div>
+        </a>
+
+        <a href="catalog.html?cat=lang" class="home-cat-card">
+          <div class="home-cat-icon">🌐</div>
+          <div class="home-cat-info">
+            <h3>Ngoại ngữ &amp; Kỹ năng Phát triển</h3>
+            <p>IELTS, TOEIC, Tiếng Anh chuyên ngành, Kỹ năng lãnh đạo, Thuyết trình...</p>
+            <div class="home-cat-meta">1.230 đầu sách · DDC 400–428</div>
+          </div>
+        </a>
+
+        <a href="catalog.html?cat=law" class="home-cat-card">
+          <div class="home-cat-icon">⚖️</div>
+          <div class="home-cat-info">
+            <h3>Khoa học Xã hội &amp; Pháp luật</h3>
+            <p>Luật giao thông, Luật thương mại, Quản lý dự án xây dựng...</p>
+            <div class="home-cat-meta">1.560 đầu sách · DDC 340–349</div>
+          </div>
+        </a>
+
+        <a href="catalog.html?cat=thesis" class="home-cat-card">
+          <div class="home-cat-icon">🎓</div>
+          <div class="home-cat-info">
+            <h3>Luận văn &amp; Đề tài Nghiên cứu</h3>
+            <p>Khóa luận xuất sắc, Luận văn Thạc sĩ, Luận án Tiến sĩ trường UTC số hóa...</p>
+            <div class="home-cat-meta">3.820 bài số hóa · Toàn văn PDF</div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Featured New Books -->
+    <section class="home-section" id="sach-moi">
+      <div class="home-section-head">
+        <div>
+          <div class="subhead">BỔ SUNG MỚI</div>
+          <h2>Sách Mới Cập Nhật Tuần Này</h2>
+        </div>
+        <a href="catalog.html?sort=new" class="action-link">Xem tất cả sách mới →</a>
+      </div>
+
+      <div class="home-book-grid" id="new-books-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--cl-muted);">Đang tải sách mới...</div>
+      </div>
+    </section>
+
+    <!-- Top Borrowed Books -->
+    <section class="home-section">
+      <div class="home-section-head">
+        <div>
+          <div class="subhead">XU HƯỚNG HỌC TẬP</div>
+          <h2>Tài Liệu Mượn Nhiều Nhất Tháng Này</h2>
+        </div>
+        <a href="catalog.html?sort=popular" class="action-link">Xem danh sách đầy đủ →</a>
+      </div>
+
+      <div class="home-book-grid" id="popular-books-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--cl-muted);">Đang tải tài liệu phổ biến...</div>
+      </div>
+    </section>
+
+    <!-- News & Events -->
+    <section class="home-section">
+      <div class="home-section-head">
+        <div>
+          <div class="subhead">HOẠT ĐỘNG &amp; SỰ KIỆN</div>
+          <h2>Tin Tức &amp; Hoạt Động Thư Viện UTC</h2>
+        </div>
+        <a href="rules.html" class="action-link">Xem lịch hoạt động →</a>
+      </div>
+
+      <div class="events-grid">
+        <div class="event-card">
+          <div class="event-date-box">
+            <span class="month">THÁNG 11</span>
+            <span class="day">22</span>
+          </div>
+          <div class="event-info">
+            <h3>Workshop tra cứu cơ sở dữ liệu IEEE / Scopus &amp; Quản lý trích dẫn</h3>
+            <p class="place">📍 Phòng Hội thảo Đa phương tiện A2 · 14:00 – 16:30</p>
+            <a href="rules.html" class="cta">Đăng ký tham gia miễn phí →</a>
+          </div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-date-box" style="background:#1d4ed8;">
+            <span class="month">THÁNG 11</span>
+            <span class="day">28</span>
+          </div>
+          <div class="event-info">
+            <h3>Tuần lễ Ngày hội Sách UTC &amp; Trao đổi Tài liệu Học thuật 2026</h3>
+            <p class="place">📍 Sảnh Tòa nhà Thư viện Trung tâm · Cả ngày</p>
+            <a href="rules.html" class="cta">Xem chi tiết chương trình →</a>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <footer class="cl-footer"></footer>
+
   <script src="js/client.js"></script>
   <script>
-    const readerId = requireLogin();
-    if (readerId) {
-      renderClientSidebar("home");
-      loadAll();
+    renderClientHeader("home");
+    renderFloatingCartBar();
+    renderClientFooter();
+
+    function doHomeSearch() {
+      const q = document.getElementById("home-search-q").value.trim();
+      const docType = document.getElementById("home-doc-type").value;
+      let url = "catalog.html";
+      const params = [];
+      if (q) params.push("q=" + encodeURIComponent(q));
+      if (docType !== "all") params.push("type=" + encodeURIComponent(docType));
+      if (params.length) url += "?" + params.join("&");
+      window.location.href = url;
     }
 
-    async function loadAll() {
-      try {
-        const [p, stats, notes] = await Promise.all([
-          fetchAPI("/api/readers/eligibility?readerId=" + encodeURIComponent(readerId)),
-          fetchAPI("/api/client/stats"),
-          fetchAPI("/api/client/notifications")
-        ]);
-        document.getElementById("welcome-name").textContent = p.fullName;
-        document.getElementById("hero-reason").textContent = p.reason;
-        document.getElementById("stat-borrowed").textContent = p.currentBorrowedCount + "/" + p.maxBooks;
-        document.getElementById("stat-fine").textContent = formatCurrency(p.balanceFine);
-        document.getElementById("info-id").textContent = p.readerId;
-        document.getElementById("info-type").textContent = p.readerType;
-        document.getElementById("info-status").textContent = p.status;
-        document.getElementById("info-expiry").textContent = p.expiryDate;
-        document.getElementById("info-limit").textContent = p.maxBooks + " cuốn / " + p.maxBorrowDays + " ngày";
+    function quickSearch(keyword) {
+      window.location.href = "catalog.html?q=" + encodeURIComponent(keyword);
+    }
 
-        document.getElementById("s-total").textContent = stats.totalLoans;
-        document.getElementById("s-returned").textContent = stats.returnedLoans;
-        document.getElementById("s-overdue").textContent = stats.overdueLoans;
-        document.getElementById("s-res").textContent = stats.pendingReservations;
+    async function loadHomePageData() {
+      const readerId = getReaderId();
+      if (readerId && getToken()) {
+        try {
+          const [profile, stats, fines] = await Promise.all([
+            fetchAPI("/api/readers/eligibility?readerId=" + encodeURIComponent(readerId)),
+            fetchAPI("/api/client/stats").catch(() => ({ totalLoans: 0, overdueLoans: 0, pendingReservations: 0 })),
+            fetchAPI("/api/fines?readerId=" + encodeURIComponent(readerId)).catch(() => [])
+          ]);
 
-        const box = document.getElementById("notes");
-        if (!notes.length) {
-          box.innerHTML = `<div class="note-item">Không có thông báo mới.</div>`;
-        } else {
-          box.innerHTML = notes.map(n => `<div class="note-item"><strong>${n.title}</strong><span style="color:var(--c-muted);font-size:13px;">${n.message}</span></div>`).join("");
+          const bar = document.getElementById("home-reader-bar");
+          if (bar) {
+            bar.style.display = "grid";
+            document.getElementById("hr-name").textContent = profile.fullName || readerId;
+            document.getElementById("hr-id").textContent = profile.readerId;
+            document.getElementById("hr-borrowed").textContent = `${profile.currentBorrowedCount || 0}/${profile.maxBooks || 5}`;
+            
+            const unpaid = fines.reduce((s, f) => s + (Number(f.fineAmount) || 0), 0);
+            const fineEl = document.getElementById("hr-fine");
+            fineEl.textContent = formatCurrency(unpaid);
+            if (unpaid > 0) fineEl.style.color = "var(--cl-danger)";
+
+            document.getElementById("hr-res").textContent = stats.pendingReservations || 0;
+
+            // Fetch loans for nearest due date
+            const loans = await fetchAPI("/api/loans?readerId=" + encodeURIComponent(readerId)).catch(() => []);
+            const activeLoans = loans.filter(l => (l.status || "").toUpperCase() === "BORROWED");
+            if (activeLoans.length > 0) {
+              activeLoans.sort((a,b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
+              const nearest = activeLoans[0];
+              const dueStr = nearest.dueDate ? nearest.dueDate.split(" ")[0] : "—";
+              document.getElementById("hr-due").textContent = dueStr;
+              
+              const diffDays = Math.ceil((new Date(dueStr).getTime() - Date.now()) / (1000 * 3600 * 24));
+              const subEl = document.getElementById("hr-due-sub");
+              if (diffDays < 0) {
+                subEl.textContent = `Quá hạn ${Math.abs(diffDays)} ngày!`;
+                subEl.style.color = "var(--cl-danger)";
+              } else if (diffDays <= 3) {
+                subEl.textContent = `Còn ${diffDays} ngày (Sắp hạn)`;
+                subEl.style.color = "var(--cl-warning)";
+              } else {
+                subEl.textContent = `Còn ${diffDays} ngày`;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Could not load reader status", e);
         }
-      } catch (e) {}
+      }
+
+      // Load books for featured sections
+      try {
+        const books = await fetchAPI("/api/books");
+        renderBookGrids(books);
+      } catch (e) {
+        console.error("Failed to load books", e);
+      }
     }
+
+    async function renderBookGrids(books) {
+      const newGrid = document.getElementById("new-books-grid");
+      const popularGrid = document.getElementById("popular-books-grid");
+
+      if (!books || books.length === 0) {
+        if (newGrid) newGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;">Không có sách nào trong thư viện.</div>`;
+        return;
+      }
+
+      // Fetch availabilities
+      const booksWithAvail = await Promise.all(books.slice(0, 10).map(async (b, idx) => {
+        let avail = 0, total = 0;
+        try {
+          const av = await fetchAPI("/api/books/availability?isbn=" + encodeURIComponent(b.isbn));
+          avail = av.availableCount;
+          total = av.totalCopies;
+        } catch {
+          avail = 3; total = 5;
+        }
+        return { ...b, availableCopies: avail, totalCopies: total, index: idx };
+      }));
+
+      const badges = ["MỚI VỀ", "BESTSELLER", "BẢN 2024", "GIÁO TRÌNH", "HOT PICK"];
+      const badgeClasses = ["new", "bestseller", "", "new", "hot"];
+
+      const createCard = (b, i) => {
+        const isAvail = b.availableCopies > 0;
+        const badgeText = badges[i % badges.length];
+        const badgeCls = badgeClasses[i % badgeClasses.length];
+        const shelf = b.shelfLocation || "Khu A - Tầng 2";
+        const ddc = b.classificationCode || "005." + (i + 1);
+
+        return `
+          <div class="home-book-card">
+            <div class="home-book-cover" onclick="openBookDetailModal('${b.isbn}')" style="cursor:pointer;">
+              <span class="home-book-badge ${badgeCls}">${badgeText}</span>
+              <span class="home-book-ddc">DDC ${escapeHtml(ddc)}</span>
+              <span style="font-size:28px;">📖</span>
+              <div class="home-book-cover-title">${escapeHtml(b.title)}</div>
+            </div>
+
+            <div class="home-book-body">
+              <h3 title="${escapeHtml(b.title)}" onclick="openBookDetailModal('${b.isbn}')" style="cursor:pointer;">
+                ${escapeHtml(b.title)}
+              </h3>
+              <div class="author">${escapeHtml(b.author || "UTC Press")}</div>
+              <div class="avail ${isAvail ? '' : 'out'}">
+                ${isAvail ? `✓ Còn ${b.availableCopies}/${b.totalCopies} bản sẵn sàng` : '✕ Hết bản sao trên kệ'}
+              </div>
+
+              <div class="home-book-actions">
+                <button class="btn btn-secondary btn-sm" onclick="openBookDetailModal('${b.isbn}')">
+                  Chi tiết
+                </button>
+                ${isAvail
+                  ? `<button class="btn btn-primary btn-sm" title="Thêm vào giỏ mượn" onclick="BorrowCart.addItem({isbn:'${b.isbn}', title:'${escapeHtml(b.title)}', author:'${escapeHtml(b.author)}', shelfLocation:'${escapeHtml(shelf)}'})">🛒</button>`
+                  : `<button class="btn btn-secondary btn-sm" title="Đặt trước khi có sách" onclick="reserveBookModal('${b.isbn}')">🔖</button>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      if (newGrid) {
+        newGrid.innerHTML = booksWithAvail.slice(0, 5).map((b, i) => createCard(b, i)).join("");
+      }
+      if (popularGrid) {
+        popularGrid.innerHTML = booksWithAvail.slice(5, 10).map((b, i) => createCard(b, i + 5)).join("");
+      }
+    }
+
+    loadHomePageData();
   </script>
 </body>
 </html>

@@ -3,94 +3,309 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Hồ sơ độc giả</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Hồ Sơ Thẻ Độc Giả - Thư Viện UTC</title>
   <link rel="stylesheet" href="css/client.css">
+  <style>
+    /* Digital Library Card Visual */
+    .digital-card {
+      background: linear-gradient(135deg, #071627 0%, #0b1f3a 50%, #1d4ed8 100%);
+      color: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 16px 36px rgba(11, 31, 58, 0.25);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .digital-card::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      bottom: -40px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      pointer-events: none;
+    }
+
+    .card-barcode-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body class="client-body">
-  <aside class="sidebar"></aside>
-  <main class="main-wrapper">
-    <div class="top-header">
+  <header class="cl-header"></header>
+
+  <main class="cl-main">
+    <div class="cl-breadcrumb">
+      <a href="index.html">Trang chủ</a> <span class="sep">/</span>
+      <span class="current">Hồ sơ cá nhân &amp; Thẻ độc giả</span>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h1 style="font-size:24px;font-weight:800;color:var(--cl-navy);margin:0;">
+        Hồ Sơ Tài Khoản &amp; Thẻ Thư Viện Điện Tử
+      </h1>
+      <p style="font-size:13px;color:var(--cl-muted);margin-top:2px;">
+        Quản lý thông tin liên hệ, đổi mật khẩu bảo mật và xuất trình thẻ điện tử khi mượn trả tại quầy.
+      </p>
+    </div>
+
+    <div class="opac-layout" style="grid-template-columns: 360px 1fr;">
+      <!-- Left Column: Visual Digital Card -->
       <div>
-        <h1 class="page-title">Hồ sơ & mật khẩu</h1>
-        <p class="page-subtitle">Cập nhật thông tin liên hệ và đổi mật khẩu BCrypt</p>
-      </div>
-    </div>
+        <div class="digital-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:24px;">📖</span>
+              <div>
+                <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;opacity:.9;">ĐẠI HỌC GIAO THÔNG VẬN TẢI</div>
+                <div style="font-size:9.5px;opacity:.7;">THẺ THƯ VIỆN ĐIỆN TỬ (SLMS)</div>
+              </div>
+            </div>
+            <span class="badge" style="background:#dcfce7;color:#166534;font-size:10px;">ACTIVE</span>
+          </div>
 
-    <div class="panel" style="margin-bottom:20px;max-width:560px;">
-      <div class="panel-header"><h2 class="panel-title">Thông tin liên hệ</h2></div>
-      <div style="padding:8px 4px 16px;">
-        <label>Họ tên</label>
-        <input id="fullName" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
-        <label>Email</label>
-        <input id="email" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
-        <label>Số điện thoại</label>
-        <input id="phone" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
-        <button class="btn btn-primary" onclick="saveProfile()">Lưu hồ sơ</button>
-      </div>
-    </div>
+          <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:#fff;color:var(--cl-navy);display:grid;place-items:center;font-size:22px;font-weight:800;" id="card-avatar">
+              U
+            </div>
+            <div>
+              <h3 style="font-size:17px;font-weight:800;color:#fff;margin:0;" id="card-name">Nguyễn Văn An</h3>
+              <div style="font-size:12.5px;opacity:.8;margin-top:2px;" id="card-type">Sinh viên ĐHCQ</div>
+            </div>
+          </div>
 
-    <div class="panel" style="max-width:560px;">
-      <div class="panel-header"><h2 class="panel-title">Đổi mật khẩu</h2></div>
-      <div style="padding:8px 4px 16px;">
-        <label>Mật khẩu cũ</label>
-        <input id="oldPassword" type="password" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
-        <label>Mật khẩu mới</label>
-        <input id="newPassword" type="password" style="width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
-        <button class="btn btn-secondary" onclick="changePassword()">Đổi mật khẩu</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11.5px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.15);">
+            <div>
+              <div style="opacity:.7;">MÃ ĐỘC GIẢ</div>
+              <strong style="font-size:14px;" id="card-id">RD001</strong>
+            </div>
+            <div>
+              <div style="opacity:.7;">HẠN SỬ DỤNG</div>
+              <strong style="font-size:14px;" id="card-expiry">2026-12-31</strong>
+            </div>
+          </div>
+
+          <!-- Barcode for Reader ID -->
+          <div class="card-barcode-box">
+            <svg id="reader-barcode-svg"></svg>
+            <div style="font-size:10.5px;color:#64748b;margin-top:2px;">Quét mã vạch tại quầy thủ thư để mượn trả</div>
+          </div>
+        </div>
+
+        <div class="cart-card">
+          <h4 style="font-size:13.5px;color:var(--cl-navy);font-weight:700;margin-bottom:10px;">Hạn Mức Mượn Tài Liệu</h4>
+          <div class="cart-summary-row">
+            <span>Số sách mượn tối đa:</span>
+            <strong id="limit-books">5 cuốn / lần</strong>
+          </div>
+          <div class="cart-summary-row">
+            <span>Thời gian mượn tiêu chuẩn:</span>
+            <strong id="limit-days">14 ngày</strong>
+          </div>
+          <div class="cart-summary-row">
+            <span>Số sách đang giữ:</span>
+            <strong id="limit-cur">0 cuốn</strong>
+          </div>
+          <div class="cart-summary-row">
+            <span>Dư nợ phạt hiện tại:</span>
+            <strong id="limit-fine" style="color:var(--cl-success);">0 VNĐ</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Settings & Notifications -->
+      <div>
+        <!-- Profile Form Card -->
+        <div class="cart-card">
+          <h3 class="cart-card-title">Cập Nhật Thông Tin Liên Hệ</h3>
+          <div class="cart-card-sub">Thông tin này được sử dụng để nhận thông báo mượn trả và nhắc hạn</div>
+
+          <form id="profile-form" onsubmit="handleUpdateProfile(event)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:700;color:var(--cl-navy);margin-bottom:4px;">Họ và tên</label>
+                <input type="text" id="prof-name" style="width:100%;padding:9px 12px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:13.5px;" required>
+              </div>
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:700;color:var(--cl-navy);margin-bottom:4px;">Mã thẻ độc giả</label>
+                <input type="text" id="prof-id" style="width:100%;padding:9px 12px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:13.5px;background:#f8fafc;" disabled>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:700;color:var(--cl-navy);margin-bottom:4px;">Email nhận thông báo</label>
+                <input type="email" id="prof-email" style="width:100%;padding:9px 12px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:13.5px;" placeholder="sv@utc.edu.vn">
+              </div>
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:700;color:var(--cl-navy);margin-bottom:4px;">Số điện thoại</label>
+                <input type="tel" id="prof-phone" style="width:100%;padding:9px 12px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:13.5px;" placeholder="09xxxxxxxx">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-save-profile">
+              Lưu Thông Tin
+            </button>
+          </form>
+        </div>
+
+        <!-- Change Password Card -->
+        <div class="cart-card">
+          <h3 class="cart-card-title">Đổi Mật Khẩu Đăng Nhập</h3>
+          <div class="cart-card-sub">Mật khẩu được mã hóa bảo mật chuẩn BCrypt trên hệ thống</div>
+
+          <form id="password-form" onsubmit="handleChangePassword(event)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:700;color:var(--cl-navy);margin-bottom:4px;">Mật khẩu hiện tại</label>
+                <input type="password" id="pw-old" style="width:100%;padding:9px 12px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:13.5px;" placeholder="••••••" required>
+              </div>
+              <div>
+                <label style="display:block;font-size:12.5px;font-weight:700;color:var(--cl-navy);margin-bottom:4px;">Mật khẩu mới</label>
+                <input type="password" id="pw-new" style="width:100%;padding:9px 12px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:13.5px;" placeholder="Ít nhất 6 ký tự" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-secondary btn-sm" id="btn-save-pw">
+              Cập Nhật Mật Khẩu
+            </button>
+          </form>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="cart-card">
+          <h3 class="cart-card-title">Thông Báo Thư Viện</h3>
+          <div id="notifications-list" style="display:grid;gap:10px;margin-top:12px;">
+            <div style="font-size:13px;color:var(--cl-muted);">Đang tải thông báo...</div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
+
+  <footer class="cl-footer"></footer>
+
   <script src="js/client.js"></script>
+  <script src="../js/jsbarcode.min.js"></script>
   <script>
-    const readerId = requireLogin();
-    if (readerId) {
-      renderClientSidebar("profile");
-      loadProfile();
-    }
+    renderClientHeader("profile");
+    renderFloatingCartBar();
+    renderClientFooter();
 
     async function loadProfile() {
+      const readerId = requireLogin();
+      if (!readerId) return;
+
       try {
-        const readers = await fetchAPI("/api/readers");
-        const me = (readers || []).find(r => r.readerId === readerId);
-        if (me) {
-          document.getElementById("fullName").value = me.fullName || "";
-          document.getElementById("email").value = me.email || "";
-          document.getElementById("phone").value = me.phone || "";
+        const [profile, notes] = await Promise.all([
+          fetchAPI("/api/readers/eligibility?readerId=" + encodeURIComponent(readerId)),
+          fetchAPI("/api/client/notifications").catch(() => [])
+        ]);
+
+        document.getElementById("card-name").textContent = profile.fullName || readerId;
+        document.getElementById("card-id").textContent = profile.readerId;
+        document.getElementById("card-expiry").textContent = profile.expiryDate || "2026-12-31";
+        document.getElementById("card-type").textContent = profile.readerType === "STUDENT" ? "Sinh viên Đại học chính quy" : (profile.readerType || "Bạn đọc");
+        document.getElementById("card-avatar").textContent = (profile.fullName || readerId).charAt(0).toUpperCase();
+
+        document.getElementById("prof-name").value = profile.fullName || "";
+        document.getElementById("prof-id").value = profile.readerId;
+        document.getElementById("prof-email").value = profile.email || "";
+        document.getElementById("prof-phone").value = profile.phone || "";
+
+        document.getElementById("limit-books").textContent = (profile.maxBooks || 5) + " cuốn / lượt";
+        document.getElementById("limit-days").textContent = (profile.maxBorrowDays || 14) + " ngày";
+        document.getElementById("limit-cur").textContent = (profile.currentBorrowedCount || 0) + " cuốn";
+        document.getElementById("limit-fine").textContent = formatCurrency(profile.balanceFine || 0);
+
+        // Render Barcode
+        try {
+          if (typeof JsBarcode === "function") {
+            JsBarcode("#reader-barcode-svg", profile.readerId, {
+              format: "CODE128",
+              width: 1.8,
+              height: 44,
+              displayValue: true
+            });
+          }
+        } catch (e) {}
+
+        // Render notifications
+        const noteBox = document.getElementById("notifications-list");
+        if (!notes || notes.length === 0) {
+          noteBox.innerHTML = `<div style="font-size:13px;color:var(--cl-muted);">Không có thông báo mới nào.</div>`;
+        } else {
+          noteBox.innerHTML = notes.map(n => `
+            <div style="background:#f8fafc;border:1px solid var(--cl-border);border-radius:10px;padding:12px;">
+              <strong style="font-size:13.5px;color:var(--cl-navy);display:block;margin-bottom:2px;">${escapeHtml(n.title)}</strong>
+              <div style="font-size:12.5px;color:#475569;">${escapeHtml(n.message)}</div>
+            </div>
+          `).join("");
         }
-      } catch (e) {}
+      } catch (err) {
+        showToast("Lỗi khi tải thông tin hồ sơ: " + err.message, "danger");
+      }
     }
 
-    async function saveProfile() {
+    async function handleUpdateProfile(e) {
+      e.preventDefault();
+      const fullName = document.getElementById("prof-name").value.trim();
+      const email = document.getElementById("prof-email").value.trim();
+      const phone = document.getElementById("prof-phone").value.trim();
+      const btn = document.getElementById("btn-save-profile");
+
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
       try {
         await fetchAPI("/api/auth/profile", {
           method: "PUT",
-          body: JSON.stringify({
-            fullName: document.getElementById("fullName").value.trim(),
-            email: document.getElementById("email").value.trim(),
-            phone: document.getElementById("phone").value.trim()
-          })
+          body: JSON.stringify({ fullName, email, phone })
         });
-        sessionStorage.setItem("slms_reader_name", document.getElementById("fullName").value.trim());
-        showToast("Đã lưu hồ sơ", "success");
-        renderClientSidebar("profile");
-      } catch (e) {}
+        showToast("Cập nhật thông tin hồ sơ thành công!", "success");
+        loadProfile();
+      } catch (e) {
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu Thông Tin";
+      }
     }
 
-    async function changePassword() {
+    async function handleChangePassword(e) {
+      e.preventDefault();
+      const oldPassword = document.getElementById("pw-old").value;
+      const newPassword = document.getElementById("pw-new").value;
+      const btn = document.getElementById("btn-save-pw");
+
+      if (newPassword.length < 6) {
+        showToast("Mật khẩu mới phải có ít nhất 6 ký tự!", "warning");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Đang đổi mật khẩu...";
       try {
         await fetchAPI("/api/auth/password", {
           method: "POST",
-          body: JSON.stringify({
-            oldPassword: document.getElementById("oldPassword").value,
-            newPassword: document.getElementById("newPassword").value
-          })
+          body: JSON.stringify({ oldPassword, newPassword })
         });
-        showToast("Đổi mật khẩu thành công", "success");
-        document.getElementById("oldPassword").value = "";
-        document.getElementById("newPassword").value = "";
-      } catch (e) {}
+        showToast("🎉 Đổi mật khẩu thành công!", "success");
+        document.getElementById("password-form").reset();
+      } catch (e) {
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Cập Nhật Mật Khẩu";
+      }
     }
+
+    loadProfile();
   </script>
 </body>
 </html>

@@ -3,43 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SLMS - Đăng nhập độc giả</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Đăng Nhập Độc Giả - Thư Viện UTC</title>
   <link rel="stylesheet" href="css/client.css">
+  <style>
+    .auth-split {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      background: #fff;
+    }
+
+    .auth-visual {
+      background: linear-gradient(145deg, #071627 0%, #0b1f3a 50%, #1d4ed8 100%);
+      color: #fff;
+      padding: 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-visual::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      bottom: -80px;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      pointer-events: none;
+    }
+
+    .auth-form-panel {
+      padding: 60px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 860px) {
+      .auth-split {
+        grid-template-columns: 1fr;
+      }
+      .auth-visual {
+        display: none;
+      }
+      .auth-form-panel {
+        padding: 40px 24px;
+      }
+    }
+  </style>
 </head>
-<body class="client-body" style="display:block;margin:0;">
-  <div class="auth-shell">
-    <section class="auth-visual">
-      <div>
-        <div style="opacity:.85;margin-bottom:10px;">Thư viện UTC · SLMS</div>
-        <h1>Đọc nhiều hơn.<br>Quản lý dễ hơn.</h1>
-        <p style="max-width:420px;line-height:1.6;opacity:.9;">
-          Tra cứu sách, theo dõi hạn trả, đặt trước và thanh toán phạt ngay trên cổng độc giả.
+<body class="client-body" style="background:#fff;">
+  <div class="auth-split">
+    <!-- Visual Left Panel -->
+    <div class="auth-visual">
+      <div class="cl-brand" style="color:#fff;">
+        <span class="cl-brand-mark" style="background:rgba(255,255,255,0.15);box-shadow:none;">📖</span>
+        <span class="cl-brand-text">
+          <strong style="color:#fff;">THƯ VIỆN SỐ</strong>
+          <span style="color:rgba(255,255,255,0.7);">Đại học Giao thông vận tải</span>
+        </span>
+      </div>
+
+      <div style="max-width:480px;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;margin-bottom:18px;">
+          CỔNG THÔNG TIN ĐỘC GIẢ TRỰC TUYẾN
+        </div>
+        <h1 style="font-size:36px;font-weight:800;line-height:1.2;margin-bottom:14px;">
+          Khám Phá Tri Thức &amp; Kho Học Liệu Số UTC
+        </h1>
+        <p style="font-size:14.5px;opacity:.85;line-height:1.6;margin-bottom:24px;">
+          Truy cập hơn 14.800 đầu sách giáo trình, tra cứu danh mục OPAC, quản lý phiếu mượn và đặt trước học liệu 24/7.
         </p>
-        <div class="stats-mini" style="margin-top:24px;max-width:360px;">
-          <div><div style="font-size:12px;opacity:.8;">Demo ID</div><strong>RD001</strong></div>
-          <div><div style="font-size:12px;opacity:.8;">Mật khẩu</div><strong>123456</strong></div>
+
+        <!-- Demo account card -->
+        <div style="background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;opacity:.8;margin-bottom:6px;font-weight:700;">
+            🔑 TÀI KHOẢN ĐỘC GIẢ DEMO
+          </div>
+          <div style="display:flex;gap:20px;font-size:13px;">
+            <div>Mã độc giả: <strong style="color:#93c5fd;font-size:14px;">RD001</strong></div>
+            <div>Mật khẩu: <strong style="color:#93c5fd;font-size:14px;">123456</strong></div>
+          </div>
         </div>
       </div>
-    </section>
-    <section class="auth-panel">
-      <div class="login-card">
-        <h1>Đăng nhập độc giả</h1>
-        <p style="color:var(--c-muted);margin-bottom:8px;">Dùng mã thẻ và mật khẩu BCrypt đã cấp.</p>
-        <div id="login-error" class="alert alert-danger" style="display:none;margin:12px 0;"></div>
-        <form id="login-form">
-          <label for="reader-id">Mã độc giả</label>
-          <input type="text" id="reader-id" placeholder="VD: RD001" required>
-          <label for="password">Mật khẩu</label>
-          <input type="password" id="password" placeholder="••••••" required>
-          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:18px;" id="login-btn">Đăng nhập</button>
-        </form>
-        <div style="margin-top:16px;font-size:13px;color:var(--c-muted);line-height:1.6;">
-          Chưa có thẻ? <a href="register.html">Đăng ký thẻ mới</a><br>
-          <a href="../staff-login.html">Đăng nhập thủ thư / admin</a>
-        </div>
+
+      <div style="font-size:12px;opacity:.7;">
+        © 2024 - 2026 Trung tâm Thông tin Thư viện - ĐH Giao thông vận tải
       </div>
-    </section>
+    </div>
+
+    <!-- Form Right Panel -->
+    <div class="auth-form-panel">
+      <div style="margin-bottom:28px;">
+        <h2 style="font-size:26px;font-weight:800;color:var(--cl-navy);margin-bottom:6px;">
+          Đăng Nhập Độc Giả
+        </h2>
+        <p style="font-size:13.5px;color:var(--cl-muted);">
+          Nhập mã thẻ thư viện và mật khẩu đã được cấp để tiếp tục.
+        </p>
+      </div>
+
+      <div id="login-error-alert" style="display:none;background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;"></div>
+
+      <form id="login-form" onsubmit="handleLoginSubmit(event)">
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:var(--cl-navy);margin-bottom:6px;">
+            Mã độc giả / Mã thẻ thư viện
+          </label>
+          <input type="text" id="login-reader-id" style="width:100%;padding:11px 14px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:14px;" placeholder="Ví dụ: RD001" required autofocus value="RD001">
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:var(--cl-navy);margin-bottom:6px;">
+            Mật khẩu
+          </label>
+          <input type="password" id="login-password" style="width:100%;padding:11px 14px;border:1px solid var(--cl-border);border-radius:8px;font-family:inherit;font-size:14px;" placeholder="••••••" required value="123456">
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="login-submit-btn" style="width:100%;padding:13px;font-size:14.5px;">
+          Đăng Nhập Cổng Độc Giả →
+        </button>
+      </form>
+
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--cl-border);font-size:13px;color:var(--cl-muted);line-height:1.7;">
+        <div>Chưa có thẻ thư viện? <a href="register.html" style="font-weight:700;">Đăng ký thẻ mới tại đây</a></div>
+        <div>Thủ thư / Quản trị viên? <a href="../staff-login.html" style="color:#2563eb;font-weight:600;">Đăng nhập hệ thống quản lý →</a></div>
+      </div>
+    </div>
   </div>
 
   <script src="js/client.js"></script>
@@ -48,31 +145,34 @@
       window.location.href = "index.html";
     }
 
-    document.getElementById("login-form").addEventListener("submit", async (e) => {
+    async function handleLoginSubmit(e) {
       e.preventDefault();
-      const readerId = document.getElementById("reader-id").value.trim();
-      const password = document.getElementById("password").value;
-      const errBox = document.getElementById("login-error");
-      const btn = document.getElementById("login-btn");
-      errBox.style.display = "none";
+      const readerId = document.getElementById("login-reader-id").value.trim();
+      const password = document.getElementById("login-password").value;
+      const errAlert = document.getElementById("login-error-alert");
+      const btn = document.getElementById("login-submit-btn");
+
+      errAlert.style.display = "none";
       btn.disabled = true;
-      btn.textContent = "Đang xác thực...";
+      btn.textContent = "Đang xác thực thông tin...";
+
       try {
         const data = await fetchAPI("/api/auth/login", {
           method: "POST",
           body: JSON.stringify({ mode: "reader", readerId, password })
         });
+
         setSession(data);
-        showToast("Xin chào " + data.displayName, "success");
-        window.location.href = "index.html";
+        showToast("Xin chào bạn đọc " + (data.displayName || readerId) + "!", "success");
+        setTimeout(() => { window.location.href = "index.html"; }, 500);
       } catch (err) {
-        errBox.textContent = err.message || "Đăng nhập thất bại";
-        errBox.style.display = "block";
+        errAlert.textContent = err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại mã thẻ và mật khẩu.";
+        errAlert.style.display = "block";
       } finally {
         btn.disabled = false;
-        btn.textContent = "Đăng nhập";
+        btn.textContent = "Đăng Nhập Cổng Độc Giả →";
       }
-    });
+    }
   </script>
 </body>
 </html>
