@@ -3,6 +3,7 @@ package com.library.borrow.service;
 import com.library.borrow.dto.BorrowValidationResult;
 import com.library.borrow.dto.PolicyViolation;
 import com.library.borrow.repository.BorrowSlipItemRepository;
+import com.library.borrow.repository.ReservationRepository;
 import com.library.catalog.entity.Book;
 import com.library.catalog.entity.BookCopy;
 import com.library.common.enums.CardStatus;
@@ -39,6 +40,7 @@ public class BorrowPolicyService {
 
     private final LibraryCardRepository libraryCardRepository;
     private final BorrowSlipItemRepository borrowSlipItemRepository;
+    private final ReservationRepository reservationRepository;
     private final FineRepository fineRepository;
     private final LibrarySettingsService settingsService;
 
@@ -120,7 +122,9 @@ public class BorrowPolicyService {
                     // ok
                 } else if (copy.getStatus() == CopyStatus.HOLD) {
                     boolean holdForReader = borrowSlipItemRepository.existsHoldForReaderAndCopy(
-                            reader.getId(), copy.getId());
+                            reader.getId(), copy.getId())
+                            || reservationRepository.existsReadyHoldForReaderAndCopy(
+                                    reader.getId(), copy.getId());
                     if (!holdForReader) {
                         violations.add(v("COPY_ON_HOLD",
                                 "Bản sao đang giữ cho người khác: " + copy.getBarcode()));

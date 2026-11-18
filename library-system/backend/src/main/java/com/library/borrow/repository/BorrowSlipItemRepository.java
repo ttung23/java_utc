@@ -98,6 +98,19 @@ public interface BorrowSlipItemRepository extends JpaRepository<BorrowSlipItem, 
             LEFT JOIN FETCH i.copy
             WHERE i.deletedAt IS NULL
               AND i.status = com.library.common.enums.BorrowItemStatus.BORROWING
+            ORDER BY i.dueDate ASC
+            """)
+    List<BorrowSlipItem> findAllBorrowingItems();
+
+    @Query("""
+            SELECT i FROM BorrowSlipItem i
+            JOIN FETCH i.slip s
+            JOIN FETCH s.reader r
+            JOIN FETCH r.user
+            JOIN FETCH i.book
+            LEFT JOIN FETCH i.copy
+            WHERE i.deletedAt IS NULL
+              AND i.status = com.library.common.enums.BorrowItemStatus.BORROWING
               AND i.dueDate < :today
             ORDER BY i.dueDate ASC
             """)

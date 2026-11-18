@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -60,6 +61,119 @@ public class ReportService {
         m.put("unpaidFines", fineRepository.sumAllUnpaid());
         m.put("totalUsers", userRepository.count());
         m.put("asOf", today);
+
+        // Demo KPI theo ngày (để dashboard đẹp khi chưa có giao dịch trong ngày)
+        Instant start = today.atStartOfDay(ZONE).toInstant();
+        Instant end = today.plusDays(1).atStartOfDay(ZONE).toInstant();
+        long borrowedToday = borrowSlipItemRepository.findAll().stream()
+                .filter(i -> i.getDeletedAt() == null && i.getBorrowedAt() != null
+                        && !i.getBorrowedAt().isBefore(start) && i.getBorrowedAt().isBefore(end))
+                .count();
+        long returnedToday = borrowSlipItemRepository.findAll().stream()
+                .filter(i -> i.getDeletedAt() == null && i.getReturnedAt() != null
+                        && !i.getReturnedAt().isBefore(start) && i.getReturnedAt().isBefore(end))
+                .count();
+        boolean demoDaily = borrowedToday == 0 && returnedToday == 0;
+        if (demoDaily) {
+            borrowedToday = 24;
+            returnedToday = 18;
+        }
+        m.put("borrowedToday", borrowedToday);
+        m.put("returnedToday", returnedToday);
+        m.put("borrowedTodayCounter", demoDaily ? 18 : null);
+        m.put("borrowedTodayOnline", demoDaily ? 6 : null);
+        m.put("returnOnTimeRate", demoDaily ? 94.8 : null);
+        m.put("demoDailyStats", demoDaily);
+
+        long overdueCount = ((Number) m.get("overdueItems")).longValue();
+        long pendingCount = ((Number) m.get("pendingOnline")).longValue();
+        BigDecimal unpaid = (BigDecimal) m.get("unpaidFines");
+        List<Map<String, Object>> urgent = new ArrayList<>();
+        if (overdueCount > 0) {
+            urgent.add(urgentTask("OVERDUE", "HIGH",
+                    overdueCount + " sách quá hạn cần thu hồi",
+                    "Độc giả đang giữ sách quá hạn trả",
+                    "/borrows/overdue", overdueCount));
+        }
+        if (pendingCount > 0) {
+            urgent.add(urgentTask("PENDING_ONLINE", "HIGH",
+                    pendingCount + " yêu cầu mượn trực tuyến chờ duyệt",
+                    "Độc giả đang chờ thủ thư xử lý phiếu",
+                    "/borrows/online", pendingCount));
+        }
+        if (unpaid != null && unpaid.compareTo(BigDecimal.ZERO) > 0) {
+            urgent.add(urgentTask("UNPAID_FINE", "MEDIUM",
+                    "Phạt chưa thu: " + unpaid.toPlainString() + " đ",
+                    "Cần thu hoặc xác nhận thanh toán phạt",
+                    "/fines", unpaid));
+        }
+        m.put("urgentTasks", urgent);
+        return m;
+    }
+
+    private static Map<String, Object> urgentTask(String type, String priority, String title,
+                                                   String description, String href, Object count) {
+        Map<String, Object> t = new LinkedHashMap<>();
+        t.put("type", type);
+        t.put("priority", priority);
+        t.put("title", title);
+        t.put("description", description);
+        t.put("href", href);
+        t.put("count", count);
+        return t;
+    }
+
+    /** Xu hướng mượn/trả theo ngày. Nếu thiếu dữ liệu thật → demo để dashboard đẹp. */
+    public Map<String, Object> borrowTrend(int days) {
+        int n = Math.max(7, Math.min(days, 60));
+        LocalDate today = LocalDate.now(ZONE);
+        LocalDate from = today.minusDays(n - 1L);
+
+        Map<LocalDate, long[]> real = new LinkedHashMap<>();
+        for (LocalDate d = from; !d.isAfter(today); d = d.plusDays(1)) {
+            real.put(d, new long[]{0, 0});
+        }
+        borrowSlipItemRepository.findAll().forEach(i -> {
+            if (i.getDeletedAt() != null) return;
+            if (i.getBorrowedAt() != null) {
+                LocalDate d = i.getBorrowedAt().atZone(ZONE).toLocalDate();
+                long[] c = real.get(d);
+                if (c != null) c[0]++;
+            }
+            if (i.getReturnedAt() != null) {
+                LocalDate d = i.getReturnedAt().atZone(ZONE).toLocalDate();
+                long[] c = real.get(d);
+                if (c != null) c[1]++;
+            }
+        });
+
+        long realTotal = real.values().stream().mapToLong(a -> a[0] + a[1]).sum();
+        boolean demo = realTotal < 5;
+        List<Map<String, Object>> points = new ArrayList<>();
+        int i = 0;
+        for (var e : real.entrySet()) {
+            long borrowed = e.getValue()[0];
+            long returned = e.getValue()[1];
+            if (demo) {
+                // Dao động đẹp quanh 18–32 mượn / 14–28 trả
+                borrowed = 18 + ((i * 7 + 3) % 15);
+                returned = 14 + ((i * 5 + 1) % 15);
+                if (e.getKey().getDayOfWeek().getValue() >= 6) {
+                    borrowed = Math.max(8, borrowed - 10);
+                    returned = Math.max(6, returned - 8);
+                }
+            }
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("date", e.getKey().toString());
+            p.put("borrowed", borrowed);
+            p.put("returned", returned);
+            points.add(p);
+            i++;
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("days", n);
+        m.put("demo", demo);
+        m.put("points", points);
         return m;
     }
 

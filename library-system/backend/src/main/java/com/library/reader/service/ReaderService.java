@@ -35,6 +35,7 @@ import org.springframework.util.StringUtils;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -87,9 +88,14 @@ public class ReaderService {
         if (!StringUtils.hasText(card)) {
             throw new BusinessException("INVALID_REQUEST", "Thiếu mã thẻ");
         }
-        LibraryCard libraryCard = libraryCardRepository.findByCardNumberOrBarcode(card.trim())
-                .orElseThrow(() -> new BusinessException("NOT_FOUND", "Không tìm thấy thẻ", HttpStatus.NOT_FOUND));
-        return toDetail(libraryCard.getReader());
+        String key = card.trim();
+        Optional<LibraryCard> byCard = libraryCardRepository.findByCardNumberOrBarcode(key);
+        if (byCard.isPresent()) {
+            return toDetail(byCard.get().getReader());
+        }
+        Reader byCode = readerRepository.findByReaderCodeAndDeletedAtIsNull(key)
+                .orElseThrow(() -> new BusinessException("NOT_FOUND", "Không tìm thấy thẻ / mã độc giả", HttpStatus.NOT_FOUND));
+        return toDetail(byCode);
     }
 
     public ReaderDetailResponse create(CreateReaderRequest request) {
@@ -235,7 +241,7 @@ public class ReaderService {
         if (activeCard == null) {
             violations.add(EligibilityResponse.ViolationItem.builder()
                     .code("CARD_INACTIVE")
-                    .message("Không có thẻ ACTIVE")
+                    .message("Không có thẻ thư viện đang hoạt động")
                     .build());
         } else if (activeCard.getExpiresAt() != null && activeCard.getExpiresAt().isBefore(Instant.now())) {
             violations.add(EligibilityResponse.ViolationItem.builder()

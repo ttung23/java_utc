@@ -437,6 +437,12 @@ public class BorrowService {
                     .overdue(true)
                     .renewCount(i.getRenewCount())
                     .estimatedFine(preview.amount())
+                    .slipId(i.getSlip().getId())
+                    .slipCode(i.getSlip().getSlipCode())
+                    .readerId(i.getSlip().getReader().getId())
+                    .readerName(i.getSlip().getReader().getUser().getFullName())
+                    .readerCode(i.getSlip().getReader().getReaderCode())
+                    .overdueDays(preview.overdueDays())
                     .build();
         }).toList();
     }

@@ -14,5 +14,7 @@ public interface ReaderRepository extends JpaRepository<Reader, Long>, JpaSpecif
 
     Optional<Reader> findByUserIdAndDeletedAtIsNull(Long userId);
 
+    Optional<Reader> findByReaderCodeAndDeletedAtIsNull(String readerCode);
+
     long countByReaderType_IdAndDeletedAtIsNull(Long readerTypeId);
 }

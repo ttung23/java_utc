@@ -138,6 +138,7 @@ public class RealCatalogSeeder implements ApplicationRunner {
             book.setReference(false);
             book.setLoanable(true);
             book.setStatus(BookStatus.ACTIVE);
+            book.setBorrowCount(demoBorrowCount(rb.isbn13()));
             book = bookRepository.save(book);
 
             BookAuthor ba = new BookAuthor();
@@ -166,8 +167,79 @@ public class RealCatalogSeeder implements ApplicationRunner {
             }
             created++;
         }
-        log.info("RealCatalogSeeder: thêm {} sách thật, bỏ qua {} (đã có ISBN). Tổng books={}.",
-                created, skipped, bookRepository.count());
+        int updatedCounts = applyDemoBorrowCounts();
+        log.info("RealCatalogSeeder: thêm {} sách thật, bỏ qua {} (đã có ISBN), cập nhật borrowCount={}. Tổng books={}.",
+                created, skipped, updatedCounts, bookRepository.count());
+    }
+
+    /** Gán lượt mượn demo để Top sách trên dashboard đẹp (idempotent). */
+    private int applyDemoBorrowCounts() {
+        int n = 0;
+        for (var e : demoBorrowCounts().entrySet()) {
+            var opt = bookRepository.findByIsbn13AndDeletedAtIsNull(e.getKey());
+            if (opt.isEmpty()) continue;
+            Book book = opt.get();
+            if (book.getBorrowCount() != e.getValue()) {
+                book.setBorrowCount(e.getValue());
+                bookRepository.save(book);
+                n++;
+            }
+        }
+        return n;
+    }
+
+    private static int demoBorrowCount(String isbn13) {
+        return demoBorrowCounts().getOrDefault(isbn13, 12);
+    }
+
+    private static java.util.Map<String, Integer> demoBorrowCounts() {
+        java.util.Map<String, Integer> m = new java.util.LinkedHashMap<>();
+        // Top CNTT / giáo trình phổ biến
+        m.put("9786041234101", 86); // Python
+        m.put("9786041234109", 74); // Java
+        m.put("9786041234102", 68); // DSA
+        m.put("9786041234103", 62); // CSDL
+        m.put("9786041234111", 55); // Clean Code
+        m.put("9786041234110", 49); // Spring Boot
+        m.put("9786041234105", 45); // Hệ điều hành
+        m.put("9786041234104", 41); // Mạng máy tính
+        m.put("9786041234114", 38); // React
+        m.put("9786041234115", 36); // PostgreSQL
+        m.put("9786041234107", 33); // AI
+        m.put("9786041234112", 31); // Design Patterns
+        m.put("9786041234108", 28); // ATTT
+        m.put("9786041234106", 26); // CNPM
+        m.put("9786041234113", 24); // Docker
+        // Văn học / giáo dục
+        m.put("9786041234007", 52); // Truyện Kiều
+        m.put("9786041234005", 47); // Dế Mèn
+        m.put("9786041234001", 39); // Số đỏ
+        m.put("9786041234002", 35); // Chí Phèo
+        m.put("9786041234501", 44); // Grammar in Use
+        m.put("9786041234201", 42); // Giải tích 1
+        m.put("9786041234202", 34); // Đại số
+        m.put("9786041234301", 30); // KTVM
+        m.put("9786041234401", 29); // Cơ học kết cấu
+        m.put("9786041234403", 27); // Đường ô tô
+        m.put("9786041234603", 40); // Triết học
+        m.put("9786041234503", 22); // Kỹ năng mềm
+        m.put("9786041234003", 21);
+        m.put("9786041234004", 25);
+        m.put("9786041234006", 18);
+        m.put("9786041234008", 20);
+        m.put("9786041234203", 23);
+        m.put("9786041234204", 17);
+        m.put("9786041234302", 19);
+        m.put("9786041234303", 16);
+        m.put("9786041234304", 15);
+        m.put("9786041234305", 14);
+        m.put("9786041234402", 21);
+        m.put("9786041234404", 13);
+        m.put("9786041234405", 12);
+        m.put("9786041234502", 11);
+        m.put("9786041234601", 32);
+        m.put("9786041234602", 18);
+        return m;
     }
 
     private static String encode(String title) {

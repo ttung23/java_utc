@@ -55,6 +55,12 @@ public class ReportController {
         return ApiResponse.ok(reportService.inventorySummary());
     }
 
+    @GetMapping("/borrow-trend")
+    @Operation(summary = "Xu hướng mượn/trả theo ngày")
+    public ApiResponse<Map<String, Object>> borrowTrend(@RequestParam(defaultValue = "30") int days) {
+        return ApiResponse.ok(reportService.borrowTrend(days));
+    }
+
     @GetMapping("/overdue/export")
     @Operation(summary = "Xuất Excel danh sách quá hạn")
     public ResponseEntity<byte[]> exportOverdue() {

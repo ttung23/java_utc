@@ -53,6 +53,18 @@ public class ReturnService {
     @Transactional(readOnly = true)
     public ReturnPreviewResponse preview(String barcode) {
         BorrowSlipItem item = findBorrowingItemByBarcode(barcode);
+        return toPreview(item);
+    }
+
+    /** Danh sách tất cả item đang mượn — để quầy trả chọn từ list / quét mã. */
+    @Transactional(readOnly = true)
+    public List<ReturnPreviewResponse> listBorrowing() {
+        return borrowSlipItemRepository.findAllBorrowingItems().stream()
+                .map(this::toPreview)
+                .toList();
+    }
+
+    private ReturnPreviewResponse toPreview(BorrowSlipItem item) {
         LocalDate today = LocalDate.now(BorrowPolicyService.ZONE);
         var overdue = fineCalculator.previewOverdue(item.getDueDate(), today, item.getBook());
         return ReturnPreviewResponse.builder()
@@ -63,7 +75,7 @@ public class ReturnService {
                 .readerName(item.getSlip().getReader().getUser().getFullName())
                 .bookId(item.getBook().getId())
                 .bookTitle(item.getBook().getTitle())
-                .barcode(item.getCopy().getBarcode())
+                .barcode(item.getCopy() != null ? item.getCopy().getBarcode() : null)
                 .dueDate(item.getDueDate())
                 .overdueDays(overdue.overdueDays())
                 .estimatedFine(overdue.amount())
