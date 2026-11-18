@@ -1,0 +1,13 @@
+---
+description: Quy tắc backend Spring Boot
+globs: backend/**/*.java
+---
+- Kiến trúc: Controller (mỏng) → Service (nghiệp vụ, @Transactional) → Repository (Spring Data JPA). DTO request/response tách khỏi Entity (MapStruct).
+- Validate bằng Jakarta Validation. Lỗi nghiệp vụ ném BusinessException(code, message) và xử lý bằng @RestControllerAdvice, trả JSON {success,code,message,errors}.
+- Response chuẩn {success,data,message,meta}. Phân trang Pageable.
+- Mượn/trả/duyệt/thu tiền: bắt buộc @Transactional + khóa bi quan (PESSIMISTIC_WRITE) trên book_copies để chống mượn trùng.
+- Phân quyền bằng @PreAuthorize("hasAnyRole('ADMIN','STAFF')"); USER chỉ truy cập dữ liệu của chính mình.
+- Mọi thay đổi schema qua Flyway (V__*.sql), không dùng ddl-auto=update.
+- Enum dùng @Enumerated(EnumType.STRING). Soft delete cho bảng quan trọng. Auditing created_at/updated_at/created_by.
+- Viết unit test cho BorrowPolicyService, FineService, RenewalService, ReservationQueueService.
+- Có springdoc-openapi, mỗi endpoint có @Operation + @Tag.

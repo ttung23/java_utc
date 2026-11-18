@@ -1,0 +1,12 @@
+---
+description: Quy tắc frontend React
+globs: admin-web/**/*.{ts,tsx},client-web/**/*.{ts,tsx}
+---
+- TypeScript strict. Function component + hooks. Không dùng any.
+- Gọi API qua services/api (client sinh từ OpenAPI) + TanStack Query. Không fetch rải rác trong component.
+- Form: React Hook Form + Zod. Bảng: phân trang/lọc/sắp xếp phía server.
+- Mỗi màn hình phải có: loading (skeleton), empty state, error state, toast thành công/lỗi.
+- Tách component dùng lại vào components/; logic theo tính năng vào features/<ten>/.
+- Style bám design tokens (src/styles/tokens.ts) trích từ ảnh UI: màu, font, radius, spacing, shadow.
+- Route guard theo role. Token lưu an toàn, interceptor tự refresh token.
+- Mọi text hiển thị là tiếng Việt. Responsive: admin ≥ 1280px (tablet được), client mobile-first.
