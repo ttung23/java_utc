@@ -50,6 +50,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countByReader_IdAndStatusInAndDeletedAtIsNull(Long readerId, List<ReservationStatus> statuses);
 
     @Query("""
+            SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END
+            FROM Reservation r
+            WHERE r.deletedAt IS NULL
+              AND r.status = com.library.common.enums.ReservationStatus.READY
+              AND r.reader.id = :readerId
+              AND r.assignedCopy.id = :copyId
+            """)
+    boolean existsReadyHoldForReaderAndCopy(@Param("readerId") Long readerId, @Param("copyId") Long copyId);
+
+    @Query("""
             SELECT r FROM Reservation r
             WHERE r.deletedAt IS NULL
               AND r.status = com.library.common.enums.ReservationStatus.READY

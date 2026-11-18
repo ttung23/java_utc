@@ -82,6 +82,24 @@ export default function App() {
                   <Route path="books" element={<BooksPage />} />
                   <Route path="copies" element={<CopiesPage />} />
                   <Route path="locations" element={<LocationsPage />} />
+                  <Route
+                    path="inventory/receipts"
+                    element={
+                      <PlaceholderPage
+                        title="Nhập sách"
+                        description="Màn hình phiếu nhập kho sẽ hoàn thiện ở bước tiếp theo."
+                      />
+                    }
+                  />
+                  <Route
+                    path="inventory/stocktake"
+                    element={
+                      <PlaceholderPage
+                        title="Kiểm kê kho"
+                        description="Màn hình kiểm kê sẽ hoàn thiện ở bước tiếp theo."
+                      />
+                    }
+                  />
                   <Route path="news" element={<NewsPage />} />
                   <Route path="banners" element={<BannersPage />} />
                   <Route path="reports" element={<ReportsPage />} />

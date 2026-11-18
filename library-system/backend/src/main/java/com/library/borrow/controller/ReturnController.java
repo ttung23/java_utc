@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/returns")
 @RequiredArgsConstructor
@@ -24,6 +26,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReturnController {
 
     private final ReturnService returnService;
+
+    @GetMapping("/borrowing")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Danh sách sách đang mượn (quầy trả)")
+    public ApiResponse<List<ReturnPreviewResponse>> borrowing() {
+        return ApiResponse.ok(returnService.listBorrowing());
+    }
 
     @GetMapping("/preview")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")

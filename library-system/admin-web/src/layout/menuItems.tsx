@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import {
+  AuditOutlined,
+  BankOutlined,
+  BarChartOutlined,
   BookOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   DollarOutlined,
-  FileTextOutlined,
   ReadOutlined,
   SettingOutlined,
   TeamOutlined,
-  BarChartOutlined,
 } from '@ant-design/icons';
 
 export type AppMenuItem = {
@@ -15,76 +17,71 @@ export type AppMenuItem = {
   label: string;
   icon?: ReactNode;
   path?: string;
+  type?: 'group' | 'item';
   roles?: Array<'ADMIN' | 'STAFF'>;
   children?: AppMenuItem[];
 };
 
-/** Menu theo SPEC 10.1 */
+/** Menu bám UI portal quản trị (ảnh mock). */
 export const adminMenu: AppMenuItem[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: <DashboardOutlined />, path: '/' },
   {
-    key: 'borrow',
-    label: 'Mượn – Trả',
-    icon: <ReadOutlined />,
+    key: 'grp-overview',
+    label: 'Tổng quan',
+    type: 'group',
     children: [
-      { key: 'borrow-create', label: 'Tạo phiếu mượn (quầy)', path: '/borrows/create' },
-      { key: 'returns', label: 'Trả sách', path: '/returns' },
-      { key: 'borrow-online', label: 'Yêu cầu mượn online', path: '/borrows/online' },
-      { key: 'borrow-list', label: 'Danh sách phiếu mượn', path: '/borrows' },
-      { key: 'overdue', label: 'Sách quá hạn', path: '/borrows/overdue' },
+      { key: 'dashboard', label: 'Bảng điều khiển', icon: <DashboardOutlined />, path: '/' },
+    ],
+  },
+  {
+    key: 'grp-borrow',
+    label: 'Mượn – Trả',
+    type: 'group',
+    children: [
+      { key: 'borrow-create', label: 'Tạo phiếu mượn (quầy)', icon: <ReadOutlined />, path: '/borrows/create' },
+      { key: 'returns', label: 'Trả sách & xử lý phạt', path: '/returns' },
+      { key: 'borrow-online', label: 'Xử lý yêu cầu mượn trực tuyến', path: '/borrows/online' },
+      { key: 'borrow-list', label: 'Danh sách phiếu lưu thông', path: '/borrows' },
+      { key: 'overdue', label: 'Hồ sơ trả quá hạn', path: '/borrows/overdue' },
       { key: 'reservations', label: 'Đặt trước', path: '/reservations' },
     ],
   },
   {
-    key: 'fines',
-    label: 'Phạt & Thu tiền',
-    icon: <DollarOutlined />,
+    key: 'grp-catalog',
+    label: 'Quản lý sách & kho',
+    type: 'group',
     children: [
-      { key: 'fine-list', label: 'Khoản phạt', path: '/fines' },
+      { key: 'books', label: 'Quản lý đầu sách', icon: <BookOutlined />, path: '/books' },
+      { key: 'copies', label: 'Bản sao & mã vạch', path: '/copies' },
+      { key: 'catalog', label: 'Danh mục & kệ sách', path: '/catalog' },
+      { key: 'locations', label: 'Vị trí kệ', path: '/locations' },
+      { key: 'receipts', label: 'Nhập sách', icon: <DatabaseOutlined />, path: '/inventory/receipts' },
+      { key: 'stocktake', label: 'Kiểm kê kho', icon: <AuditOutlined />, path: '/inventory/stocktake' },
+    ],
+  },
+  {
+    key: 'grp-reader-finance',
+    label: 'Độc giả & tài chính',
+    type: 'group',
+    children: [
+      { key: 'readers', label: 'Độc giả & thẻ', icon: <TeamOutlined />, path: '/readers' },
+      { key: 'cards', label: 'Thẻ thư viện', path: '/cards' },
+      { key: 'fines', label: 'Phạt & thu tiền', icon: <DollarOutlined />, path: '/fines' },
       { key: 'payments', label: 'Biên lai thanh toán', path: '/payments' },
     ],
   },
   {
-    key: 'readers',
-    label: 'Độc giả',
-    icon: <TeamOutlined />,
+    key: 'grp-admin',
+    label: 'Quản trị',
+    type: 'group',
     children: [
-      { key: 'reader-list', label: 'Danh sách độc giả', path: '/readers' },
-      { key: 'cards', label: 'Thẻ thư viện', path: '/cards' },
-      { key: 'reader-types', label: 'Loại độc giả', path: '/reader-types', roles: ['ADMIN'] },
-    ],
-  },
-  {
-    key: 'catalog',
-    label: 'Kho sách',
-    icon: <BookOutlined />,
-    children: [
-      { key: 'books', label: 'Đầu sách', path: '/books' },
-      { key: 'copies', label: 'Bản sao & Barcode', path: '/copies' },
-      { key: 'categories', label: 'Thể loại / Tác giả / NXB', path: '/catalog' },
-      { key: 'locations', label: 'Vị trí kệ', path: '/locations' },
-    ],
-  },
-  {
-    key: 'content',
-    label: 'Nội dung',
-    icon: <FileTextOutlined />,
-    children: [
-      { key: 'news', label: 'Tin tức', path: '/news' },
-      { key: 'banners', label: 'Banner', path: '/banners' },
-    ],
-  },
-  { key: 'reports', label: 'Báo cáo & Thống kê', icon: <BarChartOutlined />, path: '/reports' },
-  {
-    key: 'system',
-    label: 'Hệ thống',
-    icon: <SettingOutlined />,
-    roles: ['ADMIN'],
-    children: [
-      { key: 'staff', label: 'Nhân viên', path: '/staff', roles: ['ADMIN'] },
-      { key: 'settings', label: 'Cấu hình', path: '/settings', roles: ['ADMIN'] },
+      { key: 'reports', label: 'Báo cáo & thống kê', icon: <BarChartOutlined />, path: '/reports' },
+      { key: 'settings', label: 'Cài đặt hệ thống', icon: <SettingOutlined />, path: '/settings', roles: ['ADMIN'] },
+      { key: 'staff', label: 'Nhân viên', icon: <BankOutlined />, path: '/staff', roles: ['ADMIN'] },
       { key: 'holidays', label: 'Ngày nghỉ', path: '/holidays', roles: ['ADMIN'] },
       { key: 'audit', label: 'Nhật ký hoạt động', path: '/audit-logs', roles: ['ADMIN'] },
+      { key: 'reader-types', label: 'Loại độc giả', path: '/reader-types', roles: ['ADMIN'] },
+      { key: 'news', label: 'Tin tức', path: '/news' },
+      { key: 'banners', label: 'Ảnh banner', path: '/banners' },
     ],
   },
 ];
@@ -96,5 +93,8 @@ export function filterMenuByRole(items: AppMenuItem[], role: 'ADMIN' | 'STAFF'):
       ...item,
       children: item.children ? filterMenuByRole(item.children, role) : undefined,
     }))
-    .filter((item) => !item.children || item.children.length > 0 || item.path);
+    .filter((item) => {
+      if (item.type === 'group') return (item.children?.length ?? 0) > 0;
+      return !item.children || item.children.length > 0 || !!item.path;
+    });
 }

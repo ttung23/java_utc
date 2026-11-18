@@ -15,7 +15,7 @@ export function PlaceholderPage({ title, description }: Props) {
         subTitle={description || 'Màn hình đang phát triển — API/module backend tương ứng chưa gắn đầy đủ.'}
         extra={
           <Button type="primary">
-            <Link to="/">Về Dashboard</Link>
+            <Link to="/">Về bảng điều khiển</Link>
           </Button>
         }
       />

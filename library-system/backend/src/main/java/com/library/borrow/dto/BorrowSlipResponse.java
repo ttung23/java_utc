@@ -59,5 +59,12 @@ public class BorrowSlipResponse {
         private CopyCondition conditionIn;
         private String returnNote;
         private BigDecimal estimatedFine;
+        /** Bổ sung cho danh sách quá hạn / quầy */
+        private Long slipId;
+        private String slipCode;
+        private Long readerId;
+        private String readerName;
+        private String readerCode;
+        private Integer overdueDays;
     }
 }

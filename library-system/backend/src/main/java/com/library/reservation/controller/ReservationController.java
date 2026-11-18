@@ -53,6 +53,23 @@ public class ReservationController {
         return withMeta(reservationService.listMine(page, size));
     }
 
+    @GetMapping("/queue")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Hàng đợi WAITING theo đầu sách")
+    public ApiResponse<List<Map<String, Object>>> queue(@RequestParam Long bookId) {
+        return ApiResponse.ok(reservationService.queueForBook(bookId));
+    }
+
+    @PostMapping("/{id}/extend")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Gia hạn giữ chỗ READY")
+    public ApiResponse<Map<String, Object>> extend(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer hours
+    ) {
+        return ApiResponse.ok(reservationService.extendHold(id, hours), "Đã gia hạn giữ chỗ");
+    }
+
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Hủy đặt trước")
     public ApiResponse<Map<String, Object>> cancel(@PathVariable Long id) {

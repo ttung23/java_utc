@@ -96,6 +96,31 @@ public class ReservationService {
         return list(me.getId(), page, size);
     }
 
+    /** Gia hạn giữ chỗ READY thêm hours giờ (mặc định 24). */
+    public Map<String, Object> extendHold(Long id, Integer hours) {
+        AuthUserPrincipal principal = SecurityUtils.requireCurrentUser();
+        if (principal.getRole() != UserRole.ADMIN && principal.getRole() != UserRole.STAFF) {
+            throw new BusinessException("FORBIDDEN", "Chỉ thủ thư được gia hạn giữ chỗ", HttpStatus.FORBIDDEN);
+        }
+        Reservation reservation = require(id);
+        if (reservation.getStatus() != ReservationStatus.READY) {
+            throw new BusinessException("INVALID_STATUS", "Chỉ gia hạn khi đang sẵn sàng nhận (READY)");
+        }
+        int h = hours == null || hours < 1 ? 24 : Math.min(hours, 72);
+        Instant base = reservation.getReadyUntil() != null && reservation.getReadyUntil().isAfter(Instant.now())
+                ? reservation.getReadyUntil()
+                : Instant.now();
+        reservation.setReadyUntil(base.plus(h, java.time.temporal.ChronoUnit.HOURS));
+        reservation.setUpdatedBy(principal.getId());
+        reservationRepository.save(reservation);
+        return toMap(reservation);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> queueForBook(Long bookId) {
+        return reservationRepository.findWaitingQueue(bookId).stream().map(this::toMap).toList();
+    }
+
     public Map<String, Object> cancel(Long id) {
         AuthUserPrincipal principal = SecurityUtils.requireCurrentUser();
         Reservation reservation = require(id);
@@ -206,14 +231,18 @@ public class ReservationService {
     private Map<String, Object> toMap(Reservation r) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", r.getId());
+        map.put("code", "RES-" + r.getId());
         map.put("readerId", r.getReader().getId());
         map.put("readerName", r.getReader().getUser().getFullName());
+        map.put("readerCode", r.getReader().getReaderCode());
         map.put("bookId", r.getBook().getId());
         map.put("bookTitle", r.getBook().getTitle());
         map.put("status", r.getStatus());
         map.put("queuePosition", r.getQueuePosition());
         map.put("assignedCopyId", r.getAssignedCopy() != null ? r.getAssignedCopy().getId() : null);
         map.put("barcode", r.getAssignedCopy() != null ? r.getAssignedCopy().getBarcode() : null);
+        map.put("locationCode", r.getAssignedCopy() != null && r.getAssignedCopy().getLocation() != null
+                ? r.getAssignedCopy().getLocation().getCode() : null);
         map.put("readyAt", r.getReadyAt());
         map.put("readyUntil", r.getReadyUntil());
         map.put("createdAt", r.getCreatedAt());
