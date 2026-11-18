@@ -1,0 +1,27 @@
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+*.log
+
+# Backend
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/uploads/
+uploads/
+
+# Frontend
+admin-web/node_modules/
+admin-web/dist/
+client-web/node_modules/
+client-web/dist/
+
+# Misc
+*.class
+*.jar
+!backend/.mvn/wrapper/maven-wrapper.jar

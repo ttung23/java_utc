@@ -1,0 +1,13 @@
+---
+description: Quy tắc tổng cho dự án Library Management
+alwaysApply: true
+---
+- Dự án: hệ thống quản lý thư viện. Nghiệp vụ nằm ở docs/LIBRARY_MANAGEMENT_SPEC.md (BR-xx là bắt buộc).
+- Stack: Backend Java 21 + Spring Boot 3 + JPA + Flyway + PostgreSQL. Frontend React 18 + TS + Vite.
+  (Bỏ qua phần gợi ý NestJS trong SPEC mục 2.)
+- Giao diện phải bám sát ảnh trong docs/ui/** và bảng docs/SCREEN_MAP.md. Không tự đổi layout, màu, bố cục.
+- Mọi chính sách (số ngày mượn, mức phạt, hạn mức…) lấy từ bảng settings/reader_types, KHÔNG hard-code.
+- Làm đúng phạm vi được giao trong prompt, không tự làm sang module/phase khác.
+- Sau mỗi tác vụ: liệt kê file đã tạo/sửa, cách chạy, cách test. Code phải build/chạy được.
+- Không bịa API: FE chỉ gọi endpoint có trong OpenAPI của backend (hoặc SPEC mục 9).
+- Ngôn ngữ giao diện: tiếng Việt. Ngày DD/MM/YYYY, tiền "1.000đ", múi giờ Asia/Ho_Chi_Minh.
