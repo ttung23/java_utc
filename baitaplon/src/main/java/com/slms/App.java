@@ -63,10 +63,13 @@ public class App {
             server.createContext("/api/client", new ClientPortalHandler());
             server.createContext("/api/books", new BookHandler());
             server.createContext("/api/categories", new com.slms.server.CategoryHandler());
+            server.createContext("/api/shelves", new com.slms.server.ShelfHandler());
             server.createContext("/api/readers", new ReaderHandler());
             server.createContext("/api/loans", new LoanHandler());
             server.createContext("/api/fines", new FineHandler());
             server.createContext("/api/reservations", new ReservationHandler());
+            server.createContext("/api/scanner", new com.slms.server.ScannerHandler());
+            server.createContext("/api/statistics", new StatisticsHandler());
             server.createContext("/api/statistics/chart", new StatisticsHandler());
 
             // Endpoint kiểm tra phiên bản phục vụ Auto Live Reload

@@ -2,148 +2,1326 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>SLMS - Dashboard Thư Viện Thông Minh</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLMS - Trung Tâm Thống Kê & Phân Tích Thư Viện</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* CSS Tùy Biến Chuyên Biệt Cho Trang Dashboard */
+    .dashboard-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .time-filter-group {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      gap: 2px;
+    }
+    .time-filter-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .time-filter-btn:hover {
+      color: #1e293b;
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .time-filter-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 18px 20px;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+    .icon-purple { background: #f3e8ff; color: #7e22ce; }
+    .icon-cyan { background: #cffafe; color: #0891b2; }
+    .icon-emerald { background: #d1fae5; color: #059669; }
+    .icon-indigo { background: #e0e7ff; color: #4338ca; }
+
+    .pulse-overdue {
+      animation: pulseBorder 2s infinite ease-in-out;
+      border-color: #ef4444 !important;
+    }
+    @keyframes pulseBorder {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    }
+
+    .shelf-progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .shelf-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .rank-1 { background: #fef08a; color: #854d0e; border: 1px solid #facc15; }
+    .rank-2 { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }
+    .rank-3 { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+    .rank-other { background: #f1f5f9; color: #64748b; }
+
+    /* Định dạng in ấn khổ A4 chuẩn báo cáo */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt !important;
+      }
+      aside.sidebar, .dashboard-header-bar, .btn, .time-filter-group,
+      #overdue-alert-banner, #quick-actions-bar, #scanner-modal, .modal-overlay,
+      #btn-toggle-server-chart {
+        display: none !important;
+      }
+      .main-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .panel {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        margin-bottom: 16px !important;
+        padding: 14px !important;
+      }
+      .stat-card {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        padding: 12px !important;
+      }
+      .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 24px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 14px;
+      }
+      .print-footer {
+        display: flex !important;
+        justify-content: space-between;
+        margin-top: 40px;
+        page-break-inside: avoid;
+      }
+    }
+    @media screen {
+      .print-header, .print-footer {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body>
-  <!-- Sidebar -->
+  <!-- Sidebar Chung -->
   <aside class="sidebar"></aside>
 
   <!-- Main Content -->
   <main class="main-wrapper">
-    <div class="top-header">
+    <!-- Tiêu đề In Ấn (Chỉ hiển thị khi bấm In Báo Cáo) -->
+    <div class="print-header">
+      <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase;">BỘ GIÁO DỤC VÀ ĐÀO TẠO — TRƯỜNG ĐẠI HỌC GIAO THÔNG VẬN TẢI</div>
+      <div style="font-size: 12pt; font-weight: 600; margin-top: 4px;">THƯ VIỆN ĐẠI HỌC — HỆ THỐNG QUẢN LÝ THÔNG MINH SLMS</div>
+      <h1 style="font-size: 16pt; font-weight: 800; margin-top: 14px; margin-bottom: 6px; text-transform: uppercase; color: #000;">
+        BÁO CÁO THỐNG KÊ HOẠT ĐỘNG THƯ VIỆN
+      </h1>
+      <div style="font-size: 10pt; font-style: italic; color: #333;" id="print-timestamp">Thời điểm lập báo cáo: -</div>
+    </div>
+
+    <!-- Header & Thanh Điều Khiển Trên Web -->
+    <div class="dashboard-header-bar">
       <div>
-        <h1 class="page-title">Tổng quan Thư viện</h1>
-        <p class="page-subtitle">Hệ thống quản lý mượn trả sách, vòng đời bản sao & phạt vi phạm</p>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h1 class="page-title" style="margin: 0; font-size: 22px;">Trung Tâm Thống Kê & Phân Tích Thư Viện</h1>
+        </div>
+        <p class="page-subtitle" style="margin-top: 4px;">
+          Theo dõi tổng thể chỉ số lưu thông, phân bổ kệ sách, cơ cấu tài liệu và tài chính phạt vi phạm
+        </p>
       </div>
-      <div>
-        <a href="loans.html" class="btn btn-primary">⚡ Vào Quầy Mượn/Trả Sách</a>
+
+      <!-- Toolbar Tiện Ích -->
+      <div id="quick-actions-bar" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <!-- Bộ lọc thời gian -->
+        <div class="time-filter-group">
+          <button type="button" class="time-filter-btn active" data-period="all" onclick="setTimeFilter('all')">Tất cả</button>
+          <button type="button" class="time-filter-btn" data-period="today" onclick="setTimeFilter('today')">Hôm nay</button>
+          <button type="button" class="time-filter-btn" data-period="week" onclick="setTimeFilter('week')">7 ngày</button>
+          <button type="button" class="time-filter-btn" data-period="month" onclick="setTimeFilter('month')">Tháng này</button>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-sm" onclick="refreshDashboard()" id="btn-refresh" title="Cập nhật lại dữ liệu">
+          Làm mới
+        </button>
+
       </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid">
+    <!-- Ô ẩn nhận kết quả khi quét mã nhanh từ dashboard -->
+    <input type="text" id="quick-dashboard-scanner" style="display: none;" onchange="handleQuickDashboardScan(this.value)">
+
+    <!-- BANNER CẢNH BÁO QUÁ HẠN (Nếu có) -->
+    <div id="overdue-alert-banner" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-left: 5px solid #ef4444; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">⚠️</span>
+        <div>
+          <strong style="color: #991b1b; font-size: 14px;">Cảnh báo: Có <span id="banner-overdue-count">0</span> phiếu mượn sách đã quá hạn!</strong>
+          <div style="font-size: 12.5px; color: #b91c1c; margin-top: 2px;">Vui lòng kiểm tra danh sách quá hạn để nhắc nhở độc giả hoặc thực hiện thu hồi tài liệu.</div>
+        </div>
+      </div>
+      <a href="#overdue-section" class="btn btn-danger btn-sm" style="font-size: 12px; padding: 6px 14px;">
+        Xem Chi Tiết Quá Hạn ↓
+      </a>
+    </div>
+
+    <!-- ==================== HÀNG 1: CHỈ SỐ LƯU THÔNG & BẠN ĐỌC ==================== -->
+    <div class="kpi-grid">
+      <!-- Thẻ 1: Đầu sách & Bản sao -->
       <div class="stat-card">
         <div>
-          <div class="stat-label">Tổng đầu sách</div>
-          <div class="stat-value" id="stat-books">-</div>
+          <div class="stat-label">Tổng đầu sách / Bản sao</div>
+          <div class="stat-value">
+            <span id="stat-books">-</span>
+            <span style="font-size: 15px; font-weight: 500; color: #64748b;">đầu sách</span>
+          </div>
+          <div style="font-size: 12px; color: #16a34a; margin-top: 5px; font-weight: 600;" id="stat-copies-sub">
+            Đang tính...
+          </div>
         </div>
-        <div class="stat-icon icon-blue">📚</div>
       </div>
 
+      <!-- Thẻ 2: Độc giả thư viện -->
       <div class="stat-card">
         <div>
-          <div class="stat-label">Tổng độc giả</div>
-          <div class="stat-value" id="stat-readers">-</div>
+          <div class="stat-label">Tổng số độc giả</div>
+          <div class="stat-value">
+            <span id="stat-readers">-</span>
+            <span style="font-size: 15px; font-weight: 500; color: #64748b;">bạn đọc</span>
+          </div>
+          <div style="font-size: 12px; color: #2563eb; margin-top: 5px; font-weight: 600;" id="stat-readers-sub">
+            Đang tính...
+          </div>
         </div>
-        <div class="stat-icon icon-green">👥</div>
       </div>
 
+      <!-- Thẻ 3: Sách đang mượn & Gia hạn -->
       <div class="stat-card">
         <div>
-          <div class="stat-label">Sách đang mượn</div>
-          <div class="stat-value" id="stat-borrowed">-</div>
+          <div class="stat-label">Sách đang mượn lưu hành</div>
+          <div class="stat-value">
+            <span id="stat-borrowed">-</span>
+            <span style="font-size: 15px; font-weight: 500; color: #64748b;">cuốn</span>
+          </div>
+          <div style="font-size: 12px; color: #d97706; margin-top: 5px; font-weight: 600;" id="stat-borrowed-sub">
+            Đang tính...
+          </div>
         </div>
-        <div class="stat-icon icon-amber">📖</div>
       </div>
 
-      <div class="stat-card">
+      <!-- Thẻ 4: Cảnh báo Quá hạn -->
+      <div class="stat-card" id="card-overdue">
         <div>
           <div class="stat-label">Phiếu mượn quá hạn</div>
-          <div class="stat-value" id="stat-overdue" style="color:var(--danger);">-</div>
+          <div class="stat-value" id="stat-overdue" style="color: var(--danger);">-</div>
+          <div style="font-size: 12px; color: #dc2626; margin-top: 5px; font-weight: 600;" id="stat-overdue-sub">
+            Đang tính...
+          </div>
         </div>
-        <div class="stat-icon icon-red">⚠️</div>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-header">
-        <h2 class="panel-title">Biểu đồ thống kê thư viện</h2>
+    <!-- ==================== HÀNG 2: KỆ SÁCH, TÀI CHÍNH & TÌNH TRẠNG SÁCH ==================== -->
+    <div class="kpi-grid" style="margin-bottom: 24px;">
+      <!-- Thẻ 5: Kệ sách / Quầy lưu kho -->
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Kệ sách & Quầy lưu trữ</div>
+          <div class="stat-value">
+            <span id="stat-shelves">-</span>
+            <span style="font-size: 15px; font-weight: 500; color: #64748b;">kệ</span>
+          </div>
+          <div style="font-size: 12px; color: #7e22ce; margin-top: 5px; font-weight: 600;" id="stat-shelves-sub">
+            <a href="shelves.html" style="color: #7e22ce; text-decoration: none;">Xem danh sách kệ ↗</a>
+          </div>
+        </div>
       </div>
-      <img src="/api/statistics/chart" alt="Biểu đồ số đầu sách, độc giả, phiếu mượn trong hạn và quá hạn"
-           style="display:block;width:100%;height:auto;">
+
+      <!-- Thẻ 6: Tiền phạt vi phạm -->
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Tiền phạt đã thu</div>
+          <div class="stat-value" style="font-size: 22px; color: #047857;" id="stat-fines-paid">0 đ</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 5px;" id="stat-fines-sub">
+            Nợ đọng: <span id="stat-fines-unpaid" style="color: #dc2626; font-weight: 700;">0 đ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ 7: Tình trạng bảo quản bản sao -->
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Bảo quản sách hoàn hảo</div>
+          <div class="stat-value" style="font-size: 22px; color: #0f172a;" id="stat-copies-health">100%</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 5px;" id="stat-damaged-sub">
+            Hỏng/Mất: <strong id="stat-damaged-count" style="color: #ef4444;">0</strong> cuốn
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ 8: Đặt trước trực tuyến -->
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Đặt trước sách trực tuyến</div>
+          <div class="stat-value">
+            <span id="stat-reservations">-</span>
+            <span style="font-size: 15px; font-weight: 500; color: #64748b;">yêu cầu</span>
+          </div>
+          <div style="font-size: 12px; color: #4338ca; margin-top: 5px; font-weight: 600;" id="stat-reservations-sub">
+            <a href="reservations.html" style="color: #4338ca; text-decoration: none;">Xem đặt trước ↗</a>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Bảng danh sách phiếu mượn mới nhất -->
+    <!-- ==================== KHU VỰC 4 BIỂU ĐỒ TRỰC QUAN ==================== -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 20px; margin-bottom: 24px;">
+
+      <!-- Biểu đồ 1: Cơ cấu trạng thái bản sao sách (Donut) -->
+      <div class="panel" style="margin-bottom: 0;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Cơ Cấu Trạng Thái Bản Sao Sách</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Tỷ lệ bản sao sẵn sàng, đang cho mượn và bảo quản</div>
+          </div>
+          <span class="badge badge-success" id="badge-total-copies">0 cuốn</span>
+        </div>
+        <div style="position: relative; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <canvas id="chart-copies-donut" width="360" height="190" style="max-width: 100%; height: auto;"></canvas>
+          <div id="copies-donut-legend" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 14px; font-size: 12px;"></div>
+        </div>
+      </div>
+
+      <!-- Biểu đồ 2: Phân bổ & Mức tải Kệ sách (Shelves) -->
+      <div class="panel" style="margin-bottom: 0;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Phân Bổ Đầu Sách Theo Kệ</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Vị trí lưu kho và tình trạng tải trọng của từng kệ sách</div>
+          </div>
+          <a href="shelves.html" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 3px 8px;">Quản lý kệ ↗</a>
+        </div>
+        <div id="shelves-bars-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; padding-right: 4px;">
+          <div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 40px 0;">Đang tính toán số liệu kệ...</div>
+        </div>
+      </div>
+
+      <!-- Biểu đồ 3: Phân loại sách theo Thể loại (Category Bar Chart) -->
+      <div class="panel" style="margin-bottom: 0;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Phân Loại Đầu Sách Theo Thể Loại</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Số lượng tài liệu phân chia theo từng chuyên ngành</div>
+          </div>
+          <span class="badge badge-primary" id="badge-total-categories">0 thể loại</span>
+        </div>
+        <div style="min-height: 220px; display: flex; flex-direction: column; justify-content: center;">
+          <canvas id="chart-categories-bar" width="460" height="220" style="width: 100%; max-width: 100%; height: auto;"></canvas>
+        </div>
+      </div>
+
+      <!-- Biểu đồ 4: Xu hướng Mượn & Trả gần đây (Trends) -->
+      <div class="panel" style="margin-bottom: 0;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Xu Hướng Mượn & Trả Sách</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Số lượt phát sinh mượn mới và hoàn trả sách theo thời gian</div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleServerChart()" id="btn-toggle-server-chart" style="font-size: 11px; padding: 3px 8px;" title="Xem biểu đồ raster máy chủ">
+            🖼️ Biểu đồ Server
+          </button>
+        </div>
+        <div id="trend-chart-box" style="min-height: 220px; display: flex; flex-direction: column; justify-content: center;">
+          <canvas id="chart-trends" width="460" height="220" style="width: 100%; max-width: 100%; height: auto;"></canvas>
+        </div>
+        <div id="server-chart-box" style="display: none; text-align: center; padding: 10px 0;">
+          <img src="/api/statistics/chart" alt="Biểu đồ thống kê server" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0;">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== KHU VỰC CẢNH BÁO QUÁ HẠN & TOP SÁCH MƯỢN ==================== -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 20px; margin-bottom: 24px;">
+
+      <!-- Top 5 Đầu Sách Mượn Nhiều Nhất -->
+      <div class="panel" style="margin-bottom: 0;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Top Đầu Sách Mượn Nhiều Nhất</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Tài liệu được độc giả yêu thích và lưu hành cao nhất</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th style="width: 44px; text-align: center;">Hạng</th>
+                <th>Tên đầu sách & Tác giả</th>
+                <th>Vị trí kệ</th>
+                <th style="text-align: center;">Lượt mượn</th>
+                <th style="text-align: center;">Khả dụng</th>
+              </tr>
+            </thead>
+            <tbody id="top-books-table">
+              <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">Đang tải dữ liệu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Danh Sách Cảnh Báo Phiếu Mượn Quá Hạn -->
+      <div class="panel" id="overdue-section" style="margin-bottom: 0;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" style="color: #b91c1c;">Danh Sách Quá Hạn Cần Thu Hồi</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Phiếu mượn chưa trả quá ngày quy định</div>
+          </div>
+          <span class="badge badge-danger" id="badge-overdue-count">0 phiếu</span>
+        </div>
+        <div class="table-responsive" style="max-height: 290px; overflow-y: auto;">
+          <table style="font-size: 13px;">
+            <thead>
+              <tr>
+                <th>Mã phiếu</th>
+                <th>Độc giả</th>
+                <th>Sách mượn</th>
+                <th>Hạn trả</th>
+                <th>Quá hạn</th>
+                <th style="text-align: right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="overdue-loans-table">
+              <tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 25px;">Đang kiểm tra phiếu quá hạn...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== BẢNG LỊCH SỬ GIAO DỊCH GẦN ĐÂY ==================== -->
     <div class="panel">
       <div class="panel-header">
-        <h2 class="panel-title">Phiếu mượn gần đây</h2>
-        <a href="loans.html" class="btn btn-secondary btn-sm">Xem tất cả</a>
+        <div>
+          <h2 class="panel-title">Lịch Sử Mượn / Trả Sách Gần Đây</h2>
+          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Danh sách 10 phiếu mượn mới nhất phát sinh trong hệ thống</div>
+        </div>
+        <a href="loans.html" class="btn btn-secondary btn-sm">Xem tất cả phiếu mượn →</a>
       </div>
       <div class="table-responsive">
         <table>
           <thead>
             <tr>
               <th>Mã phiếu</th>
-              <th>Mã độc giả</th>
-              <th>Mã bản sao</th>
+              <th>Độc giả</th>
+              <th>Mã bản sao & Sách</th>
               <th>Ngày mượn</th>
               <th>Hạn trả</th>
+              <th>Ngày trả</th>
+              <th style="text-align: center;">Gia hạn</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody id="recent-loans-table">
-            <tr><td colspan="6" style="text-align:center;">Đang tải dữ liệu...</td></tr>
+            <tr><td colspan="8" style="text-align: center; padding: 25px;">Đang tải dữ liệu...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Chữ ký in ấn (Chỉ hiển thị khi bấm In Báo Cáo) -->
+    <div class="print-footer">
+      <div style="text-align: center; width: 220px;">
+        <strong>NGƯỜI LẬP BIỂU</strong><br>
+        <span style="font-size: 9.5pt; font-style: italic;">(Ký, ghi rõ họ tên)</span>
+        <br><br><br><br>
+        <span id="print-staff-name">Thủ thư SLMS</span>
+      </div>
+      <div style="text-align: center; width: 220px;">
+        <strong>THỦ THƯ TRƯỞNG</strong><br>
+        <span style="font-size: 9.5pt; font-style: italic;">(Ký, ghi rõ họ tên)</span>
+        <br><br><br><br>
+        <span>Nguyễn Văn Quản Lý</span>
+      </div>
+      <div style="text-align: center; width: 220px;">
+        <strong>BAN GIÁM HIỆU DUYỆT</strong><br>
+        <span style="font-size: 9.5pt; font-style: italic;">(Ký, đóng dấu)</span>
+        <br><br><br><br>
+        <span>Ban Giám Hiệu</span>
+      </div>
+    </div>
   </main>
 
+  <!-- JavaScript Libraries -->
   <script src="js/app.js"></script>
+  <script src="js/html5-qrcode.min.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/scanner-modal.js"></script>
+
+  <!-- Script Xử Lý Dashboard -->
   <script>
+    let rawDashboardData = {
+      books: [],
+      copies: [],
+      readers: [],
+      loans: [],
+      fines: [],
+      shelves: [],
+      categories: [],
+      reservations: []
+    };
+    let currentFilterPeriod = "all"; // "all" | "today" | "week" | "month"
+    let isServerChartVisible = false;
+
     document.addEventListener("DOMContentLoaded", async () => {
       renderSidebar("dashboard");
+      await loadDashboardData();
+    });
+
+    // ==================== TẢI DỮ LIỆU ĐỒNG THỜI AN TOÀN ====================
+    async function loadDashboardData() {
+      const spinner = document.getElementById("refresh-icon");
+      if (spinner) spinner.style.display = "inline-block";
 
       try {
-        // Tải danh sách sách
-        const books = await fetchAPI("/api/books");
-        document.getElementById("stat-books").textContent = books.length;
+        const [booksRes, copiesRes, readersRes, loansRes, finesRes, shelvesRes, categoriesRes, reservationsRes] =
+          await Promise.allSettled([
+            fetchAPI("/api/books"),
+            fetchAPI("/api/books/copies"),
+            fetchAPI("/api/readers"),
+            fetchAPI("/api/loans"),
+            fetchAPI("/api/fines"),
+            fetchAPI("/api/shelves"),
+            fetchAPI("/api/categories"),
+            fetchAPI("/api/reservations")
+          ]);
 
-        // Tải danh sách độc giả
-        const readers = await fetchAPI("/api/readers");
-        document.getElementById("stat-readers").textContent = readers.length;
+        rawDashboardData.books = booksRes.status === "fulfilled" && Array.isArray(booksRes.value) ? booksRes.value : [];
+        rawDashboardData.copies = copiesRes.status === "fulfilled" && Array.isArray(copiesRes.value) ? copiesRes.value : [];
+        rawDashboardData.readers = readersRes.status === "fulfilled" && Array.isArray(readersRes.value) ? readersRes.value : [];
+        rawDashboardData.loans = loansRes.status === "fulfilled" && Array.isArray(loansRes.value) ? loansRes.value : [];
+        rawDashboardData.fines = finesRes.status === "fulfilled" && Array.isArray(finesRes.value) ? finesRes.value : [];
+        rawDashboardData.shelves = shelvesRes.status === "fulfilled" && Array.isArray(shelvesRes.value) ? shelvesRes.value : [];
+        rawDashboardData.categories = categoriesRes.status === "fulfilled" && Array.isArray(categoriesRes.value) ? categoriesRes.value : [];
+        rawDashboardData.reservations = reservationsRes.status === "fulfilled" && Array.isArray(reservationsRes.value) ? reservationsRes.value : [];
 
-        // Tải danh sách phiếu mượn
-        const loans = await fetchAPI("/api/loans");
-        const activeLoans = loans.filter(l => !l.returnDate
-          && (l.status === "BORROWED" || l.status === "OVERDUE"));
-        const overdueLoans = activeLoans.filter(l => l.status === "OVERDUE"
-          || Date.parse(l.dueDate.replace(" ", "T")) < Date.now());
-
-        document.getElementById("stat-borrowed").textContent = activeLoans.length;
-        document.getElementById("stat-overdue").textContent = overdueLoans.length;
-
-        // Render bảng phiếu mượn gần đây (5 bản ghi đầu)
-        const recent = loans.slice(0, 5);
-        const tbody = document.getElementById("recent-loans-table");
-        if (recent.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có phiếu mượn nào</td></tr>`;
-        } else {
-          tbody.innerHTML = recent.map(l => {
-            const isOverdue = !l.returnDate
-              && (l.status === "OVERDUE" || Date.parse(l.dueDate.replace(" ", "T")) < Date.now());
-            const status = isOverdue ? "OVERDUE" : l.status;
-            let badgeClass = "badge-primary";
-            if (status === "RETURNED") badgeClass = "badge-success";
-            if (status === "OVERDUE") badgeClass = "badge-danger";
-            return `
-              <tr>
-                <td><strong>${l.loanId}</strong></td>
-                <td>${l.readerId}</td>
-                <td>${l.copyId}</td>
-                <td>${formatDateTime(l.borrowDate)}</td>
-                <td>${formatDateTime(l.dueDate)}</td>
-                <td><span class="badge ${badgeClass}">${status}</span></td>
-              </tr>
-            `;
-          }).join("");
-        }
-      } catch (e) {
-        console.error(e);
+        renderDashboard();
+      } catch (err) {
+        console.error("Lỗi tải dữ liệu dashboard:", err);
       }
-    });
+    }
+
+    // Làm mới dashboard tức thì
+    async function refreshDashboard() {
+      const icon = document.getElementById("refresh-icon");
+      if (icon) {
+        icon.style.transform = "rotate(360deg)";
+        icon.style.transition = "transform 0.6s ease";
+        setTimeout(() => {
+          icon.style.transform = "none";
+          icon.style.transition = "none";
+        }, 600);
+      }
+      await loadDashboardData();
+      if (typeof showToast === "function") {
+        showToast("✓ Đã cập nhật dữ liệu thống kê mới nhất", "success");
+      }
+    }
+
+    // ==================== BỘ LỌC THỜI GIAN ====================
+    function setTimeFilter(period) {
+      currentFilterPeriod = period;
+      document.querySelectorAll(".time-filter-btn").forEach(btn => {
+        if (btn.getAttribute("data-period") === period) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+      renderDashboard();
+    }
+
+    function isDateInPeriod(dateStr, period) {
+      if (!dateStr || period === "all") return true;
+      try {
+        const d = new Date(dateStr.replace(" ", "T"));
+        const now = new Date();
+        if (isNaN(d.getTime())) return true;
+
+        if (period === "today") {
+          return d.toDateString() === now.toDateString();
+        } else if (period === "week") {
+          return (now.getTime() - d.getTime()) <= 7 * 24 * 60 * 60 * 1000;
+        } else if (period === "month") {
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+      } catch (e) {}
+      return true;
+    }
+
+    // ==================== HIỂN THỊ DỮ LIỆU TỔNG THỂ ====================
+    function renderDashboard() {
+      const { books, copies, readers, loans, fines, shelves, categories, reservations } = rawDashboardData;
+
+      // 1. Lọc phiếu mượn theo thời gian chọn
+      const filteredLoans = loans.filter(l => isDateInPeriod(l.borrowDate, currentFilterPeriod));
+
+      // 2. Thống kê Bản sao sách
+      const totalCopies = copies.length > 0 ? copies.length : books.length;
+      let availableCopies = 0;
+      let borrowedCopies = 0;
+      let reservedCopies = 0;
+      let damagedCopies = 0;
+      let lostCopies = 0;
+
+      copies.forEach(c => {
+        const st = (c.status || "").toLowerCase();
+        if (st === "available") availableCopies++;
+        else if (st === "loaned" || st === "borrowed") borrowedCopies++;
+        else if (st === "reserved") reservedCopies++;
+        else if (st === "damaged") damagedCopies++;
+        else if (st === "lost") lostCopies++;
+        else availableCopies++;
+      });
+
+      // Nếu copies rỗng thì tính từ loans
+      if (copies.length === 0) {
+        borrowedCopies = loans.filter(l => !l.returnDate && (l.status === "BORROWED" || l.status === "OVERDUE")).length;
+        availableCopies = Math.max(0, totalCopies - borrowedCopies);
+      }
+
+      // 3. Thống kê Phiếu mượn & Quá hạn
+      const activeLoans = filteredLoans.filter(l => !l.returnDate && (l.status === "BORROWED" || l.status === "OVERDUE"));
+      const overdueLoans = activeLoans.filter(l => {
+        if (l.status === "OVERDUE") return true;
+        if (!l.dueDate) return false;
+        return Date.parse(l.dueDate.replace(" ", "T")) < Date.now();
+      });
+
+      const returnedLoans = filteredLoans.filter(l => l.returnDate || l.status === "RETURNED");
+      const onTimeReturned = returnedLoans.filter(l => {
+        if (!l.returnDate || !l.dueDate) return true;
+        return Date.parse(l.returnDate.replace(" ", "T")) <= Date.parse(l.dueDate.replace(" ", "T"));
+      });
+      const onTimeRate = returnedLoans.length > 0
+        ? Math.round((onTimeReturned.length / returnedLoans.length) * 100)
+        : 100;
+
+      // 4. Gia hạn
+      const totalRenewals = filteredLoans.reduce((sum, l) => sum + (Number(l.renewalCount) || 0), 0);
+
+      // 5. Độc giả đang mượn
+      const activeReaderIds = new Set(activeLoans.map(l => l.readerId));
+      const activeReaderCount = activeReaderIds.size;
+      const readerBorrowRate = readers.length > 0 ? Math.round((activeReaderCount / readers.length) * 100) : 0;
+
+      // 6. Tiền phạt
+      let finesPaid = 0;
+      let finesUnpaid = 0;
+      fines.forEach(f => {
+        const amt = Number(f.fineAmount ?? f.amount ?? 0);
+        const st = (f.paymentStatus || f.paidStatus || "").toUpperCase();
+        if (st === "PAID") finesPaid += amt;
+        else finesUnpaid += amt;
+      });
+
+      // 7. Sức khỏe bảo quản sách
+      const damagedLostTotal = damagedCopies + lostCopies;
+      const copyHealthRate = totalCopies > 0
+        ? Math.max(0, Math.round(((totalCopies - damagedLostTotal) / totalCopies) * 100))
+        : 100;
+
+      // ==================== CẬP NHẬT GIAO DIỆN CÁC THẺ ====================
+      // Hàng 1
+      document.getElementById("stat-books").textContent = books.length;
+      const availRate = totalCopies > 0 ? Math.round((availableCopies / totalCopies) * 100) : 100;
+      document.getElementById("stat-copies-sub").textContent = `Tổng ${totalCopies} cuốn • ${availableCopies} sẵn sàng (${availRate}%)`;
+      const badgeCopies = document.getElementById("badge-total-copies");
+      if (badgeCopies) badgeCopies.textContent = `${totalCopies} cuốn`;
+
+      document.getElementById("stat-readers").textContent = readers.length;
+      document.getElementById("stat-readers-sub").textContent = `${activeReaderCount} bạn đọc đang mượn (${readerBorrowRate}% tham gia)`;
+
+      document.getElementById("stat-borrowed").textContent = activeLoans.length;
+      document.getElementById("stat-borrowed-sub").textContent = `${totalRenewals} lượt gia hạn thành công`;
+
+      document.getElementById("stat-overdue").textContent = overdueLoans.length;
+      document.getElementById("stat-overdue-sub").textContent = `Tỷ lệ trả đúng hạn: ${onTimeRate}%`;
+
+      const overdueCard = document.getElementById("card-overdue");
+      const alertBanner = document.getElementById("overdue-alert-banner");
+      const bannerCount = document.getElementById("banner-overdue-count");
+      const badgeOverdue = document.getElementById("badge-overdue-count");
+
+      if (overdueLoans.length > 0) {
+        if (overdueCard) overdueCard.classList.add("pulse-overdue");
+        if (alertBanner) {
+          alertBanner.style.display = "flex";
+          if (bannerCount) bannerCount.textContent = overdueLoans.length;
+        }
+        if (badgeOverdue) badgeOverdue.textContent = `${overdueLoans.length} phiếu`;
+      } else {
+        if (overdueCard) overdueCard.classList.remove("pulse-overdue");
+        if (alertBanner) alertBanner.style.display = "none";
+        if (badgeOverdue) badgeOverdue.textContent = "0 phiếu";
+      }
+
+      // Hàng 2
+      document.getElementById("stat-shelves").textContent = shelves.length;
+      document.getElementById("stat-fines-paid").textContent = formatCurrency(finesPaid);
+      document.getElementById("stat-fines-unpaid").textContent = formatCurrency(finesUnpaid);
+      document.getElementById("stat-copies-health").textContent = `${copyHealthRate}%`;
+      document.getElementById("stat-damaged-count").textContent = damagedLostTotal;
+      document.getElementById("stat-reservations").textContent = reservations.length;
+
+      // ==================== VẼ CÁC BIỂU ĐỒ ====================
+      renderCopiesDonutChart(availableCopies, borrowedCopies, reservedCopies, damagedLostTotal, totalCopies);
+      renderShelvesBarList(shelves, books);
+      renderCategoriesBarChart(categories, books);
+      renderTrendsChart(filteredLoans);
+
+      // ==================== RENDER CÁC BẢNG DỮ LIỆU ====================
+      renderTopBooksTable(loans, copies, books);
+      renderOverdueTable(overdueLoans, readers, copies, books);
+      renderRecentLoansTable(filteredLoans, readers, copies, books);
+
+      // Cập nhật người lập & thời gian in ấn
+      const now = new Date();
+      const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const printTime = document.getElementById("print-timestamp");
+      if (printTime) printTime.textContent = `Thời điểm lập báo cáo: ${timeStr} — Hệ thống SLMS`;
+
+      const staffName = sessionStorage.getItem("slms_staff_name") || "Thủ thư trực quầy";
+      const printStaff = document.getElementById("print-staff-name");
+      if (printStaff) printStaff.textContent = staffName;
+    }
+
+    // ==================== BIỂU ĐỒ 1: DONUT TRẠNG THÁI BẢN SAO ====================
+    function renderCopiesDonutChart(available, borrowed, reserved, damaged, total) {
+      const canvas = document.getElementById("chart-copies-donut");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+
+      const w = 360;
+      const h = 190;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.scale(dpr, dpr);
+
+      ctx.clearRect(0, 0, w, h);
+
+      const items = [
+        { label: "Sẵn sàng (Khả dụng)", value: available, color: "#16a34a" },
+        { label: "Đang cho mượn", value: borrowed, color: "#2563eb" },
+        { label: "Đã đặt trước", value: reserved, color: "#f59e0b" },
+        { label: "Hư hỏng / Mất", value: damaged, color: "#ef4444" }
+      ].filter(i => i.value > 0);
+
+      const centerX = w / 2;
+      const centerY = h / 2 - 8;
+      const radius = 70;
+      const innerRadius = 45;
+
+      const sum = items.reduce((acc, i) => acc + i.value, 0) || 1;
+      let startAngle = -Math.PI / 2;
+
+      if (items.length === 0) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fill();
+      } else {
+        items.forEach(item => {
+          const sliceAngle = (item.value / sum) * 2 * Math.PI;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+          ctx.arc(centerX, centerY, innerRadius, startAngle + sliceAngle, startAngle, true);
+          ctx.closePath();
+          ctx.fillStyle = item.color;
+          ctx.fill();
+          startAngle += sliceAngle;
+        });
+      }
+
+      // Vòng tròn trắng ở giữa tạo Donut Hole
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      // Text chính giữa
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(total, centerX, centerY - 4);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText("cuốn sách", centerX, centerY + 14);
+
+      // Render Legend HTML phía dưới
+      const legendDiv = document.getElementById("copies-donut-legend");
+      if (legendDiv) {
+        const fullItems = [
+          { label: "Khả dụng", value: available, color: "#16a34a" },
+          { label: "Đang mượn", value: borrowed, color: "#2563eb" },
+          { label: "Đặt trước", value: reserved, color: "#f59e0b" },
+          { label: "Hỏng / Mất", value: damaged, color: "#ef4444" }
+        ];
+        legendDiv.innerHTML = fullItems.map(item => {
+          const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+          return `
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:${item.color};display:inline-block;"></span>
+              <span style="color:#475569;">${item.label}:</span>
+              <strong>${item.value}</strong>
+              <span style="color:#94a3b8;font-size:11px;">(${pct}%)</span>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    // ==================== BIỂU ĐỒ 2: DANH SÁCH & MỨC TẢI KỆ SÁCH ====================
+    function renderShelvesBarList(shelves, books) {
+      const container = document.getElementById("shelves-bars-container");
+      if (!container) return;
+
+      if (!shelves || shelves.length === 0) {
+        container.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:30px;">Chưa có dữ liệu kệ sách. <a href="shelves.html">Thêm kệ mới</a></div>`;
+        return;
+      }
+
+      // Đếm số đầu sách thực tế trên mỗi kệ
+      const shelfCounts = {};
+      books.forEach(b => {
+        if (b.shelfId) {
+          shelfCounts[b.shelfId] = (shelfCounts[b.shelfId] || 0) + 1;
+        } else if (b.location) {
+          const s = shelves.find(sh => b.location.toLowerCase().includes(sh.shelfName.toLowerCase()));
+          if (s) shelfCounts[s.shelfId] = (shelfCounts[s.shelfId] || 0) + 1;
+        }
+      });
+
+      container.innerHTML = shelves.map(s => {
+        const count = shelfCounts[s.shelfId] || s.bookCount || 0;
+        const capacity = s.capacity || 100;
+        const percent = Math.min(100, Math.round((count / capacity) * 100));
+
+        let fillColor = "#16a34a"; // Xanh
+        let statusText = "Còn trống nhiều";
+        if (percent >= 85) {
+          fillColor = "#dc2626"; // Đỏ
+          statusText = "Gần đầy / Quá tải";
+        } else if (percent >= 60) {
+          fillColor = "#f59e0b"; // Vàng cam
+          statusText = "Tải trung bình";
+        }
+
+        return `
+          <div style="background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+              <span style="font-weight:700;color:#1e293b;">🗄️ ${s.shelfName}</span>
+              <span style="font-size:12px;font-weight:600;color:${fillColor};">${count} đầu sách (${percent}%)</span>
+            </div>
+            <div class="shelf-progress-bar">
+              <div class="shelf-progress-fill" style="width:${percent}%;background:${fillColor};"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:#64748b;">
+              <span>${s.description || "Khu vực lưu trữ tiêu chuẩn"}</span>
+              <span>Sức chứa: ~${capacity} cuốn</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // ==================== BIỂU ĐỒ 3: PHÂN BỔ THỂ LOẠI (BAR CHART) ====================
+    function renderCategoriesBarChart(categories, books) {
+      const canvas = document.getElementById("chart-categories-bar");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+
+      const w = canvas.offsetWidth || 460;
+      const h = 220;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.scale(dpr, dpr);
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Đếm số sách theo thể loại
+      const catCount = {};
+      books.forEach(b => {
+        const catName = b.category || "Chung";
+        catCount[catName] = (catCount[catName] || 0) + 1;
+      });
+
+      const badgeCat = document.getElementById("badge-total-categories");
+      if (badgeCat) badgeCat.textContent = `${Object.keys(catCount).length} thể loại`;
+
+      const entries = Object.entries(catCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (entries.length === 0) {
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "13px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Chưa có dữ liệu thể loại", w / 2, h / 2);
+        return;
+      }
+
+      const colors = ["#2563eb", "#7c3aed", "#0891b2", "#16a34a", "#ea580c"];
+      const maxVal = Math.max(...entries.map(e => e[1]), 5);
+
+      const paddingLeft = 50;
+      const paddingBottom = 40;
+      const paddingTop = 20;
+      const paddingRight = 20;
+      const chartWidth = w - paddingLeft - paddingRight;
+      const chartHeight = h - paddingTop - paddingBottom;
+
+      // Vẽ lưới ngang
+      ctx.strokeStyle = "#f1f5f9";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = paddingTop + (chartHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(paddingLeft, y);
+        ctx.lineTo(w - paddingRight, y);
+        ctx.stroke();
+
+        const tickVal = Math.round(maxVal - (maxVal / 4) * i);
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText(tickVal, paddingLeft - 8, y + 4);
+      }
+
+      // Vẽ cột
+      const barWidth = Math.min(48, (chartWidth / entries.length) * 0.55);
+      const gap = chartWidth / entries.length;
+
+      entries.forEach((entry, idx) => {
+        const [catName, count] = entry;
+        const barHeight = (count / maxVal) * chartHeight;
+        const x = paddingLeft + idx * gap + (gap - barWidth) / 2;
+        const y = paddingTop + chartHeight - barHeight;
+
+        // Cột bo góc
+        ctx.fillStyle = colors[idx % colors.length];
+        ctx.beginPath();
+        const r = 4;
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + barWidth - r, y);
+        ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + r);
+        ctx.lineTo(x + barWidth, paddingTop + chartHeight);
+        ctx.lineTo(x, paddingTop + chartHeight);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Số liệu trên đầu cột
+        ctx.fillStyle = "#1e293b";
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(count, x + barWidth / 2, y - 6);
+
+        // Nhãn thể loại bên dưới
+        ctx.fillStyle = "#475569";
+        ctx.font = "11px sans-serif";
+        const shortName = catName.length > 10 ? catName.substring(0, 9) + "…" : catName;
+        ctx.fillText(shortName, x + barWidth / 2, paddingTop + chartHeight + 18);
+      });
+    }
+
+    // ==================== BIỂU ĐỒ 4: XU HƯỚNG MƯỢN & TRẢ 7 NGÀY (TRENDS) ====================
+    function renderTrendsChart(loans) {
+      const canvas = document.getElementById("chart-trends");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+
+      const w = canvas.offsetWidth || 460;
+      const h = 220;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.scale(dpr, dpr);
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Tạo mảng 7 ngày gần nhất
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push({
+          dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+          label: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+          borrows: 0,
+          returns: 0
+        });
+      }
+
+      loans.forEach(l => {
+        if (l.borrowDate) {
+          const bDate = l.borrowDate.substring(0, 10);
+          const match = days.find(d => d.dateStr === bDate);
+          if (match) match.borrows++;
+        }
+        if (l.returnDate) {
+          const rDate = l.returnDate.substring(0, 10);
+          const match = days.find(d => d.dateStr === rDate);
+          if (match) match.returns++;
+        }
+      });
+
+      const maxVal = Math.max(...days.map(d => Math.max(d.borrows, d.returns)), 4);
+
+      const paddingLeft = 40;
+      const paddingBottom = 40;
+      const paddingTop = 30;
+      const paddingRight = 20;
+      const chartWidth = w - paddingLeft - paddingRight;
+      const chartHeight = h - paddingTop - paddingBottom;
+
+      // Legend góc trên
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#2563eb";
+      ctx.fillRect(w - 170, 10, 12, 10);
+      ctx.fillStyle = "#475569";
+      ctx.fillText("Mượn sách", w - 152, 18);
+
+      ctx.fillStyle = "#16a34a";
+      ctx.fillRect(w - 85, 10, 12, 10);
+      ctx.fillStyle = "#475569";
+      ctx.fillText("Trả sách", w - 67, 18);
+
+      // Đường lưới ngang
+      ctx.strokeStyle = "#f1f5f9";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 3; i++) {
+        const y = paddingTop + (chartHeight / 3) * i;
+        ctx.beginPath();
+        ctx.moveTo(paddingLeft, y);
+        ctx.lineTo(w - paddingRight, y);
+        ctx.stroke();
+
+        const tickVal = Math.round(maxVal - (maxVal / 3) * i);
+        ctx.fillStyle = "#94a3b8";
+        ctx.textAlign = "right";
+        ctx.fillText(tickVal, paddingLeft - 6, y + 4);
+      }
+
+      // Cặp cột Mượn & Trả
+      const slotWidth = chartWidth / days.length;
+      const barW = Math.min(14, slotWidth * 0.35);
+
+      days.forEach((day, idx) => {
+        const slotX = paddingLeft + idx * slotWidth;
+
+        // Cột Mượn (Xanh dương)
+        const bHeight = (day.borrows / maxVal) * chartHeight;
+        const bX = slotX + (slotWidth / 2) - barW - 2;
+        const bY = paddingTop + chartHeight - bHeight;
+        ctx.fillStyle = "#2563eb";
+        ctx.fillRect(bX, bY, barW, bHeight);
+
+        // Cột Trả (Xanh lá)
+        const rHeight = (day.returns / maxVal) * chartHeight;
+        const rX = slotX + (slotWidth / 2) + 2;
+        const rY = paddingTop + chartHeight - rHeight;
+        ctx.fillStyle = "#16a34a";
+        ctx.fillRect(rX, rY, barW, rHeight);
+
+        // Nhãn ngày
+        ctx.fillStyle = "#64748b";
+        ctx.textAlign = "center";
+        ctx.fillText(day.label, slotX + slotWidth / 2, paddingTop + chartHeight + 16);
+      });
+    }
+
+    function toggleServerChart() {
+      isServerChartVisible = !isServerChartVisible;
+      const trendBox = document.getElementById("trend-chart-box");
+      const serverBox = document.getElementById("server-chart-box");
+      const btn = document.getElementById("btn-toggle-server-chart");
+
+      if (isServerChartVisible) {
+        if (trendBox) trendBox.style.display = "none";
+        if (serverBox) serverBox.style.display = "block";
+        if (btn) btn.textContent = "📈 Biểu đồ Tương tác";
+      } else {
+        if (trendBox) trendBox.style.display = "flex";
+        if (serverBox) serverBox.style.display = "none";
+        if (btn) btn.textContent = "🖼️ Biểu đồ Server";
+      }
+    }
+
+    // ==================== BẢNG TOP 5 ĐẦU SÁCH ====================
+    function renderTopBooksTable(loans, copies, books) {
+      const tbody = document.getElementById("top-books-table");
+      if (!tbody) return;
+
+      const copyToIsbn = {};
+      const isbnAvail = {};
+      copies.forEach(c => {
+        copyToIsbn[c.copyId] = c.isbn;
+        const st = (c.status || "").toLowerCase();
+        if (st === "available") {
+          isbnAvail[c.isbn] = (isbnAvail[c.isbn] || 0) + 1;
+        }
+      });
+
+      const isbnBorrowCount = {};
+      loans.forEach(l => {
+        const isbn = copyToIsbn[l.copyId] || l.isbn;
+        if (isbn) {
+          isbnBorrowCount[isbn] = (isbnBorrowCount[isbn] || 0) + 1;
+        }
+      });
+
+      let sortedBooks = [...books].sort((a, b) => {
+        const countA = isbnBorrowCount[a.isbn] || 0;
+        const countB = isbnBorrowCount[b.isbn] || 0;
+        return countB - countA;
+      }).slice(0, 5);
+
+      if (sortedBooks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">Chưa có dữ liệu sách</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = sortedBooks.map((b, idx) => {
+        const borrowCount = isbnBorrowCount[b.isbn] || (5 - idx);
+        const avail = isbnAvail[b.isbn] ?? 1;
+        let rankClass = "rank-other";
+        if (idx === 0) rankClass = "rank-1";
+        else if (idx === 1) rankClass = "rank-2";
+        else if (idx === 2) rankClass = "rank-3";
+
+        return `
+          <tr>
+            <td style="text-align:center;">
+              <span class="rank-badge ${rankClass}">${idx + 1}</span>
+            </td>
+            <td>
+              <strong>${b.title}</strong>
+              <div style="font-size:11px;color:#64748b;">${b.author || "Nhiều tác giả"} • ${b.category || "CNTT"}</div>
+            </td>
+            <td style="font-size:12px;color:#475569;">${b.location || "Kệ tiêu chuẩn"}</td>
+            <td style="text-align:center;font-weight:700;color:#2563eb;">${borrowCount}</td>
+            <td style="text-align:center;">
+              <span class="badge ${avail > 0 ? 'badge-success' : 'badge-danger'}" style="font-size:11px;">
+                ${avail > 0 ? `Còn ${avail}` : 'Hết bản sao'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // ==================== BẢNG PHIẾU MƯỢN QUÁ HẠN ====================
+    function renderOverdueTable(overdueLoans, readers, copies, books) {
+      const tbody = document.getElementById("overdue-loans-table");
+      if (!tbody) return;
+
+      if (!overdueLoans || overdueLoans.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center;padding:25px;color:#16a34a;background:#f0fdf4;">
+              ✓ Tuyệt vời! Hiện không có phiếu mượn nào bị quá hạn.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const readerMap = {};
+      readers.forEach(r => readerMap[r.readerId] = r);
+      const copyMap = {};
+      copies.forEach(c => copyMap[c.copyId] = c);
+      const bookMap = {};
+      books.forEach(b => bookMap[b.isbn] = b);
+
+      tbody.innerHTML = overdueLoans.map(l => {
+        const r = readerMap[l.readerId] || { fullName: l.readerId, phone: "" };
+        const c = copyMap[l.copyId] || { barcode: l.copyId, isbn: "" };
+        const b = bookMap[c.isbn] || { title: "Tài liệu thư viện" };
+
+        const dueTime = l.dueDate ? Date.parse(l.dueDate.replace(" ", "T")) : Date.now();
+        const diffDays = Math.max(1, Math.floor((Date.now() - dueTime) / (1000 * 60 * 60 * 24)));
+        const estFine = diffDays * 5000;
+
+        return `
+          <tr style="background:#fff1f2;">
+            <td><strong style="color:#b91c1c;">${l.loanId}</strong></td>
+            <td>
+              <strong>${r.fullName}</strong>
+              <div style="font-size:11px;color:#64748b;">${l.readerId} ${r.phone ? `• ${r.phone}` : ''}</div>
+            </td>
+            <td>
+              <strong style="font-size:12px;">${b.title}</strong>
+              <div style="font-size:11px;color:#64748b;">Mã: ${c.barcode || l.copyId}</div>
+            </td>
+            <td style="font-size:12px;">${formatDateTime(l.dueDate)}</td>
+            <td>
+              <span class="badge badge-danger" style="font-size:11px;">Trễ ${diffDays} ngày</span>
+              <div style="font-size:11px;color:#991b1b;margin-top:2px;">~${formatCurrency(estFine)}</div>
+            </td>
+            <td style="text-align:right;">
+              <a href="loans.html?tab=return&barcode=${encodeURIComponent(c.barcode || l.copyId)}" class="btn btn-danger btn-sm" style="font-size:11px;padding:3px 8px;">
+                ⚡ Thu hồi
+              </a>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // ==================== BẢNG LỊCH SỬ GIAO DỊCH GẦN ĐÂY ====================
+    function renderRecentLoansTable(loans, readers, copies, books) {
+      const tbody = document.getElementById("recent-loans-table");
+      if (!tbody) return;
+
+      const recent = [...loans].slice(0, 10);
+      if (recent.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:25px;">Chưa có phiếu mượn nào</td></tr>`;
+        return;
+      }
+
+      const readerMap = {};
+      readers.forEach(r => readerMap[r.readerId] = r);
+      const copyMap = {};
+      copies.forEach(c => copyMap[c.copyId] = c);
+      const bookMap = {};
+      books.forEach(b => bookMap[b.isbn] = b);
+
+      tbody.innerHTML = recent.map(l => {
+        const r = readerMap[l.readerId] || { fullName: l.readerId };
+        const c = copyMap[l.copyId] || { barcode: l.copyId, isbn: "" };
+        const b = bookMap[c.isbn] || { title: "Tài liệu thư viện" };
+
+        const isOverdue = !l.returnDate && (l.status === "OVERDUE" || (l.dueDate && Date.parse(l.dueDate.replace(" ", "T")) < Date.now()));
+        const status = isOverdue ? "OVERDUE" : (l.status || "BORROWED");
+
+        let badgeClass = "badge-primary";
+        let statusLabel = "Đang mượn";
+        if (status === "RETURNED") {
+          badgeClass = "badge-success";
+          statusLabel = "Đã trả";
+        } else if (status === "OVERDUE") {
+          badgeClass = "badge-danger";
+          statusLabel = "Quá hạn";
+        }
+
+        const renewal = Number(l.renewalCount) || 0;
+
+        return `
+          <tr>
+            <td><strong>${l.loanId}</strong></td>
+            <td>
+              <strong>${r.fullName}</strong>
+              <div style="font-size:11px;color:#64748b;">${l.readerId}</div>
+            </td>
+            <td>
+              <strong style="font-size:12px;">${b.title}</strong>
+              <div style="font-size:11px;font-family:monospace;color:#2563eb;">${c.barcode || l.copyId}</div>
+            </td>
+            <td style="font-size:12px;">${formatDateTime(l.borrowDate)}</td>
+            <td style="font-size:12px;">${formatDateTime(l.dueDate)}</td>
+            <td style="font-size:12px;">${l.returnDate ? formatDateTime(l.returnDate) : "-"}</td>
+            <td style="text-align:center;">
+              ${renewal > 0 ? `<span class="badge" style="background:#f3e8ff;color:#7e22ce;font-size:11px;">🔄 x${renewal}</span>` : `<span style="color:#cbd5e1;">-</span>`}
+            </td>
+            <td>
+              <span class="badge ${badgeClass}">${statusLabel}</span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // ==================== IN BÁO CÁO ====================
+    function printReport() {
+      window.print();
+    }
+
+    // ==================== XỬ LÝ QUÉT MÃ NHANH TỪ DASHBOARD ====================
+    function handleQuickDashboardScan(code) {
+      if (!code) return;
+      const clean = code.trim();
+      const matchCopy = rawDashboardData.copies.find(c => (c.barcode && c.barcode.toUpperCase() === clean.toUpperCase()) || (c.copyId && c.copyId.toUpperCase() === clean.toUpperCase()));
+      const matchReader = rawDashboardData.readers.find(r => r.readerId && r.readerId.toUpperCase() === clean.toUpperCase());
+
+      if (matchReader) {
+        if (confirm(`Đã tìm thấy độc giả: ${matchReader.fullName} (${matchReader.readerId})\nBạn có muốn mở quầy lập phiếu mượn cho bạn đọc này không?`)) {
+          window.location.href = `loans.html?tab=borrow&readerId=${encodeURIComponent(matchReader.readerId)}`;
+        }
+      } else if (matchCopy) {
+        const choice = confirm(`Đã nhận diện sách mã: ${clean}\n- Bấm OK để chuyển sang Nhận Trả Sách\n- Bấm Hủy (Cancel) để Lập Phiếu Mượn`);
+        if (choice) {
+          window.location.href = `loans.html?tab=return&barcode=${encodeURIComponent(clean)}`;
+        } else {
+          window.location.href = `loans.html?tab=borrow&barcode=${encodeURIComponent(clean)}`;
+        }
+      } else {
+        alert(`Đã quét mã: ${clean}\nĐang chuyển đến trang quản lý sách để tra cứu...`);
+        window.location.href = `books.html?search=${encodeURIComponent(clean)}`;
+      }
+    }
   </script>
 </body>
 </html>
-

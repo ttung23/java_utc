@@ -30,6 +30,9 @@ public class Book {
     /** Vị trí lưu kho thực tế (Kệ / Quầy / Ngăn) */
     private String location;
 
+    /** Mã kệ liên kết với bảng SHELVES */
+    private String shelfId;
+
     /**
      * Constructor mặc định.
      */
@@ -120,6 +123,14 @@ public class Book {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getShelfId() {
+        return shelfId;
+    }
+
+    public void setShelfId(String shelfId) {
+        this.shelfId = shelfId;
     }
 
     // ======================== toString ========================

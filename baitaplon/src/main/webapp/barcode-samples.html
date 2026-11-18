@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Danh Sách Tem & Mã Vạch Mẫu Để Quét Thử Nghiệm</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    @media print {
+      body { background: #fff !important; }
+      .sidebar, .top-header, .no-print { display: none !important; }
+      .main-wrapper { margin: 0 !important; padding: 0 !important; }
+      .label-card { box-shadow: none !important; border: 1px dashed #666 !important; break-inside: avoid; }
+    }
+    .barcode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 18px;
+      margin-top: 16px;
+    }
+    .label-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      position: relative;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .label-card:hover {
+      box-shadow: 0 10px 18px -3px rgba(37, 99, 235, 0.15);
+      border-color: #3b82f6;
+      transform: translateY(-2px);
+    }
+    .label-card-header {
+      border-bottom: 1px dashed #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .library-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+    .book-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+    .book-meta {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .barcode-display-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1.5px solid #e2e8f0;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .barcode-1d-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .barcode-svg {
+      width: 100%;
+      height: auto;
+      max-width: 250px;
+      min-height: 75px;
+      display: block;
+    }
+    .qrcode-box {
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      padding: 4px;
+      border-radius: 6px;
+      border: 1.5px solid #cbd5e1;
+      flex-shrink: 0;
+    }
+    .qrcode-box img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .label-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #64748b;
+      border-top: 1px dashed #f1f5f9;
+      padding-top: 8px;
+    }
+    .copy-chip {
+      background: #f1f5f9;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 600;
+      color: #334155;
+    }
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .filter-pill {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-pill.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+    }
+    .zoom-btn {
+      font-size: 11px;
+      padding: 4px 8px;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .zoom-btn:hover {
+      background: #2563eb;
+      color: #fff;
+    }
+    /* Modal Phóng To Mã */
+    .zoom-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.75);
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .zoom-modal {
+      background: #ffffff;
+      border-radius: 16px;
+      max-width: 620px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      animation: modalPop 0.2s ease-out;
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.94); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar no-print"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header no-print">
+      <div>
+        <h1 class="page-title">Phiếu Mã Vạch Bản Sao Sách Mẫu</h1>
+        <p class="page-subtitle">Dùng camera điện thoại hoặc webcam máy tính hướng vào các mã vạch dưới đây để quét thử nghiệm</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ In Phiếu Tem Mã Vạch</button>
+        <a href="loans.html?tab=borrow" class="btn btn-primary">🔄 Mở Trang Lập Phiếu Mượn</a>
+      </div>
+    </div>
+
+    <!-- Hướng dẫn & Lưu ý quan trọng khi quét bằng camera điện thoại -->
+    <div class="panel no-print" style="background:#eff6ff;border:1px solid #bfdbfe;padding:16px 20px;margin-bottom:16px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <span style="font-size:26px;">💡</span>
+        <div style="font-size:13px;line-height:1.6;color:#1e3a8a;flex:1;">
+          <strong>Bí quyết quét mã nhạy 100% bằng Camera Điện Thoại qua Màn Hình:</strong>
+          <ul style="margin:6px 0 0 16px;padding:0;">
+            <li><strong>Tại sao mã QR cạnh mã vạch lại quét nhạy hơn?</strong> Mã QR có các ô định vị vuông ở 3 góc và cơ chế chống nhiễu nên camera điện thoại nhận diện ngay trong 0.1 giây.</li>
+            <li><strong>Khi quét Mã Vạch 1D qua màn hình:</strong> Mã vạch 1D yêu cầu phải có khoảng trắng ở hai bên (Quiet Zone). Nếu thấy mã trên màn hình hơi nhỏ hoặc bị chói bóng đèn, hãy bấm nút <strong>"🔍 Phóng to"</strong> trên tem mã đó để mở to toàn màn hình rồi giơ điện thoại quét!</li>
+            <li><strong>Chế độ chụp ảnh:</strong> Trên điện thoại, bạn chỉ cần bấm nút <em>"📸 BẤM ĐỂ MỞ CAMERA QUÉT MÃ"</em>, hướng camera vào tem (lấy cả mã vạch và viền trắng xung quanh) rồi chụp là hệ thống tự động giải mã gửi sang PC.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Phân loại bộ lọc -->
+      <div class="filter-pills">
+        <button class="filter-pill active" onclick="filterLabels('all')">Tất Cả Tem Mã (14)</button>
+        <button class="filter-pill" onclick="filterLabels('available')">Bản Sao Có Sẵn (Lập mượn)</button>
+        <button class="filter-pill" onclick="filterLabels('loaned')">Bản Sao Đang Mượn (Nhận trả)</button>
+        <button class="filter-pill" onclick="filterLabels('reader')">Thẻ Độc Giả (Mã bạn đọc)</button>
+        <button class="filter-pill" onclick="filterLabels('isbn')">Mã ISBN Sách</button>
+      </div>
+    </div>
+
+    <!-- Hộp kiểm tra / Test giải mã ảnh mã vạch trực tiếp -->
+    <div class="panel no-print" style="background:#f8fafc;border:1.5px dashed #cbd5e1;padding:16px 20px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:2px;">🧪 Công cụ kiểm tra giải mã ảnh chụp mã vạch:</h3>
+          <p style="font-size:12px;color:#64748b;margin:0;">Tải lên ảnh chụp màn hình mã vạch bất kỳ (kể cả ảnh bị cắt sát viền) để hệ thống tự bù Quiet Zone và đọc mã ngay tại đây</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="file" id="tester-file-input" accept="image/*" style="display:none;" onchange="handleTesterFile(event)">
+          <label for="tester-file-input" class="btn btn-secondary btn-sm" style="cursor:pointer;padding:8px 14px;font-weight:600;">
+            📁 Chọn ảnh để Test Giải Mã
+          </label>
+        </div>
+      </div>
+      <div id="tester-result" style="margin-top:10px;font-size:13px;display:none;padding:10px 14px;border-radius:8px;"></div>
+    </div>
+
+    <!-- Danh sách Tem Mã Vạch -->
+    <div class="panel">
+      <div class="panel-header no-print">
+        <h2 class="panel-title" id="grid-title">Danh Sách Tem Mã Vạch Thư Viện (Code 128 & QR Code)</h2>
+        <span id="label-count" class="badge badge-info">14 tem mã</span>
+      </div>
+
+      <div class="barcode-grid" id="barcode-grid">
+        <!-- Được sinh động bằng JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Phóng To Mã Để Quét Dễ Dàng -->
+  <div id="zoom-overlay" class="zoom-overlay" onclick="if(event.target===this)closeZoomModal()">
+    <div class="zoom-modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;padding-bottom:10px;margin-bottom:14px;">
+        <div style="text-align:left;">
+          <div class="library-tag" style="font-size:11px;">TRƯỜNG ĐH GIAO THÔNG VẬN TẢI - THƯ VIỆN UTC</div>
+          <h3 id="zoom-title" style="margin:2px 0 0 0;font-size:16px;color:#0f172a;">-</h3>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeZoomModal()" style="font-size:16px;padding:4px 10px;">✕</button>
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;border-radius:8px;font-size:12px;color:#166534;margin-bottom:16px;">
+        📱 <strong>Mẹo:</strong> Hướng camera điện thoại vào mã vạch lớn hoặc mã QR bên dưới để quét tức thì!
+      </div>
+
+      <!-- Khung Mã Vạch 1D To Rõ -->
+      <div style="background:#ffffff;border:2px solid #cbd5e1;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
+        <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Mã Vạch 1D Chuẩn Thư Viện (Code 128)</div>
+        <svg id="zoom-barcode-svg" style="max-width:100%;height:auto;display:block;margin:0 auto;"></svg>
+      </div>
+
+      <!-- Khung Mã QR 2D To Rõ -->
+      <div style="display:flex;gap:16px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;text-align:left;">
+        <div id="zoom-qrcode" style="background:#fff;padding:8px;border-radius:8px;border:1px solid #cbd5e1;width:120px;height:120px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Mã QR 2D (Quét siêu nhạy)</div>
+          <div id="zoom-code-text" style="font-family:monospace;font-size:18px;font-weight:800;color:#2563eb;margin:4px 0;">-</div>
+          <div id="zoom-meta" style="font-size:12px;color:#475569;line-height:1.4;">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/jsbarcode.min.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/html5-qrcode.min.js"></script>
+  <script>
+    // Dữ liệu mẫu thực tế trong hệ thống thư viện SLMS
+    const sampleLabels = [
+      {
+        type: "available",
+        barcode: "BC-00004",
+        copyId: "CP004",
+        title: "Clean Code",
+        author: "Robert C. Martin",
+        location: "Kệ B2 - Tầng 2 (Phần mềm)",
+        statusText: "Có sẵn để mượn",
+        statusBadge: "badge-success",
+        price: "380.000 đ",
+        desc: "Sách kinh điển về kỹ thuật viết mã sạch"
+      },
+      {
+        type: "available",
+        barcode: "BC-00001",
+        copyId: "CP001",
+        title: "The Pragmatic Programmer",
+        author: "David Thomas, Andrew Hunt",
+        location: "Kệ B1 - Tầng 2 (CNTT)",
+        statusText: "Có sẵn để mượn",
+        statusBadge: "badge-success",
+        price: "450.000 đ",
+        desc: "Sách CNTT & Lập trình chuyên nghiệp"
+      },
+      {
+        type: "available",
+        barcode: "BC-00003",
+        copyId: "CP003",
+        title: "JavaScript: The Good Parts",
+        author: "Douglas Crockford",
+        location: "Kệ B3 - Tầng 2 (Web Dev)",
+        statusText: "Có sẵn để mượn",
+        statusBadge: "badge-success",
+        price: "320.000 đ",
+        desc: "Sách Web Development"
+      },
+      {
+        type: "available",
+        barcode: "BC-00006",
+        copyId: "CP006",
+        title: "Design Patterns",
+        author: "Erich Gamma (GoF)",
+        location: "Kệ B2 - Tầng 2 (Kiến trúc)",
+        statusText: "Có sẵn để mượn",
+        statusBadge: "badge-success",
+        price: "520.000 đ",
+        desc: "23 mẫu thiết kế hướng đối tượng"
+      },
+      {
+        type: "available",
+        barcode: "BC-00007",
+        copyId: "CP007",
+        title: "Effective Java",
+        author: "Joshua Bloch",
+        location: "Kệ A1 - Tầng 1 (Cơ sở dữ liệu)",
+        statusText: "Có sẵn để mượn",
+        statusBadge: "badge-success",
+        price: "410.000 đ",
+        desc: "Các best practices cốt lõi về Java"
+      },
+      {
+        type: "available",
+        barcode: "BC-00010",
+        copyId: "CP010",
+        title: "Designing Data-Intensive Apps",
+        author: "Martin Kleppmann",
+        location: "Kệ A1 - Tầng 1 (Cơ sở dữ liệu)",
+        statusText: "Có sẵn để mượn",
+        statusBadge: "badge-success",
+        price: "350.000 đ",
+        desc: "Kiến trúc hệ thống dữ liệu lớn"
+      },
+      {
+        type: "loaned",
+        barcode: "BC-00002",
+        copyId: "CP002",
+        title: "The Pragmatic Programmer",
+        author: "David Thomas, Andrew Hunt",
+        location: "Kệ B1 - Tầng 2 (CNTT)",
+        statusText: "Đang mượn (Dùng test Nhận Trả)",
+        statusBadge: "badge-warning",
+        price: "450.000 đ",
+        desc: "Phiếu mượn: LN00001 (Độc giả: RD001)"
+      },
+      {
+        type: "loaned",
+        barcode: "BC-00005",
+        copyId: "CP005",
+        title: "Clean Code",
+        author: "Robert C. Martin",
+        location: "Kệ B2 - Tầng 2 (Phần mềm)",
+        statusText: "Đang mượn (Dùng test Nhận Trả)",
+        statusBadge: "badge-warning",
+        price: "380.000 đ",
+        desc: "Phiếu mượn: LN00002 (Độc giả: RD002)"
+      },
+      {
+        type: "loaned",
+        barcode: "BC-00008",
+        copyId: "CP008",
+        title: "Effective Java",
+        author: "Joshua Bloch",
+        location: "Kệ A1 - Tầng 1 (Cơ sở dữ liệu)",
+        statusText: "Đang mượn (Dùng test Nhận Trả)",
+        statusBadge: "badge-warning",
+        price: "410.000 đ",
+        desc: "Phiếu mượn: LN00003 (Độc giả: RD003)"
+      },
+      // Thẻ Độc Giả (Reader Cards)
+      {
+        type: "reader",
+        barcode: "RD001",
+        copyId: "THẺ BẠN ĐỌC",
+        title: "Nguyễn Văn An",
+        author: "MSSV: 20210001 | Sinh viên",
+        location: "Lớp: K62-CNTT | SĐT: 0912345678",
+        statusText: "Thẻ Độc Giả Hợp Lệ",
+        statusBadge: "badge-success",
+        price: "Hạn thẻ: 2027",
+        desc: "Dùng để quét chọn độc giả mượn sách"
+      },
+      {
+        type: "reader",
+        barcode: "RD002",
+        copyId: "THẺ BẠN ĐỌC",
+        title: "Trần Thị Bình",
+        author: "MSSV: 20210002 | Sinh viên",
+        location: "Lớp: K62-KT | SĐT: 0987654321",
+        statusText: "Thẻ Độc Giả Hợp Lệ",
+        statusBadge: "badge-success",
+        price: "Hạn thẻ: 2027",
+        desc: "Dùng để quét chọn độc giả mượn sách"
+      },
+      {
+        type: "reader",
+        barcode: "RD003",
+        copyId: "THẺ BẠN ĐỌC",
+        title: "TS. Lê Hoàng Nam",
+        author: "Mã GV: GV001 | Giảng viên",
+        location: "Khoa: Công nghệ thông tin",
+        statusText: "Thẻ Độc Giả Hợp Lệ",
+        statusBadge: "badge-success",
+        price: "Hạn thẻ: 2030",
+        desc: "Mượn tối đa 10 cuốn, thời hạn 30 ngày"
+      },
+      // Mã ISBN Sách
+      {
+        type: "isbn",
+        barcode: "978-0-13-235088-4",
+        copyId: "MÃ ISBN",
+        title: "Clean Code: A Handbook of Agile Craftsmanship",
+        author: "Robert C. Martin (Uncle Bob)",
+        location: "Kệ B2 - Tầng 2 (Phần mềm)",
+        statusText: "Đầu Sách (ISBN)",
+        statusBadge: "badge-primary",
+        price: "Đầu sách",
+        desc: "Dùng để quét tìm kiếm tra cứu đầu sách"
+      },
+      {
+        type: "isbn",
+        barcode: "978-0-13-468599-1",
+        copyId: "MÃ ISBN",
+        title: "The Pragmatic Programmer (20th Anniversary)",
+        author: "David Thomas, Andrew Hunt",
+        location: "Kệ B1 - Tầng 2 (CNTT)",
+        statusText: "Đầu Sách (ISBN)",
+        statusBadge: "badge-primary",
+        price: "Đầu sách",
+        desc: "Dùng để quét tìm kiếm tra cứu đầu sách"
+      }
+    ];
+
+    let currentFilter = "all";
+    let renderedList = [];
+
+    function renderLabelCards() {
+      const container = document.getElementById("barcode-grid");
+      const countBadge = document.getElementById("label-count");
+      if (!container) return;
+
+      renderedList = sampleLabels.filter(item => {
+        if (currentFilter === "all") return true;
+        return item.type === currentFilter;
+      });
+
+      if (countBadge) countBadge.textContent = `${renderedList.length} tem mã`;
+
+      container.innerHTML = renderedList.map((item, idx) => `
+        <div class="label-card">
+          <div class="label-card-header">
+            <div>
+              <div class="library-tag">TRƯỜNG ĐH GIAO THÔNG VẬN TẢI - THƯ VIỆN UTC</div>
+              <div class="book-title">${item.title}</div>
+              <div class="book-meta">${item.author}</div>
+            </div>
+            <span class="badge ${item.statusBadge}" style="font-size:10px;white-space:nowrap;">${item.statusText}</span>
+          </div>
+
+          <!-- Khu vực hiển thị Mã vạch 1D & Mã QR -->
+          <div class="barcode-display-row">
+            <div class="barcode-1d-container" title="Bấm để phóng to mã này" onclick="openZoomModal(${idx})" style="cursor:pointer;">
+              <svg id="barcode-svg-${idx}" class="barcode-svg"></svg>
+            </div>
+            <div class="qrcode-box" id="qrcode-box-${idx}" title="Mã QR cho: ${item.barcode} (Bấm phóng to)" onclick="openZoomModal(${idx})" style="cursor:pointer;"></div>
+          </div>
+
+          <div class="label-card-footer">
+            <div>
+              <span class="copy-chip">${item.copyId}</span>
+              <span style="margin-left:6px;font-weight:600;color:#0284c7;">📍 ${item.location}</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button type="button" class="zoom-btn" onclick="openZoomModal(${idx})">🔍 Phóng to</button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      // Render Barcode SVG và QR Code sau khi tạo DOM
+      renderedList.forEach((item, idx) => {
+        // 1. Render Code 128 SVG có Quiet Zone chuẩn quốc tế (margin: 15, background trắng tinh)
+        try {
+          JsBarcode(`#barcode-svg-${idx}`, item.barcode, {
+            format: "CODE128",
+            width: 2.1,
+            height: 62,
+            displayValue: true,
+            fontSize: 13,
+            textMargin: 3,
+            font: "monospace",
+            lineColor: "#0f172a",
+            background: "#ffffff",
+            margin: 14 // Bắt buộc phải có Quiet Zone để camera nhận diện
+          });
+        } catch (e) {
+          console.error("Lỗi tạo barcode:", e);
+        }
+
+        // 2. Render QR Code
+        try {
+          const qrElem = document.getElementById(`qrcode-box-${idx}`);
+          if (qrElem && typeof QRCode !== "undefined") {
+            qrElem.innerHTML = "";
+            new QRCode(qrElem, {
+              text: item.barcode,
+              width: 64,
+              height: 64,
+              colorDark: "#0f172a",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          }
+        } catch (e) {
+          console.error("Lỗi tạo QR:", e);
+        }
+      });
+    }
+
+    function filterLabels(type) {
+      currentFilter = type;
+      document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+      event.target.classList.add("active");
+      renderLabelCards();
+    }
+
+    // Modal Phóng To
+    function openZoomModal(idx) {
+      const item = renderedList[idx];
+      if (!item) return;
+
+      document.getElementById("zoom-title").textContent = item.title;
+      document.getElementById("zoom-code-text").textContent = item.barcode;
+      document.getElementById("zoom-meta").innerHTML = `
+        <strong>Tác giả:</strong> ${item.author}<br>
+        <strong>Vị trí:</strong> 📍 ${item.location}<br>
+        <strong>Mã bản sao:</strong> <span class="copy-chip">${item.copyId}</span> | <strong>Trạng thái:</strong> ${item.statusText}
+      `;
+
+      // Render Barcode phóng to cực nét
+      try {
+        JsBarcode("#zoom-barcode-svg", item.barcode, {
+          format: "CODE128",
+          width: 3.2,
+          height: 105,
+          displayValue: true,
+          fontSize: 18,
+          textMargin: 6,
+          font: "monospace",
+          lineColor: "#0f172a",
+          background: "#ffffff",
+          margin: 24
+        });
+      } catch (e) {
+        console.error("Lỗi phóng to barcode:", e);
+      }
+
+      // Render QR code to
+      const zoomQr = document.getElementById("zoom-qrcode");
+      if (zoomQr && typeof QRCode !== "undefined") {
+        zoomQr.innerHTML = "";
+        new QRCode(zoomQr, {
+          text: item.barcode,
+          width: 110,
+          height: 110,
+          colorDark: "#0f172a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      document.getElementById("zoom-overlay").style.display = "flex";
+    }
+
+    function closeZoomModal() {
+      document.getElementById("zoom-overlay").style.display = "none";
+    }
+
+    // Công cụ test giải mã ảnh tải lên
+    async function handleTesterFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const resBox = document.getElementById("tester-result");
+      resBox.style.display = "block";
+      resBox.style.background = "#eff6ff";
+      resBox.style.color = "#1e40af";
+      resBox.style.border = "1px solid #bfdbfe";
+      resBox.innerHTML = "⏳ Đang phân tích và giải mã ảnh tải lên...";
+
+      // Thử 1: Native BarcodeDetector (siêu nhanh)
+      if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+        try {
+          const detector = new BarcodeDetector({ formats: ["qr_code", "code_128", "code_39", "ean_13"] });
+          const bcs = await detector.detect(file);
+          if (bcs && bcs.length > 0 && bcs[0].rawValue) {
+            showTesterSuccess(bcs[0].rawValue);
+            return;
+          }
+        } catch (eNative) {}
+      }
+
+      // Tạo đối tượng Html5Qrcode nếu chưa có
+      if (!window._testerScanner) {
+        const dummyDiv = document.createElement("div");
+        dummyDiv.id = "tester-dummy-viewport";
+        dummyDiv.style.display = "none";
+        document.body.appendChild(dummyDiv);
+        window._testerScanner = new Html5Qrcode("tester-dummy-viewport", { experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+      }
+
+      // Thử 2: Quét trực tiếp
+      try {
+        const code = await window._testerScanner.scanFile(file, false);
+        if (code) {
+          showTesterSuccess(code);
+          return;
+        }
+      } catch (e) {}
+
+      // Thử 3: Tối ưu kích thước (downscale về max 1200) + Tự động bù Quiet Zone
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = async function() {
+          const maxDim = 1200;
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const targetW = Math.round(img.width * scale);
+          const targetH = Math.round(img.height * scale);
+
+          const padX = 50, padY = 30;
+          const canvas = document.createElement("canvas");
+          canvas.width = targetW + padX * 2;
+          canvas.height = targetH + padY * 2;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, padX, padY, targetW, targetH);
+
+          // Thử Native detector trên canvas
+          if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+            try {
+              const detector = new BarcodeDetector({ formats: ["qr_code", "code_128"] });
+              const bcs = await detector.detect(canvas);
+              if (bcs && bcs.length > 0 && bcs[0].rawValue) {
+                showTesterSuccess(bcs[0].rawValue);
+                return;
+              }
+            } catch (eNative2) {}
+          }
+
+          canvas.toBlob(async function(blob) {
+            if (blob) {
+              try {
+                const code2 = await window._testerScanner.scanFile(new File([blob], "padded.png", { type: "image/png" }), false);
+                if (code2) {
+                  showTesterSuccess(code2);
+                  return;
+                }
+              } catch (e2) {}
+            }
+
+            // Thử 4: Tăng tương phản trắng đen
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+              const c = gray < 135 ? 0 : 255;
+              d[i] = c; d[i+1] = c; d[i+2] = c;
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            canvas.toBlob(async function(blob3) {
+              try {
+                const code3 = await window._testerScanner.scanFile(new File([blob3], "contrast.png", { type: "image/png" }), false);
+                if (code3) {
+                  showTesterSuccess(code3);
+                  return;
+                }
+              } catch (e3) {}
+
+              resBox.style.background = "#fef2f2";
+              resBox.style.color = "#991b1b";
+              resBox.style.border = "1px solid #fecaca";
+              resBox.innerHTML = "⚠️ Không thể nhận diện mã từ ảnh này. Vui lòng chụp rõ nét hơn hoặc quét mã QR vuông!";
+            }, "image/png");
+          }, "image/png");
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showTesterSuccess(code) {
+      const resBox = document.getElementById("tester-result");
+      resBox.style.display = "block";
+      resBox.style.background = "#f0fdf4";
+      resBox.style.color = "#166534";
+      resBox.style.border = "1px solid #bbf7d0";
+      
+      const matched = sampleLabels.find(l => l.barcode === code.trim());
+      const infoText = matched ? ` (${matched.title} - ${matched.copyId})` : "";
+      resBox.innerHTML = `🎉 <strong>GIẢI MÃ THÀNH CÔNG:</strong> Mã đọc được là <code style="font-size:15px;background:#dcfce7;padding:2px 8px;border-radius:4px;font-weight:700;">${code}</code>${infoText}`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("barcodes");
+      renderLabelCards();
+    });
+  </script>
+</body>
+</html>

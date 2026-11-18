@@ -23,6 +23,9 @@
           <button id="clear-catalog-btn" class="clear-search-btn" type="button" onclick="clearCatalogSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
         </div>
         <button class="btn btn-primary" onclick="loadCatalog()">Tìm kiếm</button>
+        <button type="button" class="btn btn-secondary" onclick="openScannerModal('search-q', { onScan: () => loadCatalog() })" title="Quét mã vạch hoặc ISBN bằng Camera / Điện thoại" style="display:inline-flex;align-items:center;gap:4px;">
+          📷 Quét Mã
+        </button>
       </div>
     </div>
     <div class="panel">
@@ -35,6 +38,9 @@
     </div>
   </main>
   <script src="js/client.js"></script>
+  <script src="../js/html5-qrcode.min.js"></script>
+  <script src="../js/qrcode.min.js"></script>
+  <script src="../js/scanner-modal.js"></script>
   <script>
     const readerId = requireLogin();
     if (readerId) { renderClientSidebar("catalog"); loadCatalog(); }

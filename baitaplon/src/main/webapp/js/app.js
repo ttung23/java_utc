@@ -62,7 +62,8 @@ function renderSidebar(activeKey, activeSubKey = "borrow") {
       href: "books.html",
       children: [
         { key: "list", label: "Danh Sách Đầu Sách", href: "books.html" },
-        { key: "categories", label: "Quản Lý Thể Loại", href: "categories.html" }
+        { key: "categories", label: "Quản Lý Thể Loại", href: "categories.html" },
+        { key: "shelves", label: "Quản Lý Kệ Sách", href: "shelves.html" }
       ]
     },
     {
@@ -72,13 +73,14 @@ function renderSidebar(activeKey, activeSubKey = "borrow") {
       href: "loans.html",
       children: [
         { key: "borrow", label: "Lập Phiếu Mượn Sách", href: "loans.html?tab=borrow", tabId: "borrow-tab" },
-        { key: "return", label: "Nhận Trả Sách & Sự Cố", href: "loans.html?tab=return", tabId: "return-tab" },
+        { key: "return", label: "Nhận Trả Sách", href: "loans.html?tab=return", tabId: "return-tab" },
         { key: "list", label: "Danh Sách Phiếu Mượn", href: "loans.html?tab=list", tabId: "list-tab" }
       ]
     },
     { key: "readers", label: "Quản lý Độc giả", icon: "👥", href: "readers.html" },
     { key: "fines", label: "Hóa đơn Phạt", icon: "💰", href: "fines.html" },
     { key: "reservations", label: "Đặt trước Sách", icon: "🔖", href: "reservations.html" },
+    // { key: "barcodes", label: "Tem & Mã Vạch Mẫu", icon: "🏷️", href: "barcode-samples.html" },
     { key: "dashboard", label: "Dashboard Thống kê", icon: "📊", href: "dashboard.html" },
     // { key: "rules", label: "Nội quy & Chính sách", icon: "📜", href: "rules.html" },
     { key: "client", label: "Cổng độc giả", icon: "🧑‍🎓", href: "client/login.html" }

@@ -37,7 +37,12 @@
         <h2 class="panel-title" style="margin-bottom:16px;">Bước 2: Quét Bản Sao Sách & Xác Nhận Mượn</h2>
         <div class="form-grid" style="margin-bottom:16px;">
           <div class="form-group" style="flex:1;">
-            <label for="borrow-barcode">Mã sách / Mã vạch hoặc Tên sách (Barcode / Title):</label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label for="borrow-barcode" style="margin:0;">Mã sách / Mã vạch hoặc Tên sách (Barcode / Title):</label>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openScannerModal('borrow-barcode')" title="Quét mã vạch bằng Webcam hoặc Điện thoại" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:12px;">
+                Quét mã
+              </button>
+            </div>
             <div class="autocomplete-container">
               <input type="text" id="borrow-barcode" placeholder="Gõ mã vạch (BC-...), mã sách (ISBN) hoặc tên sách để tìm kiếm và chọn..." autocomplete="off" style="width:100%;">
               <div id="book-dropdown" class="autocomplete-dropdown"></div>
@@ -59,7 +64,12 @@
         <h2 class="panel-title" style="margin-bottom:16px;">Tiếp Nhận Trả Sách & Xử Lý Sự Cố Vi Phạm</h2>
         <div class="form-grid">
           <div class="form-group">
-            <label for="return-barcode">Mã vạch bản sao cần trả (Barcode):</label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label for="return-barcode" style="margin:0;">Mã vạch bản sao cần trả (Barcode):</label>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openScannerModal('return-barcode')" title="Quét mã vạch bằng Webcam hoặc Điện thoại" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:12px;">
+                Quét mã
+              </button>
+            </div>
             <input type="text" id="return-barcode" placeholder="Quét mã vạch ví dụ: BC-00002, BC-00005...">
           </div>
           <div class="form-group">
@@ -134,6 +144,9 @@
   </main>
 
   <script src="js/app.js"></script>
+  <script src="js/html5-qrcode.min.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/scanner-modal.js"></script>
   <script>
     let currentEligibility = null;
 

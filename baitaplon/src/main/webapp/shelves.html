@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quản Lý Kệ Sách</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Quản Lý Kệ Sách</h1>
+        <p class="page-subtitle">Quản lý danh mục quầy, kệ sách trong thư viện, theo dõi số lượng sách theo từng vị trí lưu kho</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <a href="books.html" class="btn btn-secondary">← Danh Sách Sách</a>
+        <button class="btn btn-primary" onclick="openAddShelfModal()">+ Thêm Kệ Mới</button>
+      </div>
+    </div>
+
+    <!-- Thanh tìm kiếm kệ sách -->
+    <div class="panel" style="padding:16px 20px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="position:relative;flex:1;display:flex;align-items:center;">
+          <input type="search" id="search-keyword" placeholder="Nhập tên kệ sách hoặc mã kệ cần tìm..." style="width:100%;padding-right:34px;">
+          <button id="clear-search-btn" class="clear-search-btn" type="button" onclick="clearSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
+        </div>
+        <button class="btn btn-primary" onclick="searchShelves()">Tìm Kiếm</button>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách kệ sách -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Danh Sách Kệ Sách & Vị Trí Lưu Kho</h2>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã kệ</th>
+              <th>Tên kệ / Vị trí</th>
+              <th>Mô tả / Hướng dẫn</th>
+              <th>Số lượng đầu sách</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="shelves-table-body">
+            <tr><td colspan="5" style="text-align:center;">Đang tải dữ liệu...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="shelves-pagination"></div>
+    </div>
+
+    <!-- Modal Thêm / Cập nhật Kệ sách -->
+    <div id="shelf-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width:520px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 id="shelf-modal-title">Thêm Kệ Sách Mới</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeShelfModal()">✕</button>
+        </div>
+        <form onsubmit="submitShelfForm(event)">
+          <input type="hidden" id="shelf-id">
+          <div class="form-group" style="margin-bottom:14px;">
+            <label for="shelf-name">Tên kệ / Vị trí sách:</label>
+            <input type="text" id="shelf-name" required placeholder="VD: Kệ B1 - Tầng 2 (CNTT)">
+          </div>
+          <div class="form-group" style="margin-bottom:20px;">
+            <label for="shelf-desc">Mô tả / Hướng dẫn vị trí (tùy chọn):</label>
+            <textarea id="shelf-desc" rows="3" placeholder="Ghi chú chi tiết vị trí dãy tủ, phòng đọc..."></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeShelfModal()">Hủy</button>
+            <button type="submit" class="btn btn-primary" id="shelf-submit-btn">Lưu Kệ Sách</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    let allShelvesList = [];
+    let filteredShelves = [];
+    let shelvesCurrentPage = 1;
+    let shelvesPageSize = 10;
+    let editingShelfId = null;
+
+    function renderShelvesTable() {
+      const tbody = document.getElementById("shelves-table-body");
+      const pageItems = paginateItems(filteredShelves, shelvesCurrentPage, shelvesPageSize);
+
+      tbody.innerHTML = pageItems.map(s => `
+        <tr>
+          <td><code>${s.shelfId}</code></td>
+          <td><strong>${s.shelfName}</strong></td>
+          <td>${s.description || "-"}</td>
+          <td>
+            <span class="badge ${s.bookCount > 0 ? 'badge-primary' : 'badge-gray'}">
+              ${s.bookCount || 0} đầu sách
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="btn btn-secondary btn-sm" onclick="editShelf('${s.shelfId}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteShelf('${s.shelfId}')" title="${s.bookCount > 0 ? 'Không thể xóa khi còn đầu sách xếp trên kệ' : 'Xóa kệ này'}">
+                Xóa
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      renderPaginationControls({
+        containerId: "shelves-pagination",
+        totalItems: filteredShelves.length,
+        currentPage: shelvesCurrentPage,
+        pageSize: shelvesPageSize,
+        onPageChange: (newPage, newPageSize) => {
+          shelvesCurrentPage = newPage;
+          shelvesPageSize = newPageSize;
+          renderShelvesTable();
+        }
+      });
+    }
+
+    async function loadShelves() {
+      const tbody = document.getElementById("shelves-table-body");
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Đang tải dữ liệu...</td></tr>`;
+
+      try {
+        const shelves = await fetchAPI("/api/shelves");
+        allShelvesList = shelves || [];
+        applyShelfSearch();
+      } catch (e) {
+        console.error("Lỗi khi tải kệ sách:", e);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--danger);">Lỗi tải dữ liệu kệ sách</td></tr>`;
+      }
+    }
+
+    function applyShelfSearch() {
+      const kw = (document.getElementById("search-keyword") ? document.getElementById("search-keyword").value : "").trim().toLowerCase();
+      if (!kw) {
+        filteredShelves = [...allShelvesList];
+      } else {
+        filteredShelves = allShelvesList.filter(s =>
+          (s.shelfName || "").toLowerCase().includes(kw) ||
+          (s.shelfId || "").toLowerCase().includes(kw) ||
+          (s.description || "").toLowerCase().includes(kw)
+        );
+      }
+
+      const tbody = document.getElementById("shelves-table-body");
+      if (filteredShelves.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Không tìm thấy kệ sách nào phù hợp</td></tr>`;
+        renderPaginationControls({
+          containerId: "shelves-pagination",
+          totalItems: 0,
+          currentPage: 1,
+          pageSize: shelvesPageSize,
+          onPageChange: () => {}
+        });
+        return;
+      }
+
+      shelvesCurrentPage = 1;
+      renderShelvesTable();
+    }
+
+    function searchShelves() {
+      updateClearBtn();
+      applyShelfSearch();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById("search-keyword");
+      const btn = document.getElementById("clear-search-btn");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      if (btn) btn.style.display = "none";
+      applyShelfSearch();
+    }
+
+    function updateClearBtn() {
+      const input = document.getElementById("search-keyword");
+      const btn = document.getElementById("clear-search-btn");
+      if (input && btn) {
+        btn.style.display = input.value.trim().length > 0 ? "block" : "none";
+      }
+    }
+
+    function openAddShelfModal() {
+      editingShelfId = null;
+      document.getElementById("shelf-modal-title").textContent = "Thêm Kệ Sách Mới";
+      document.getElementById("shelf-submit-btn").textContent = "Lưu Kệ Sách";
+      document.getElementById("shelf-id").value = "";
+      document.getElementById("shelf-name").value = "";
+      document.getElementById("shelf-desc").value = "";
+      document.getElementById("shelf-modal").classList.add("open");
+      document.getElementById("shelf-name").focus();
+    }
+
+    function editShelf(shelfId) {
+      const s = allShelvesList.find(x => x.shelfId === shelfId);
+      if (!s) return;
+      editingShelfId = shelfId;
+      document.getElementById("shelf-modal-title").textContent = "Cập Nhật Kệ Sách";
+      document.getElementById("shelf-submit-btn").textContent = "Lưu Thay Đổi";
+      document.getElementById("shelf-id").value = s.shelfId;
+      document.getElementById("shelf-name").value = s.shelfName;
+      document.getElementById("shelf-desc").value = s.description || "";
+      document.getElementById("shelf-modal").classList.add("open");
+      document.getElementById("shelf-name").focus();
+    }
+
+    function closeShelfModal() {
+      document.getElementById("shelf-modal").classList.remove("open");
+      editingShelfId = null;
+    }
+
+    async function submitShelfForm(e) {
+      e.preventDefault();
+      const shelfName = document.getElementById("shelf-name").value.trim();
+      const description = document.getElementById("shelf-desc").value.trim();
+
+      if (!shelfName) {
+        showToast("Vui lòng nhập tên kệ sách!", "warning");
+        return;
+      }
+
+      const payload = {
+        shelfId: editingShelfId,
+        shelfName: shelfName,
+        description: description
+      };
+
+      try {
+        if (editingShelfId) {
+          await fetchAPI(`/api/shelves/${encodeURIComponent(editingShelfId)}`, {
+            method: "PUT",
+            body: JSON.stringify(payload)
+          });
+          showToast("Cập nhật kệ sách thành công!", "success");
+        } else {
+          await fetchAPI("/api/shelves", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          showToast("Thêm kệ sách mới thành công!", "success");
+        }
+
+        closeShelfModal();
+        loadShelves();
+      } catch (err) {
+        showToast(err.message || "Không thể lưu kệ sách", "danger");
+      }
+    }
+
+    async function deleteShelf(shelfId) {
+      const s = allShelvesList.find(x => x.shelfId === shelfId);
+      const name = s ? s.shelfName : shelfId;
+
+      if (!confirm(`Bạn có chắc chắn muốn xóa kệ sách "${name}"?`)) return;
+
+      try {
+        await fetchAPI(`/api/shelves/${encodeURIComponent(shelfId)}`, {
+          method: "DELETE"
+        });
+        showToast("Xóa kệ sách thành công!", "success");
+        loadShelves();
+      } catch (err) {
+        showToast(err.message || "Không thể xóa kệ sách", "danger");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("books", "shelves");
+      loadShelves();
+
+      const searchInput = document.getElementById("search-keyword");
+      if (searchInput) {
+        searchInput.addEventListener("input", () => {
+          updateClearBtn();
+          applyShelfSearch();
+        });
+        searchInput.addEventListener("search", () => {
+          updateClearBtn();
+          applyShelfSearch();
+        });
+        searchInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            searchShelves();
+          } else if (e.key === "Escape") {
+            clearSearch();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+

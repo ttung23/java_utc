@@ -58,10 +58,20 @@ public class TestConnection {
                 }
 
                 try (Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT isbn, title, category_id, location FROM BOOKS FETCH FIRST 5 ROWS ONLY")) {
-                    System.out.println("    [BOOKS SAMPLE WITH LOCATION]:");
+                     ResultSet rs = stmt.executeQuery("SELECT shelf_id, shelf_name FROM SHELVES ORDER BY shelf_id")) {
+                    System.out.println("    [SHELVES IN DATABASE]:");
                     while (rs.next()) {
-                        System.out.println("      - " + rs.getString("isbn") + " | " + rs.getString("title") + " | location=" + rs.getString("location"));
+                        System.out.println("      - " + rs.getString(1) + ": " + rs.getString(2));
+                    }
+                } catch (Exception e) {
+                    System.out.println("    [CANH BAO] Loi doc bang SHELVES: " + e.getMessage());
+                }
+
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT isbn, title, category_id, shelf_id, location FROM BOOKS FETCH FIRST 5 ROWS ONLY")) {
+                    System.out.println("    [BOOKS SAMPLE WITH SHELF_ID]:");
+                    while (rs.next()) {
+                        System.out.println("      - " + rs.getString("isbn") + " | " + rs.getString("title") + " | shelf_id=" + rs.getString("shelf_id") + " | location=" + rs.getString("location"));
                     }
                 } catch (Exception e) {
                     System.out.println("    [CANH BAO] Loi doc BOOKS: " + e.getMessage());

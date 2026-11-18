@@ -18,29 +18,35 @@ public class BookRepository {
 
     // ==================== Câu lệnh SQL ====================
     private static final String SQL_FIND_ALL =
-            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, b.location, "
-            + "COALESCE(c.category_name, b.category) AS category "
-            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id ORDER BY b.title";
+            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, b.shelf_id, "
+            + "COALESCE(c.category_name, b.category) AS category, "
+            + "COALESCE(s.shelf_name, b.location) AS location "
+            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id "
+            + "LEFT JOIN SHELVES s ON b.shelf_id = s.shelf_id ORDER BY b.title";
 
     private static final String SQL_FIND_BY_ISBN =
-            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, b.location, "
-            + "COALESCE(c.category_name, b.category) AS category "
-            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id WHERE b.isbn = ?";
+            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, b.shelf_id, "
+            + "COALESCE(c.category_name, b.category) AS category, "
+            + "COALESCE(s.shelf_name, b.location) AS location "
+            + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id "
+            + "LEFT JOIN SHELVES s ON b.shelf_id = s.shelf_id WHERE b.isbn = ?";
 
     private static final String SQL_INSERT =
-            "INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category, category_id, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            "INSERT INTO BOOKS (isbn, title, author, publisher, publish_year, category, category_id, location, shelf_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_UPDATE =
-            "UPDATE BOOKS SET title = ?, author = ?, publisher = ?, publish_year = ?, category = ?, category_id = ?, location = ? WHERE isbn = ?";
+            "UPDATE BOOKS SET title = ?, author = ?, publisher = ?, publish_year = ?, category = ?, category_id = ?, location = ?, shelf_id = ? WHERE isbn = ?";
 
     private static final String SQL_DELETE =
             "DELETE FROM BOOKS WHERE isbn = ?";
 
     private static final String SQL_SEARCH_BY_TITLE =
-            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, b.location, "
-            + "COALESCE(c.category_name, b.category) AS category "
+            "SELECT b.isbn, b.title, b.author, b.publisher, b.publish_year, b.category_id, b.shelf_id, "
+            + "COALESCE(c.category_name, b.category) AS category, "
+            + "COALESCE(s.shelf_name, b.location) AS location "
             + "FROM BOOKS b LEFT JOIN CATEGORIES c ON b.category_id = c.category_id "
-            + "WHERE LOWER(b.title) LIKE ? OR LOWER(b.author) LIKE ? OR LOWER(COALESCE(c.category_name, b.category)) LIKE ? OR LOWER(COALESCE(b.location, '')) LIKE ?";
+            + "LEFT JOIN SHELVES s ON b.shelf_id = s.shelf_id "
+            + "WHERE LOWER(b.title) LIKE ? OR LOWER(b.author) LIKE ? OR LOWER(COALESCE(c.category_name, b.category)) LIKE ? OR LOWER(COALESCE(s.shelf_name, b.location, '')) LIKE ?";
 
     /**
      * Lấy danh sách tất cả sách, sắp xếp theo tên.
@@ -102,6 +108,7 @@ public class BookRepository {
             ps.setString(6, book.getCategory());
             ps.setString(7, book.getCategoryId());
             ps.setString(8, book.getLocation() != null && !book.getLocation().trim().isEmpty() ? book.getLocation().trim() : "Kệ A1 - Tầng 1");
+            ps.setString(9, book.getShelfId());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi thêm sách [" + book.getIsbn() + "]: " + e.getMessage(), e);
@@ -126,7 +133,8 @@ public class BookRepository {
             ps.setString(5, book.getCategory());
             ps.setString(6, book.getCategoryId());
             ps.setString(7, book.getLocation() != null && !book.getLocation().trim().isEmpty() ? book.getLocation().trim() : "Kệ A1 - Tầng 1");
-            ps.setString(8, book.getIsbn());
+            ps.setString(8, book.getShelfId());
+            ps.setString(9, book.getIsbn());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi cập nhật sách [" + book.getIsbn() + "]: " + e.getMessage(), e);
@@ -198,6 +206,9 @@ public class BookRepository {
             book.setCategoryId(rs.getString("category_id"));
         } catch (SQLException ignored) {}
         book.setCategory(rs.getString("category"));
+        try {
+            book.setShelfId(rs.getString("shelf_id"));
+        } catch (SQLException ignored) {}
         try {
             book.setLocation(rs.getString("location"));
         } catch (SQLException ignored) {

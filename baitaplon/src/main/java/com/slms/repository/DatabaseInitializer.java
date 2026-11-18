@@ -49,7 +49,10 @@ public class DatabaseInitializer {
         addColumnIfMissing(conn, "LOANS", "RENEWAL_COUNT", "NUMBER DEFAULT 0");
         addColumnIfMissing(conn, "BOOKS", "LOCATION", "VARCHAR2(100)");
         seedBookLocations(conn);
-        System.out.println(">>> [DB] Schema upgrade (auth/profile/categories/loans/locations) đã hoàn tất.");
+        createShelvesTableIfMissing(conn);
+        addColumnIfMissing(conn, "BOOKS", "SHELF_ID", "VARCHAR2(50)");
+        migrateBookShelves(conn);
+        System.out.println(">>> [DB] Schema upgrade (auth/profile/categories/loans/locations/shelves) đã hoàn tất.");
     }
 
     private static void seedBookLocations(Connection conn) {
@@ -175,6 +178,69 @@ public class DatabaseInitializer {
             }
         } catch (Exception e) {
             System.err.println(">>> [DB] Cảnh báo khi migrate categories: " + e.getMessage());
+        }
+    }
+
+    private static void createShelvesTableIfMissing(Connection conn) {
+        if (!isTableExist(conn, "SHELVES")) {
+            String sql = "CREATE TABLE SHELVES (" +
+                    "    shelf_id VARCHAR2(50) NOT NULL," +
+                    "    shelf_name VARCHAR2(100) NOT NULL UNIQUE," +
+                    "    description VARCHAR2(500)," +
+                    "    CONSTRAINT pk_shelves PRIMARY KEY (shelf_id)" +
+                    ")";
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+                System.out.println(">>> [DB] Đã tạo bảng SHELVES thành công.");
+            } catch (SQLException e) {
+                if (e.getErrorCode() != 955 && !e.getMessage().toLowerCase().contains("already exists")) {
+                    System.err.println(">>> [DB] Cảnh báo khi tạo bảng SHELVES: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void migrateBookShelves(Connection conn) {
+        try {
+            java.util.Set<String> distinctLocations = new java.util.LinkedHashSet<>();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT DISTINCT location FROM BOOKS WHERE location IS NOT NULL")) {
+                while (rs.next()) {
+                    String loc = rs.getString(1);
+                    if (loc != null && !loc.trim().isEmpty()) {
+                        distinctLocations.add(loc.trim());
+                    }
+                }
+            }
+
+            if (distinctLocations.isEmpty()) {
+                distinctLocations.add("Kệ A1 - Tầng 1 (Cơ sở dữ liệu)");
+                distinctLocations.add("Kệ A2 - Tầng 1 (Khu Đại cương)");
+                distinctLocations.add("Kệ B1 - Tầng 2 (CNTT)");
+                distinctLocations.add("Kệ B2 - Tầng 2 (Phần mềm & Kiến trúc)");
+                distinctLocations.add("Kệ B3 - Tầng 2 (Web Dev)");
+                distinctLocations.add("Kệ C1 - Tầng 3 (Sách Ngoại văn)");
+                distinctLocations.add("Kệ C2 - Tầng 3 (Luận văn & Nghiên cứu)");
+                distinctLocations.add("Quầy lưu trữ đặc biệt (Tầng 1)");
+            }
+
+            ShelfRepository shelfRepo = new ShelfRepository();
+            for (String shelfName : distinctLocations) {
+                shelfRepo.getOrCreateByName(shelfName);
+            }
+
+            // Cập nhật shelf_id trong BOOKS cho những cuốn chưa có
+            java.util.List<com.slms.model.Shelf> allShelves = shelfRepo.findAll();
+            for (com.slms.model.Shelf s : allShelves) {
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE BOOKS SET shelf_id = ? WHERE (shelf_id IS NULL OR shelf_id = '') AND LOWER(TRIM(location)) = LOWER(TRIM(?))")) {
+                    ps.setString(1, s.getShelfId());
+                    ps.setString(2, s.getShelfName());
+                    ps.executeUpdate();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println(">>> [DB] Cảnh báo khi migrate shelves: " + e.getMessage());
         }
     }
 

@@ -14,7 +14,8 @@
         <h1 class="page-title">Quản Lý Danh Mục Sách & Bản Sao</h1>
         <p class="page-subtitle">Quản lý đầu sách (ISBN), số lượng bản sao vật lý và mã vạch (Barcode)</p>
       </div>
-      <div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <a href="shelves.html" class="btn btn-secondary">Quản Lý Kệ Sách</a>
         <button class="btn btn-primary" onclick="openAddBookModal()">+ Thêm Đầu Sách Mới</button>
       </div>
     </div>
@@ -33,6 +34,9 @@
           </select>
         </div>
         <button class="btn btn-primary" onclick="searchBooks()">Tìm Kiếm</button>
+        <button type="button" class="btn btn-secondary" onclick="openScannerModal('search-keyword', { onScan: () => searchBooks() })" title="Quét mã vạch hoặc ISBN bằng Camera / Điện thoại" style="display:inline-flex;align-items:center;gap:4px;">
+          📷 Quét Mã
+        </button>
       </div>
     </div>
 
@@ -99,7 +103,12 @@
                 style="width:100%;box-sizing:border-box;" oninput="updateCopyHelpHint()">
             </div>
             <div class="form-group" style="min-width:0;">
-              <label for="new-copy-barcode" style="font-weight:600;font-size:13px;">Mã vạch (Barcode):</label>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <label for="new-copy-barcode" style="font-weight:600;font-size:13px;margin:0;">Mã vạch (Barcode):</label>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openScannerModal('new-copy-barcode', { onScan: () => updateCopyHelpHint() })" title="Quét mã vạch bằng Camera / Điện thoại" style="padding:2px 8px;font-size:11px;">
+                  📷 Quét
+                </button>
+              </div>
               <input type="text" id="new-copy-barcode" placeholder="Tự động (hoặc VD: BC-00016)" 
                 style="width:100%;box-sizing:border-box;" oninput="updateCopyHelpHint()">
             </div>
@@ -160,20 +169,36 @@
               <input type="number" id="book-year" value="2023">
             </div>
           </div>
-          <div class="form-group" style="margin-bottom:12px;">
-            <label for="book-location">Vị trí kệ / quầy lưu kho:</label>
-            <input type="text" id="book-location" list="shelf-suggestions" placeholder="VD: Kệ B1 - Tầng 2 (CNTT)">
-            <datalist id="shelf-suggestions">
-              <option value="Kệ A1 - Tầng 1 (Cơ sở dữ liệu)">
-              <option value="Kệ A2 - Tầng 1 (Khu Đại cương)">
-              <option value="Kệ B1 - Tầng 2 (CNTT)">
-              <option value="Kệ B2 - Tầng 2 (Phần mềm)">
-              <option value="Kệ B2 - Tầng 2 (Kiến trúc)">
-              <option value="Kệ B3 - Tầng 2 (Web Dev)">
-              <option value="Kệ C1 - Tầng 3 (Sách Ngoại văn)">
-              <option value="Kệ C2 - Tầng 3 (Luận văn & Nghiên cứu)">
-              <option value="Quầy lưu trữ đặc biệt (Tầng 1)">
-            </datalist>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label for="book-shelf-select">Vị trí kệ / quầy lưu kho:</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="book-shelf-select" required style="flex:1;">
+                <option value="">-- Chọn vị trí kệ sách --</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddShelfInline()" title="Thêm kệ mới nếu chưa có trong danh sách">
+                + Thêm mới
+              </button>
+            </div>
+
+            <!-- Khung tạo kệ mới ngay trên form -->
+            <div id="inline-add-shelf-box" style="display:none;margin-top:10px;padding:12px 14px;background:#f8fafc;border-radius:8px;border:1px dashed #94a3b8;">
+              <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#1e293b;">
+                Tạo kệ sách mới nhanh:
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="text" id="new-shelf-name" placeholder="Tên kệ (VD: Kệ B4 - Tầng 2 (AI & Data Science)...)" style="flex:1;padding:8px 12px;font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCreateShelf();}">
+                <button type="button" class="btn btn-success btn-sm" onclick="submitCreateShelf()">
+                  ✓ Lưu & Chọn
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddShelfInline(false)">
+                  Hủy
+                </button>
+              </div>
+              <div>
+                <input type="text" id="new-shelf-desc" placeholder="Mô tả / vị trí chi tiết (tùy chọn)" style="width:100%;padding:6px 10px;font-size:12px;box-sizing:border-box;">
+              </div>
+              <div id="shelf-create-msg" style="font-size:12px;margin-top:6px;display:none;"></div>
+            </div>
           </div>
           <div class="form-group" style="margin-bottom:18px;">
             <label for="book-category-select">Thể loại sách:</label>
@@ -213,6 +238,9 @@
   </main>
 
   <script src="js/app.js"></script>
+  <script src="js/html5-qrcode.min.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/scanner-modal.js"></script>
   <script>
     let currentIsbnForCopies = null;
     let editingBookIsbn = null;
@@ -282,11 +310,21 @@
       });
     }
 
-    function populateShelfFilter(books) {
+    async function populateShelfFilter(books) {
       const select = document.getElementById("shelf-filter");
       if (!select) return;
       const currentVal = select.value;
-      const uniqueShelves = [...new Set((books || []).map(b => (b.location || "").trim()).filter(Boolean))].sort();
+      let uniqueShelves = [];
+      try {
+        const shelves = await fetchAPI("/api/shelves") || [];
+        uniqueShelves = shelves.map(s => (s.shelfName || "").trim()).filter(Boolean);
+      } catch (e) {}
+
+      if (uniqueShelves.length === 0) {
+        uniqueShelves = [...new Set((books || []).map(b => (b.location || "").trim()).filter(Boolean))];
+      }
+      uniqueShelves.sort();
+
       select.innerHTML = '<option value="">-- Tất cả vị trí kệ --</option>' +
         uniqueShelves.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join("");
       if (uniqueShelves.includes(currentVal)) {
@@ -659,16 +697,104 @@
       }
     }
 
+    let allShelves = [];
+
+    async function loadShelvesSelect(selectedIdOrName = "") {
+      const select = document.getElementById("book-shelf-select");
+      if (!select) return;
+      try {
+        allShelves = await fetchAPI("/api/shelves") || [];
+        select.innerHTML = '<option value="">-- Chọn vị trí kệ sách --</option>' +
+          allShelves.map(s => `
+            <option value="${s.shelfId}" data-name="${s.shelfName.replace(/"/g, '&quot;')}">
+              ${s.shelfName}
+            </option>
+          `).join("");
+
+        if (selectedIdOrName) {
+          const matchById = allShelves.find(s => s.shelfId === selectedIdOrName);
+          if (matchById) {
+            select.value = matchById.shelfId;
+          } else {
+            const matchByName = allShelves.find(s => (s.shelfName || "").toLowerCase() === selectedIdOrName.toLowerCase());
+            if (matchByName) {
+              select.value = matchByName.shelfId;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Lỗi tải kệ sách:", e);
+      }
+    }
+
+    function toggleAddShelfInline(show = null) {
+      const box = document.getElementById("inline-add-shelf-box");
+      const input = document.getElementById("new-shelf-name");
+      const descInput = document.getElementById("new-shelf-desc");
+      const msg = document.getElementById("shelf-create-msg");
+      if (!box) return;
+      const isVisible = (box.style.display !== "none");
+      const nextShow = (show !== null) ? show : !isVisible;
+      box.style.display = nextShow ? "block" : "none";
+      if (msg) msg.style.display = "none";
+      if (nextShow && input) {
+        input.value = "";
+        if (descInput) descInput.value = "";
+        input.focus();
+      }
+    }
+
+    async function submitCreateShelf() {
+      const input = document.getElementById("new-shelf-name");
+      const descInput = document.getElementById("new-shelf-desc");
+      const msg = document.getElementById("shelf-create-msg");
+      const name = (input ? input.value : "").trim();
+      const desc = (descInput ? descInput.value : "").trim();
+
+      if (!name) {
+        if (msg) {
+          msg.textContent = "Vui lòng nhập tên kệ sách!";
+          msg.style.color = "var(--danger)";
+          msg.style.display = "block";
+        }
+        return;
+      }
+
+      try {
+        const saved = await fetchAPI("/api/shelves", {
+          method: "POST",
+          body: JSON.stringify({ shelfName: name, description: desc })
+        });
+
+        // Tải lại danh sách kệ và tự động chọn kệ vừa tạo
+        await loadShelvesSelect(saved.shelfId);
+        toggleAddShelfInline(false);
+
+        if (msg) {
+          msg.textContent = `✓ Đã tạo và chọn kệ: ${saved.shelfName}`;
+          msg.style.color = "var(--success)";
+          msg.style.display = "block";
+        }
+        showToast(`Đã thêm kệ sách: ${saved.shelfName}`, "success");
+      } catch (err) {
+        if (msg) {
+          msg.textContent = err.message || "Không thể tạo kệ sách";
+          msg.style.color = "var(--danger)";
+          msg.style.display = "block";
+        }
+      }
+    }
+
     function openAddBookModal() {
       editingBookIsbn = null;
       document.getElementById("book-modal-title").textContent = "Thêm Đầu Sách Mới";
       document.getElementById("book-submit-button").textContent = "Lưu Đầu Sách";
       document.getElementById("book-isbn").readOnly = false;
       document.querySelector("#add-book-modal form").reset();
-      const locInput = document.getElementById("book-location");
-      if (locInput) locInput.value = "Kệ A1 - Tầng 1 (Cơ sở dữ liệu)";
       toggleAddCategoryInline(false);
+      toggleAddShelfInline(false);
       loadCategories();
+      loadShelvesSelect();
       document.getElementById("add-book-modal").classList.add("open");
     }
 
@@ -684,10 +810,10 @@
       document.getElementById("book-author").value = book.author;
       document.getElementById("book-publisher").value = book.publisher || "";
       document.getElementById("book-year").value = book.publishYear || "";
-      const locInput = document.getElementById("book-location");
-      if (locInput) locInput.value = book.location || "Kệ A1 - Tầng 1";
       toggleAddCategoryInline(false);
+      toggleAddShelfInline(false);
       loadCategories(book.categoryId || book.category);
+      loadShelvesSelect(book.shelfId || book.location);
       document.getElementById("add-book-modal").classList.add("open");
     }
 
@@ -701,8 +827,11 @@
       const categoryId = catSelect.value;
       const selectedOption = catSelect.options[catSelect.selectedIndex];
       const categoryName = selectedOption ? (selectedOption.dataset.name || selectedOption.textContent.trim()) : "";
-      const locInput = document.getElementById("book-location");
-      const location = (locInput ? locInput.value : "").trim() || "Kệ A1 - Tầng 1";
+
+      const shelfSelect = document.getElementById("book-shelf-select");
+      const shelfId = shelfSelect ? shelfSelect.value : "";
+      const selectedShelfOption = shelfSelect && shelfSelect.selectedIndex >= 0 ? shelfSelect.options[shelfSelect.selectedIndex] : null;
+      const shelfName = selectedShelfOption ? (selectedShelfOption.dataset.name || selectedShelfOption.textContent.trim()) : "Kệ A1 - Tầng 1";
 
       const book = {
         isbn: document.getElementById("book-isbn").value.trim(),
@@ -712,7 +841,8 @@
         publishYear: parseInt(document.getElementById("book-year").value) || null,
         categoryId: categoryId,
         category: categoryName,
-        location: location
+        shelfId: shelfId,
+        location: shelfName
       };
 
       try {

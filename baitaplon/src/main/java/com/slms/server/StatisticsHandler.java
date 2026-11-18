@@ -48,6 +48,17 @@ public class StatisticsHandler implements HttpHandler {
             return;
         }
 
+        String path = exchange.getRequestURI().getPath();
+        if (path.equals("/api/statistics") || path.equals("/api/statistics/") || path.equals("/api/statistics/summary")) {
+            java.util.Map<String, Object> summary = new java.util.HashMap<>();
+            summary.put("totalBooks", bookService.getAllBooks().size());
+            summary.put("totalReaders", readerRepository.findAll().size());
+            summary.put("borrowedLoans", loanService.getBorrowedLoans().size());
+            summary.put("overdueLoans", loanService.getOverdueLoans().size());
+            HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(summary));
+            return;
+        }
+
         byte[] chart;
         try {
             chart = renderChart();
