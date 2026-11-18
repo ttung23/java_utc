@@ -4,7 +4,8 @@ React 18 + TypeScript + Vite + Ant Design 5 — giao diện quản trị thư vi
 
 ## Chạy
 
-Yêu cầu backend đang chạy (mặc định proxy tới `http://localhost:8081`).
+Yêu cầu backend đang chạy (Vite proxy `/api` → `http://127.0.0.1:8081`).
+Chạy BE: `cd backend && SERVER_PORT=8081 ./mvnw spring-boot:run` (cần `docker compose up -d` trước).
 
 ```bash
 cd admin-web

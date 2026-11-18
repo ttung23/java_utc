@@ -10,11 +10,16 @@ import com.library.reader.dto.PagedResult;
 import com.library.reader.dto.ReaderDetailResponse;
 import com.library.reader.dto.ReaderListItem;
 import com.library.reader.dto.UpdateReaderRequest;
+import com.library.reader.service.ReaderActivityService;
+import com.library.reader.service.ReaderImportExportService;
 import com.library.reader.service.ReaderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -25,8 +30,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/readers")
@@ -35,6 +42,8 @@ import java.util.List;
 public class ReaderController {
 
     private final ReaderService readerService;
+    private final ReaderActivityService readerActivityService;
+    private final ReaderImportExportService readerImportExportService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
@@ -69,6 +78,24 @@ public class ReaderController {
         return ApiResponse.ok(readerService.lookupByCard(card));
     }
 
+    @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Xuất Excel độc giả")
+    public ResponseEntity<byte[]> export() {
+        byte[] data = readerImportExportService.exportExcel();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=readers.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(data);
+    }
+
+    @PostMapping("/import")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Import Excel độc giả")
+    public ApiResponse<Map<String, Object>> importExcel(@RequestParam("file") MultipartFile file) {
+        return ApiResponse.ok(readerImportExportService.importExcel(file), "Import xong");
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     @Operation(summary = "Chi tiết độc giả")
@@ -81,6 +108,34 @@ public class ReaderController {
     @Operation(summary = "Kiểm tra điều kiện mượn (core)")
     public ApiResponse<EligibilityResponse> eligibility(@PathVariable Long id) {
         return ApiResponse.ok(readerService.eligibility(id));
+    }
+
+    @GetMapping("/{id}/borrowing")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Sách đang mượn của độc giả")
+    public ApiResponse<List<Map<String, Object>>> borrowing(@PathVariable Long id) {
+        return ApiResponse.ok(readerActivityService.borrowing(id));
+    }
+
+    @GetMapping("/{id}/history")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Lịch sử phiếu mượn")
+    public ApiResponse<List<Map<String, Object>>> history(@PathVariable Long id) {
+        return ApiResponse.ok(readerActivityService.history(id));
+    }
+
+    @GetMapping("/{id}/fines")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Khoản phạt của độc giả")
+    public ApiResponse<List<Map<String, Object>>> fines(@PathVariable Long id) {
+        return ApiResponse.ok(readerActivityService.fines(id));
+    }
+
+    @GetMapping("/{id}/reservations")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @Operation(summary = "Đặt trước của độc giả")
+    public ApiResponse<List<Map<String, Object>>> reservations(@PathVariable Long id) {
+        return ApiResponse.ok(readerActivityService.reservations(id));
     }
 
     @PostMapping

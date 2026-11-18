@@ -145,6 +145,13 @@ export function ReadersPage() {
                 s ? <Tag color={statusColorMap[s] || 'default'}>{s}</Tag> : '—',
             },
             {
+              title: 'TT TK',
+              dataIndex: 'userStatus',
+              width: 110,
+              render: (s?: string) =>
+                s ? <Tag color={statusColorMap[s] || (s === 'PENDING' ? 'orange' : 'default')}>{s}</Tag> : '—',
+            },
+            {
               title: 'Cờ',
               width: 100,
               render: (_, r) =>

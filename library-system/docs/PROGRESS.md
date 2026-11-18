@@ -1,33 +1,43 @@
 # PROGRESS
 
-## Đã xong
-- [x] **B0** — Khởi tạo monorepo, docs, `.cursor/rules`, Spring Boot nền, docker-compose, placeholder FE
-- [x] **B1** — Schema Flyway V1 (SPEC mục 8) + Entities/Repos + Auth JWT + RBAC + Audit + DataSeeder (profile `dev`) + kiểm tra login/403
-- [x] **B2 catalog** — CRUD `/categories`, `/authors`, `/publishers`, `/locations`, `/languages`, `/document-types` (GET public; ghi STAFF/ADMIN; soft-delete; tree categories; `CatalogApiTest`)
-- [x] **B2 book/copy (core)** — Books + copies APIs SPEC 9.3 (search/filter, detail+copySummary, CRUD soft-delete, new/popular, add copies + barcode `BC-{bookId}-{copyNo}`, lookup/list/patch copies). Skip: import/export, cover upload, PDF labels, related.
-- [x] **B2 reader/card (core)** — `/reader-types` CRUD (GET STAFF+, ghi ADMIN); `/readers` list/me/lookup/detail/create/update/block/unblock/blacklist + `/eligibility` (không borrow); `/cards` list/issue/renew/report-lost. Skip: import Excel, nested borrowing/history/fines/reservations (trả list rỗng).
-- [x] **F0/F1 admin-web** — Vite+React+AntD: login JWT, layout sidebar SPEC 10.1, dashboard, catalog gắn API, route placeholder còn lại
-- [x] **F2 partial** — Trang `/books` + `/copies` + `/catalog` gắn API thật
-- [x] **F2 readers UI** — `/readers`, `/readers/:id` (+ eligibility)
+## Backend — HOÀN THÀNH (B0–B2 + phụ trợ)
 
-## Đang dở
-- (không)
+- [x] B0/B1 — monorepo, Flyway schema SPEC 8, Auth JWT/RBAC, Audit, Seed
+- [x] Catalog / Books / Copies — CRUD, search, barcode, related, cover upload, Excel import/export, PDF tem, copy history
+- [x] Readers / Cards / Reader-types — CRUD, eligibility, nested borrowing/history/fines/reservations, Excel import/export
+- [x] Borrow/Return/Renew — counter/online/approve/handover/return/renew + PDF phiếu + jobs expire
+- [x] Reservation — create/list/me/cancel + expire READY job + notify
+- [x] Fine / Payment — list/waive/collect/request/confirm/refund
+- [x] Notification — in-app + email best-effort, templates, daily reminders (due/overdue/card)
+- [x] Inventory — suppliers, imports, audits, disposals
+- [x] Reports — dashboard, overdue (+xlsx), fines, top-books, inventory
+- [x] Settings / Holidays / Staff / CMS — news, banners, favorites, reviews, suggestions
+- [x] Deps: POI, OpenPDF, ZXing, upload static `/uploads/**`
+- [x] CORS patterns cho Vite LAN (`localhost` / `192.168.*` / `10.*`)
 
-## Còn lại (theo Playbook)
-- [ ] B2-BORROW — Module mượn/trả (lõi)
-- [ ] B2.x — reservation → fine…
-- [ ] B3 — OpenAPI → TS client
-- [ ] F2–F4 — Các màn còn lại + client-web
+## Frontend
 
-## Tồn đọng
-- Chưa có ảnh UI trong `docs/ui/**` — SCREEN_MAP ghi chú CHƯA CÓ ẢNH; khi có ảnh cần cập nhật và làm F0 theo ảnh.
-- Project cũ `baitaplon` (SLMS) giữ nguyên; hệ thống mới nằm ở `library-system/`.
-- Playbook yêu cầu Java 21; máy hiện tại JDK 17 → backend dùng Java 17 + Spring Boot 3.4.1 (nâng JDK khi sẵn sàng).
-- Port 8080 có thể bị SLMS cũ chiếm — dùng `SERVER_PORT=8081` hoặc tắt process cũ.
+### Admin-web
+- [x] Core: dashboard, mượn/trả/online/overdue, đặt trước, phạt, thanh toán, báo cáo
+- [x] Cards, locations, reader-types, news, banners, profile
+- [x] Staff, settings, holidays, audit-logs
+- [ ] UI inventory (nhập kho / kiểm kê) — API có, chưa làm màn hình
+- [x] OpenAPI snapshot `docs/openapi.json` (129 paths)
+- [ ] Sinh TS client từ OpenAPI (optional)
 
-## Tài khoản seed (dev)
+### Client-web
+- [x] Scaffold + trang chủ, tra cứu, chi tiết sách, login/register
+- [x] Me: borrows, reservations, fines, favorites, notifications, news detail
+- [ ] Polish UI / ảnh `docs/ui/**` + e2e
+
+## Ghi chú
+- Schema Flyway tối ưu PostgreSQL (`TIMESTAMPTZ`, `jsonb`). Profile `local-h2` không dùng migrate.
+- Admin: http://localhost:5173 · Client: http://localhost:5174 · API: http://127.0.0.1:8081
+- JDK: máy có thể 17/21; pom `java.version=17`.
+
+## Seed (dev)
 | Email | Mật khẩu | Role |
 |---|---|---|
 | admin@lib.vn | Admin@123 | ADMIN |
-| staff1@lib.vn / staff2@lib.vn | Staff@123 | STAFF |
-| reader1@lib.vn … reader20@lib.vn | User@123 | USER |
+| staff1@lib.vn | Staff@123 | STAFF |
+| reader1@lib.vn | User@123 | USER |

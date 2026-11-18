@@ -34,6 +34,8 @@ export const statusColorMap: Record<string, string> = {
   AVAILABLE: tokens.color.available,
   PAID: tokens.color.success,
   PENDING: tokens.color.pending,
+  INACTIVE: tokens.color.closed,
+  LOCKED: tokens.color.overdue,
   APPROVED: tokens.color.pending,
   BORROWING: tokens.color.borrowing,
   OVERDUE: tokens.color.overdue,

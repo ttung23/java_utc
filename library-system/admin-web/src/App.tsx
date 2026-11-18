@@ -14,6 +14,25 @@ import { BooksPage } from '@/pages/BooksPage';
 import { CopiesPage } from '@/pages/CopiesPage';
 import { ReadersPage } from '@/pages/ReadersPage';
 import { ReaderDetailPage } from '@/pages/ReaderDetailPage';
+import { BorrowCreatePage } from '@/pages/BorrowCreatePage';
+import { BorrowListPage } from '@/pages/BorrowListPage';
+import { BorrowOnlinePage } from '@/pages/BorrowOnlinePage';
+import { ReturnsPage } from '@/pages/ReturnsPage';
+import { OverduePage } from '@/pages/OverduePage';
+import { ReservationsPage } from '@/pages/ReservationsPage';
+import { FinesPage } from '@/pages/FinesPage';
+import { PaymentsPage } from '@/pages/PaymentsPage';
+import { ReportsPage } from '@/pages/ReportsPage';
+import { CardsPage } from '@/pages/CardsPage';
+import { LocationsPage } from '@/pages/LocationsPage';
+import { ReaderTypesPage } from '@/pages/ReaderTypesPage';
+import { NewsPage } from '@/pages/NewsPage';
+import { BannersPage } from '@/pages/BannersPage';
+import { ProfilePage } from '@/pages/ProfilePage';
+import { StaffPage } from '@/pages/StaffPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { HolidaysPage } from '@/pages/HolidaysPage';
+import { AuditLogsPage } from '@/pages/AuditLogsPage';
 import { tokens } from '@/styles/tokens';
 
 dayjs.locale('vi');
@@ -49,30 +68,30 @@ export default function App() {
                 <Route element={<AppLayout />}>
                   <Route index element={<DashboardPage />} />
                   <Route path="catalog" element={<CatalogPage />} />
-                  <Route path="borrows/create" element={<PlaceholderPage title="Tạo phiếu mượn (quầy)" />} />
-                  <Route path="returns" element={<PlaceholderPage title="Trả sách" />} />
-                  <Route path="borrows/online" element={<PlaceholderPage title="Yêu cầu mượn online" />} />
-                  <Route path="borrows" element={<PlaceholderPage title="Danh sách phiếu mượn" />} />
-                  <Route path="borrows/overdue" element={<PlaceholderPage title="Sách quá hạn" />} />
-                  <Route path="reservations" element={<PlaceholderPage title="Đặt trước" />} />
-                  <Route path="fines" element={<PlaceholderPage title="Khoản phạt" />} />
-                  <Route path="payments" element={<PlaceholderPage title="Biên lai thanh toán" />} />
+                  <Route path="borrows/create" element={<BorrowCreatePage />} />
+                  <Route path="returns" element={<ReturnsPage />} />
+                  <Route path="borrows/online" element={<BorrowOnlinePage />} />
+                  <Route path="borrows" element={<BorrowListPage />} />
+                  <Route path="borrows/overdue" element={<OverduePage />} />
+                  <Route path="reservations" element={<ReservationsPage />} />
+                  <Route path="fines" element={<FinesPage />} />
+                  <Route path="payments" element={<PaymentsPage />} />
                   <Route path="readers" element={<ReadersPage />} />
                   <Route path="readers/:id" element={<ReaderDetailPage />} />
-                  <Route path="cards" element={<PlaceholderPage title="Thẻ thư viện" />} />
+                  <Route path="cards" element={<CardsPage />} />
                   <Route path="books" element={<BooksPage />} />
                   <Route path="copies" element={<CopiesPage />} />
-                  <Route path="locations" element={<PlaceholderPage title="Vị trí kệ" />} />
-                  <Route path="news" element={<PlaceholderPage title="Tin tức" />} />
-                  <Route path="banners" element={<PlaceholderPage title="Banner" />} />
-                  <Route path="reports" element={<PlaceholderPage title="Báo cáo & Thống kê" />} />
-                  <Route path="profile" element={<PlaceholderPage title="Hồ sơ" />} />
+                  <Route path="locations" element={<LocationsPage />} />
+                  <Route path="news" element={<NewsPage />} />
+                  <Route path="banners" element={<BannersPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
                   <Route element={<RequireAdmin />}>
-                    <Route path="reader-types" element={<PlaceholderPage title="Loại độc giả" />} />
-                    <Route path="staff" element={<PlaceholderPage title="Nhân viên" />} />
-                    <Route path="settings" element={<PlaceholderPage title="Cấu hình" />} />
-                    <Route path="holidays" element={<PlaceholderPage title="Ngày nghỉ" />} />
-                    <Route path="audit-logs" element={<PlaceholderPage title="Nhật ký hoạt động" />} />
+                    <Route path="reader-types" element={<ReaderTypesPage />} />
+                    <Route path="staff" element={<StaffPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="holidays" element={<HolidaysPage />} />
+                    <Route path="audit-logs" element={<AuditLogsPage />} />
                   </Route>
                 </Route>
               </Route>

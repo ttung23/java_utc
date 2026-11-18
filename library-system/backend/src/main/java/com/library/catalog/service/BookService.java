@@ -31,6 +31,7 @@ import com.library.common.enums.BookStatus;
 import com.library.common.enums.CopyCondition;
 import com.library.common.enums.CopyStatus;
 import com.library.common.exception.BusinessException;
+import com.library.common.storage.FileStorageService;
 import com.library.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -49,6 +51,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -67,6 +70,7 @@ public class BookService {
     private final DocumentTypeRepository documentTypeRepository;
     private final LocationRepository locationRepository;
     private final BookCopyService bookCopyService;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public PagedResult<BookListItem> list(
@@ -159,6 +163,55 @@ public class BookService {
         book.setStatus(BookStatus.HIDDEN);
         book.setUpdatedBy(SecurityUtils.currentUserIdOrNull());
         bookRepository.save(book);
+    }
+
+    public BookDetailResponse uploadCover(Long id, MultipartFile file) {
+        Book book = requireActive(id);
+        String url = fileStorageService.storeCover(file);
+        book.setCoverUrl(url);
+        book.setUpdatedBy(SecurityUtils.currentUserIdOrNull());
+        bookRepository.save(book);
+        return toDetail(book);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BookListItem> related(Long id) {
+        Book book = requireActive(id);
+        Set<Long> relatedIds = new LinkedHashSet<>();
+        Set<Long> authorIds = new LinkedHashSet<>();
+        bookAuthorRepository.findByBookIdOrderBySortOrderAsc(id).forEach(ba -> authorIds.add(ba.getAuthorId()));
+        for (Long authorId : authorIds) {
+            bookAuthorRepository.findAll().stream()
+                    .filter(x -> Objects.equals(x.getAuthorId(), authorId))
+                    .map(BookAuthor::getBookId)
+                    .filter(bookId -> !Objects.equals(bookId, id))
+                    .forEach(relatedIds::add);
+        }
+        Set<Long> categoryIds = new LinkedHashSet<>();
+        bookCategoryRepository.findByBookId(id).forEach(bc -> categoryIds.add(bc.getCategoryId()));
+        for (Long categoryId : categoryIds) {
+            bookCategoryRepository.findAll().stream()
+                    .filter(x -> Objects.equals(x.getCategoryId(), categoryId))
+                    .map(BookCategory::getBookId)
+                    .filter(bookId -> !Objects.equals(bookId, id))
+                    .forEach(relatedIds::add);
+        }
+        List<Book> books = relatedIds.stream()
+                .map(bookRepository::findByIdAndDeletedAtIsNull)
+                .flatMap(Optional::stream)
+                .filter(b -> b.getStatus() == BookStatus.ACTIVE)
+                .limit(12)
+                .toList();
+        if (books.isEmpty() && book.getPublisher() != null) {
+            Long publisherId = book.getPublisher().getId();
+            books = bookRepository.findAll().stream()
+                    .filter(b -> b.getDeletedAt() == null && b.getStatus() == BookStatus.ACTIVE)
+                    .filter(b -> b.getPublisher() != null && Objects.equals(b.getPublisher().getId(), publisherId))
+                    .filter(b -> !Objects.equals(b.getId(), id))
+                    .limit(12)
+                    .toList();
+        }
+        return toListItems(books);
     }
 
     private void applyFields(Book book, BookRequest request) {

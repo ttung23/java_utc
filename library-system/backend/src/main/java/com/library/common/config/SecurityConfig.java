@@ -41,6 +41,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/reset-password",
                                 "/api/v1/auth/verify-email",
                                 "/api/v1/auth/refresh",
+                                "/uploads/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs",
@@ -61,6 +62,12 @@ public class SecurityConfig {
                                 "/api/v1/books/new",
                                 "/api/v1/books/popular",
                                 "/api/v1/books/*"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/news/public",
+                                "/api/v1/news/slug/**",
+                                "/api/v1/banners/public",
+                                "/api/v1/reviews"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

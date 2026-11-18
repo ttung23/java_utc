@@ -6,10 +6,12 @@ import com.library.catalog.dto.PagedResult;
 import com.library.catalog.dto.UpdateCopyRequest;
 import com.library.catalog.entity.Book;
 import com.library.catalog.entity.BookCopy;
+import com.library.catalog.entity.CopyHistory;
 import com.library.catalog.entity.Location;
 import com.library.catalog.repository.BookCopyRepository;
 import com.library.catalog.repository.BookCopySpecifications;
 import com.library.catalog.repository.BookRepository;
+import com.library.catalog.repository.CopyHistoryRepository;
 import com.library.catalog.repository.LocationRepository;
 import com.library.catalog.support.CatalogPageSupport;
 import com.library.common.enums.AcquisitionSource;
@@ -28,6 +30,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class BookCopyService {
     private final BookCopyRepository bookCopyRepository;
     private final BookRepository bookRepository;
     private final LocationRepository locationRepository;
+    private final CopyHistoryRepository copyHistoryRepository;
 
     @Transactional(readOnly = true)
     public List<BookCopyResponse> listByBook(Long bookId) {
@@ -89,7 +93,9 @@ public class BookCopyService {
             copy.setAcquisitionSource(acquisitionSource);
             copy.setCreatedBy(userId);
             copy.setUpdatedBy(userId);
-            created.add(bookCopyRepository.save(copy));
+            BookCopy saved = bookCopyRepository.save(copy);
+            logHistory(saved, "CREATED", null, CopyStatus.AVAILABLE.name(), "COPY", saved.getId(), "Tạo bản sao");
+            created.add(saved);
         }
         return created;
     }
@@ -108,6 +114,7 @@ public class BookCopyService {
         BookCopy copy = bookCopyRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException("NOT_FOUND", "Không tìm thấy bản sao", HttpStatus.NOT_FOUND));
 
+        String fromStatus = copy.getStatus() != null ? copy.getStatus().name() : null;
         if (request.getStatus() != null) {
             copy.setStatus(request.getStatus());
         }
@@ -121,7 +128,70 @@ public class BookCopyService {
             copy.setLocation(resolveLocation(request.getLocationId()));
         }
         copy.setUpdatedBy(SecurityUtils.currentUserIdOrNull());
-        return toResponse(bookCopyRepository.save(copy));
+        BookCopy saved = bookCopyRepository.save(copy);
+        String toStatus = saved.getStatus() != null ? saved.getStatus().name() : null;
+        logHistory(saved, "UPDATED", fromStatus, toStatus, "COPY", saved.getId(), request.getNote());
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> history(Long copyId) {
+        bookCopyRepository.findByIdAndDeletedAtIsNull(copyId)
+                .orElseThrow(() -> new BusinessException("NOT_FOUND", "Không tìm thấy bản sao", HttpStatus.NOT_FOUND));
+        return copyHistoryRepository.findByCopy_IdOrderByCreatedAtDesc(copyId).stream().map(h -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", h.getId());
+            m.put("event", h.getEvent());
+            m.put("fromStatus", h.getFromStatus());
+            m.put("toStatus", h.getToStatus());
+            m.put("refType", h.getRefType());
+            m.put("refId", h.getRefId());
+            m.put("actorId", h.getActorId());
+            m.put("note", h.getNote());
+            m.put("createdAt", h.getCreatedAt());
+            return m;
+        }).toList();
+    }
+
+    public byte[] labelsPdf(List<Long> copyIds) {
+        try {
+            List<BookCopy> copies;
+            if (copyIds == null || copyIds.isEmpty()) {
+                copies = bookCopyRepository.findAll().stream()
+                        .filter(c -> c.getDeletedAt() == null)
+                        .limit(100)
+                        .toList();
+            } else {
+                copies = copyIds.stream()
+                        .map(id -> bookCopyRepository.findByIdAndDeletedAtIsNull(id)
+                                .orElseThrow(() -> new BusinessException("NOT_FOUND", "Copy không tồn tại: " + id, HttpStatus.NOT_FOUND)))
+                        .toList();
+            }
+            List<com.library.common.pdf.PdfSupport.Label> labels = copies.stream()
+                    .map(c -> new com.library.common.pdf.PdfSupport.Label(
+                            c.getBook() != null ? c.getBook().getTitle() : "Sách",
+                            c.getBarcode()))
+                    .toList();
+            return com.library.common.pdf.PdfSupport.barcodeLabels(labels);
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new BusinessException("PDF_FAILED", "Tạo PDF tem thất bại: " + ex.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public void logHistory(BookCopy copy, String event, String from, String to, String refType, Long refId, String note) {
+        CopyHistory h = new CopyHistory();
+        h.setCopy(copy);
+        h.setEvent(event);
+        h.setFromStatus(from);
+        h.setToStatus(to);
+        h.setRefType(refType);
+        h.setRefId(refId);
+        h.setActorId(SecurityUtils.currentUserIdOrNull());
+        h.setNote(note);
+        copyHistoryRepository.save(h);
     }
 
     @Transactional(readOnly = true)

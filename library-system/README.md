@@ -2,47 +2,36 @@
 
 Hệ thống quản lý thư viện theo `docs/LIBRARY_MANAGEMENT_SPEC.md` + `docs/CURSOR_PROMPT_PLAYBOOK.md`.
 
-**Stack:** Java 21 + Spring Boot + PostgreSQL + Flyway · React 18 + TypeScript + Vite (admin-web / client-web).
+**Stack:** Java 17/21 + Spring Boot 3 + PostgreSQL + Flyway · React 18 + TypeScript + Vite (admin-web / client-web).
 
-> Project cũ `baitaplon` (SLMS) giữ nguyên. Code mới nằm ở thư mục này.
+## Tài liệu cho đồng nghiệp
 
-## Cấu trúc
+| File | Nội dung |
+|---|---|
+| [`docs/HUONG_DAN_CAI_DAT.md`](docs/HUONG_DAN_CAI_DAT.md) | Pull → Docker → BE → **Admin** → **Client** |
+| [`docs/NGHIEP_VU.md`](docs/NGHIEP_VU.md) | Nghiệp vụ admin + **phía client** |
+| [`docs/PROGRESS.md`](docs/PROGRESS.md) | Tiến độ |
 
-```
-library-system/
-├── docs/                 # SPEC, Playbook, SCREEN_MAP, PROGRESS, ui/
-├── backend/              # Spring Boot API
-├── admin-web/            # React Admin (F0+)
-├── client-web/           # React Client (F0+)
-└── docker-compose.yml    # PostgreSQL + MailHog
-```
-
-## Phase hiện tại: **B0** (nền tảng)
-
-Chưa có nghiệp vụ. Có health API + Swagger + CORS + exception handler + Flyway placeholder.
-
-## Chạy nhanh (không cần Docker — H2)
+## Chạy nhanh (3 app)
 
 ```bash
-cd backend
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local-h2" "-Dspring-boot.run.arguments=--server.port=8081"
-```
-
-- Health: http://localhost:8081/api/v1/health  
-- Swagger: http://localhost:8081/swagger-ui.html  
-
-(Port `8080` có thể đang bị project `baitaplon` chiếm.)
-
-## Chạy với PostgreSQL (đúng profile `dev`)
-
-```bash
+# 1) DB
 docker compose up -d
-cd backend
-.\mvnw.cmd spring-boot:run
+
+# 2) API (bắt buộc cổng 8081 vì FE proxy)
+cd backend && SERVER_PORT=8081 ./mvnw spring-boot:run
+
+# 3) Admin — http://localhost:5173
+cd admin-web && npm install && npm run dev
+
+# 4) Client (độc giả) — http://localhost:5174
+cd client-web && npm install && npm run dev
 ```
 
-## Bước tiếp theo (Playbook)
+| App | URL | Tài khoản demo |
+|---|---|---|
+| Backend | http://localhost:8081 | Swagger: `/swagger-ui.html` |
+| **Admin-web** | http://localhost:5173 | `admin@lib.vn` / `Admin@123` |
+| **Client-web** | http://localhost:5174 | `reader1@lib.vn` / `User@123` |
 
-**B1** — Flyway schema đầy đủ (SPEC mục 8) + Auth JWT + RBAC + Seed.
-
-Đặt ảnh UI vào `docs/ui/admin|client` rồi cập nhật `docs/SCREEN_MAP.md`.
+Chi tiết / troubleshooting: `docs/HUONG_DAN_CAI_DAT.md`.

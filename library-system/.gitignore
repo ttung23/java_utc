@@ -12,6 +12,8 @@ Thumbs.db
 # Backend
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
+backend/uploads/
+uploads/
 
 # Frontend
 admin-web/node_modules/

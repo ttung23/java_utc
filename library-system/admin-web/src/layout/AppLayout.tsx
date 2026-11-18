@@ -11,6 +11,7 @@ import {
   theme,
   Typography,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   BellOutlined,
   LogoutOutlined,
@@ -25,7 +26,9 @@ import { tokens } from '@/styles/tokens';
 
 const { Header, Sider, Content } = Layout;
 
-function toAntdItems(items: AppMenuItem[]) {
+type MenuItem = NonNullable<MenuProps['items']>[number];
+
+function toAntdItems(items: AppMenuItem[]): MenuItem[] {
   return items.map((item) => ({
     key: item.path || item.key,
     icon: item.icon,

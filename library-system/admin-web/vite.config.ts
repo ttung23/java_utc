@@ -17,6 +17,12 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8081',
         changeOrigin: true,
+        // Avoid Spring CORS 403 when browser Origin is a LAN Vite URL.
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader('Origin', 'http://localhost:5173');
+          });
+        },
       },
     },
   },

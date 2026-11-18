@@ -14,4 +14,6 @@ public interface AuthorRepository extends JpaRepository<Author, Long> {
     Page<Author> findByDeletedAtIsNull(Pageable pageable);
 
     Page<Author> findByDeletedAtIsNullAndNameContainingIgnoreCase(String name, Pageable pageable);
+
+    Optional<Author> findFirstByDeletedAtIsNullAndNameIgnoreCase(String name);
 }

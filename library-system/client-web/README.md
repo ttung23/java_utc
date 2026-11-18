@@ -1,5 +1,15 @@
 # client-web
 
-React 18 + TypeScript + Vite + Tailwind (client độc giả).
+Cổng độc giả (React 18 + TypeScript + Vite + Ant Design).
 
-Khởi tạo ở phase **F0/F1**. Hiện là placeholder theo Playbook B0.
+```bash
+cd client-web
+npm install
+npm run dev
+```
+
+Mở: http://localhost:5174  
+
+Yêu cầu BE tại `http://127.0.0.1:8081` (Vite proxy `/api`).
+
+Demo: `reader1@lib.vn` / `User@123`

@@ -13,6 +13,8 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
 
     Optional<Book> findByIdAndDeletedAtIsNull(Long id);
 
+    Optional<Book> findByIsbn13AndDeletedAtIsNull(String isbn13);
+
     List<Book> findByDeletedAtIsNullAndStatusOrderByCreatedAtDesc(BookStatus status, Pageable pageable);
 
     List<Book> findByDeletedAtIsNullAndStatusOrderByBorrowCountDesc(BookStatus status, Pageable pageable);

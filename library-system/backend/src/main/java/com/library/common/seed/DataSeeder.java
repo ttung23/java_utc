@@ -177,6 +177,9 @@ public class DataSeeder implements ApplicationRunner {
         defaults.put("default_currency", "VND");
         defaults.put("date_format", "DD/MM/YYYY");
         defaults.put("fine_cap_by_price", true);
+        defaults.put("skip_holidays_in_fine", false);
+        defaults.put("damaged_minor_percent", 20);
+        defaults.put("damaged_major_percent", 60);
         defaults.put("card_validity_months", 12);
 
         for (Map.Entry<String, Object> e : defaults.entrySet()) {
