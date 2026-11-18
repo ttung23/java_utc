@@ -29,13 +29,19 @@
 
 | # | Ảnh | Route | Mục SPEC | API | Quyền | Ghi chú |
 |---|---|---|---|---|---|---|
-| 01 | ui/client/01-home.png | / | 11.2 | GET /books/new, /popular, /news | Public | CHƯA CÓ ẢNH |
-| 02 | ui/client/02-book-search.png | /books | 11.2 | GET /books | Public | |
-| 03 | ui/client/03-book-detail.png | /books/:id | 11.2 | GET /books/:id | Public | Giỏ mượn / Đặt trước |
+| 01 | ui/client/01-home-a.png … 01-home-d.png | / | 11.2 | GET /books/new, /popular, /news, /categories | Public | Mockup 4 phần trang chủ |
+| 01b | — | /news | 11.2 | GET /news/public | Public | Tin tức & hoạt động |
+| 01c | — | /sach-moi | 11.2 | GET /books/new | Public | Sách mới (menu) |
+| 01d | — | /rules | 11.2 | Trang tĩnh | Public | Quy định mượn trả |
+| 01e | — | /about | 11.2 | Trang tĩnh | Public | Giới thiệu |
+| 01f | — | /contact | 11.2 | Trang tĩnh | Public | Liên hệ |
+| 02 | ui/client/02-book-search-a.png … b.png | /books | 11.2 | GET /books, /categories | Public | Sidebar lọc + thẻ sách + float giỏ |
+| 03 | ui/client/03-book-detail.png | /books/:id | 11.2 | GET /books/:id, /copies, /related, /reviews | Public | Giỏ mượn / Đặt trước / bản sao |
 | 04 | ui/client/04-login.png | /login | 11.2 | POST /auth/login | Guest | |
 | 05 | ui/client/05-register.png | /register | 11.2 | POST /auth/register | Guest | |
-| 06 | ui/client/06-borrow-cart.png | /borrow-cart | 7.6 | POST /borrows/online | USER | |
+| 06 | ui/client/06-borrow-cart-a.png … b.png | /borrow-cart | 7.6 | POST /borrows/online | USER | 3 bước: giỏ → hẹn nhận → mã phiếu |
 | 07 | ui/client/07-my-borrows.png | /my/borrows | 11.2 | GET /borrows/me | USER | |
 | 08 | ui/client/08-my-reservations.png | /my/reservations | 11.2 | GET /reservations/me | USER | |
 | 09 | ui/client/09-my-fines.png | /my/fines | 11.2 | GET /fines/me | USER | |
+| 09b | ui/client/09-favorites.png | /me/favorites | 11.2 | GET /favorites/me, /reviews/me | USER | Wishlist + đánh giá |
 | 10 | ui/client/10-my-dashboard.png | /my/dashboard | 11.2 | GET /auth/me + stats | USER | |

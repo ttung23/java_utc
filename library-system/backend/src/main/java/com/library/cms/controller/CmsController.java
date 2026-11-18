@@ -117,6 +117,11 @@ public class CmsController {
         return ApiResponse.ok(null);
     }
 
+    @GetMapping("/reviews/me")
+    public ApiResponse<List<Map<String, Object>>> myReviews() {
+        return ApiResponse.ok(cmsService.myReviews());
+    }
+
     @GetMapping("/reviews")
     public ApiResponse<List<Map<String, Object>>> reviews(@RequestParam Long bookId) {
         return ApiResponse.ok(cmsService.reviewsByBook(bookId));

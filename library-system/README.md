@@ -9,6 +9,7 @@ Hệ thống quản lý thư viện theo `docs/LIBRARY_MANAGEMENT_SPEC.md` + `do
 | File | Nội dung |
 |---|---|
 | [`docs/HUONG_DAN_CAI_DAT.md`](docs/HUONG_DAN_CAI_DAT.md) | Pull → Docker → BE → **Admin** → **Client** |
+| [`docs/HUONG_DAN_CAI_DAT_WINDOWS.md`](docs/HUONG_DAN_CAI_DAT_WINDOWS.md) | **Windows**: cài JDK/Node/Git + có Docker / chưa Docker |
 | [`docs/NGHIEP_VU.md`](docs/NGHIEP_VU.md) | Nghiệp vụ admin + **phía client** |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Tiến độ |
 
