@@ -28,16 +28,35 @@ if not defined JAVA_HOME (
 :java_ready
 set "PATH=%JAVA_HOME%\bin;%PATH%"
 
-REM 2. Dam bao thu vien da san sang
+REM 2. Dam bao thu vien da san sang (tu dong tim ojdbc11.jar tren moi may)
 if not exist "lib" mkdir "lib"
 if not exist "lib\ojdbc11.jar" (
-    if exist "C:\app\sumaytinh0912350956\product\26ai\dbhomeFree\jdbc\lib\ojdbc11.jar" (
-        copy "C:\app\sumaytinh0912350956\product\26ai\dbhomeFree\jdbc\lib\ojdbc11.jar" "lib\ojdbc11.jar" > nul 2>&1
+    REM Thu tim ojdbc11.jar trong ORACLE_HOME neu co
+    if defined ORACLE_HOME (
+        if exist "%ORACLE_HOME%\jdbc\lib\ojdbc11.jar" copy "%ORACLE_HOME%\jdbc\lib\ojdbc11.jar" "lib\ojdbc11.jar" >nul 2>&1
+        if exist "%ORACLE_HOME%\jdbc\lib\ojdbc8.jar"  copy "%ORACLE_HOME%\jdbc\lib\ojdbc8.jar"  "lib\ojdbc11.jar" >nul 2>&1
+    )
+    REM Tim trong Registry
+    for /f "tokens=2*" %%A in ('reg query "HKLM\SOFTWARE\ORACLE" /v ORACLE_HOME 2^>nul') do (
+        if exist "%%B\jdbc\lib\ojdbc11.jar" copy "%%B\jdbc\lib\ojdbc11.jar" "lib\ojdbc11.jar" >nul 2>&1
+        if exist "%%B\jdbc\lib\ojdbc8.jar"  copy "%%B\jdbc\lib\ojdbc8.jar"  "lib\ojdbc11.jar" >nul 2>&1
+    )
+    REM Tim theo thu muc pho bien
+    for /d %%D in ("C:\app\*\product\*\dbhomeFree" "C:\app\*\product\*\dbhome_1" "D:\app\*\product\*\dbhomeFree") do (
+        if exist "%%~D\jdbc\lib\ojdbc11.jar" copy "%%~D\jdbc\lib\ojdbc11.jar" "lib\ojdbc11.jar" >nul 2>&1
+        if exist "%%~D\jdbc\lib\ojdbc8.jar"  copy "%%~D\jdbc\lib\ojdbc8.jar"  "lib\ojdbc11.jar" >nul 2>&1
     )
 )
+if not exist "lib\ojdbc11.jar" (
+    echo [CANH BAO] Khong tim thay ojdbc11.jar - Se dung H2 embedded database.
+    echo [INFO] Neu muon dung Oracle that, chay: setup_oracle_other_pc.bat truoc.
+)
 if not exist "lib\gson.jar" (
-    if exist "C:\app\sumaytinh0912350956\product\26ai\dbhomeFree\sqlcl\lib\gson.jar" (
-        copy "C:\app\sumaytinh0912350956\product\26ai\dbhomeFree\sqlcl\lib\gson.jar" "lib\gson.jar" > nul 2>&1
+    for /f "tokens=2*" %%A in ('reg query "HKLM\SOFTWARE\ORACLE" /v ORACLE_HOME 2^>nul') do (
+        if exist "%%B\sqlcl\lib\gson.jar" copy "%%B\sqlcl\lib\gson.jar" "lib\gson.jar" >nul 2>&1
+    )
+    for /d %%D in ("C:\app\*\product\*\dbhomeFree" "D:\app\*\product\*\dbhomeFree") do (
+        if exist "%%~D\sqlcl\lib\gson.jar" copy "%%~D\sqlcl\lib\gson.jar" "lib\gson.jar" >nul 2>&1
     )
 )
 

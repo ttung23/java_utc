@@ -21,10 +21,16 @@
 
     <!-- Thanh tìm kiếm -->
     <div class="panel" style="padding:16px 20px;">
-      <div style="display:flex;gap:12px;align-items:center;">
-        <div style="position:relative;flex:1;display:flex;align-items:center;">
-          <input type="search" id="search-keyword" placeholder="Nhập tên sách, tác giả cần tìm..." style="width:100%;padding-right:34px;">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div style="position:relative;flex:1;display:flex;align-items:center;min-width:260px;">
+          <input type="search" id="search-keyword" placeholder="Nhập tên sách, tác giả, vị trí kệ cần tìm..." style="width:100%;padding-right:34px;">
           <button id="clear-search-btn" class="clear-search-btn" type="button" onclick="clearSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label for="shelf-filter" style="font-weight:600;font-size:13px;white-space:nowrap;margin:0;">Vị trí kệ:</label>
+          <select id="shelf-filter" onchange="filterBooksByShelf()" style="min-width:180px;padding:8px 12px;font-size:13px;border-radius:6px;border:1px solid #cbd5e1;">
+            <option value="">-- Tất cả vị trí kệ --</option>
+          </select>
         </div>
         <button class="btn btn-primary" onclick="searchBooks()">Tìm Kiếm</button>
       </div>
@@ -45,41 +51,66 @@
               <th>Nhà xuất bản</th>
               <th>Năm XB</th>
               <th>Thể loại</th>
+              <th>Vị trí kệ</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody id="books-table-body">
-            <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+            <tr><td colspan="8" style="text-align:center;">Đang tải...</td></tr>
           </tbody>
         </table>
       </div>
+      <div id="books-pagination"></div>
     </div>
 
     <!-- Modal Xem & Thêm Bản sao của sách -->
     <div id="copies-modal" class="modal-overlay">
-      <div class="modal-box" style="max-width:700px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h3 id="copies-modal-title">Danh sách Bản sao sách</h3>
+      <div class="modal-box" style="max-width:780px;width:94%;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+          <div>
+            <h3 id="copies-modal-title" style="margin:0 0 4px 0;">Danh sách Bản sao sách</h3>
+            <div id="copies-modal-location" style="font-size:13px;color:#0284c7;font-weight:600;"></div>
+          </div>
           <button class="btn btn-secondary btn-sm" onclick="closeCopiesModal()">✕</button>
         </div>
 
-        <div class="panel" style="background:#f8fafc;padding:16px;margin-bottom:16px;">
-          <h4 style="font-size:14px;margin-bottom:10px;">Thêm bản sao vật lý mới:</h4>
-          <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-            <div class="form-group">
-              <label>Mã bản sao (Copy ID):</label>
-              <input type="text" id="new-copy-id" placeholder="VD: CP016">
+        <div class="panel" style="background:#f8fafc;padding:18px 20px;margin-bottom:16px;border:1px solid #e2e8f0;box-sizing:border-box;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <h4 style="font-size:14px;font-weight:700;color:#1e293b;margin:0;">Thêm bản sao vật lý mới:</h4>
+            <span id="copy-auto-suggest-hint" style="font-size:12px;color:var(--text-muted);">Tự động sinh mã tiếp theo nếu để trống</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns: 130px 1fr;gap:14px;margin-bottom:12px;">
+            <div class="form-group" style="min-width:0;">
+              <label for="new-copy-quantity" style="font-weight:600;font-size:13px;">Số lượng:</label>
+              <input type="number" id="new-copy-quantity" value="1" min="1" max="100" 
+                style="font-weight:700;text-align:center;width:100%;box-sizing:border-box;" oninput="updateCopyHelpHint()">
             </div>
-            <div class="form-group">
-              <label>Mã vạch (Barcode):</label>
-              <input type="text" id="new-copy-barcode" placeholder="VD: BC-00016">
-            </div>
-            <div class="form-group">
-              <label>Giá bìa (VNĐ):</label>
-              <input type="number" id="new-copy-price" value="350000" step="10000">
+            <div class="form-group" style="min-width:0;">
+              <label for="new-copy-price" style="font-weight:600;font-size:13px;">Giá bìa (VNĐ):</label>
+              <input type="number" id="new-copy-price" value="350000" step="10000" style="width:100%;box-sizing:border-box;">
             </div>
           </div>
-          <button class="btn btn-success btn-sm" style="margin-top:10px;" onclick="submitAddCopy()">+ Thêm Bản Sao</button>
+
+          <div style="display:grid;grid-template-columns: 1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="min-width:0;">
+              <label for="new-copy-id" style="font-weight:600;font-size:13px;">Mã bản sao (Copy ID):</label>
+              <input type="text" id="new-copy-id" placeholder="Tự động (hoặc VD: CP016)" 
+                style="width:100%;box-sizing:border-box;" oninput="updateCopyHelpHint()">
+            </div>
+            <div class="form-group" style="min-width:0;">
+              <label for="new-copy-barcode" style="font-weight:600;font-size:13px;">Mã vạch (Barcode):</label>
+              <input type="text" id="new-copy-barcode" placeholder="Tự động (hoặc VD: BC-00016)" 
+                style="width:100%;box-sizing:border-box;" oninput="updateCopyHelpHint()">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px dashed #cbd5e1;flex-wrap:wrap;gap:10px;">
+            <div id="copy-add-preview" style="font-size:13px;color:#2563eb;font-weight:600;"></div>
+            <button class="btn btn-success" id="btn-submit-add-copy" onclick="submitAddCopy()">
+              + Thêm Bản Sao
+            </button>
+          </div>
         </div>
 
         <div class="table-responsive">
@@ -129,6 +160,21 @@
               <input type="number" id="book-year" value="2023">
             </div>
           </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label for="book-location">Vị trí kệ / quầy lưu kho:</label>
+            <input type="text" id="book-location" list="shelf-suggestions" placeholder="VD: Kệ B1 - Tầng 2 (CNTT)">
+            <datalist id="shelf-suggestions">
+              <option value="Kệ A1 - Tầng 1 (Cơ sở dữ liệu)">
+              <option value="Kệ A2 - Tầng 1 (Khu Đại cương)">
+              <option value="Kệ B1 - Tầng 2 (CNTT)">
+              <option value="Kệ B2 - Tầng 2 (Phần mềm)">
+              <option value="Kệ B2 - Tầng 2 (Kiến trúc)">
+              <option value="Kệ B3 - Tầng 2 (Web Dev)">
+              <option value="Kệ C1 - Tầng 3 (Sách Ngoại văn)">
+              <option value="Kệ C2 - Tầng 3 (Luận văn & Nghiên cứu)">
+              <option value="Quầy lưu trữ đặc biệt (Tầng 1)">
+            </datalist>
+          </div>
           <div class="form-group" style="margin-bottom:18px;">
             <label for="book-category-select">Thể loại sách:</label>
             <div style="display:flex;gap:8px;align-items:center;">
@@ -171,15 +217,97 @@
     let currentIsbnForCopies = null;
     let editingBookIsbn = null;
     let booksByIsbn = {};
+    let allLoadedBooks = [];
+    let currentBooks = [];
+    let currentCopiesByIsbn = {};
+    let booksCurrentPage = 1;
+    let booksPageSize = 10;
 
     function goToBorrow(barcode) {
       if (!barcode) return;
       window.location.href = `loans.html?tab=borrow&barcode=${encodeURIComponent(barcode)}`;
     }
 
+    function renderBooksTable() {
+      const tbody = document.getElementById("books-table-body");
+      const pageBooks = paginateItems(currentBooks, booksCurrentPage, booksPageSize);
+
+      tbody.innerHTML = pageBooks.map(b => {
+        const copies = currentCopiesByIsbn[b.isbn] || [];
+        const availCopies = copies.filter(c => c.status === "Available");
+        const hasAvailable = availCopies.length > 0;
+        const firstBarcode = hasAvailable ? availCopies[0].barcode : "";
+
+        return `
+          <tr>
+            <td><code>${b.isbn}</code></td>
+            <td><strong>${b.title}</strong></td>
+            <td>${b.author}</td>
+            <td>${b.publisher || "-"}</td>
+            <td>${b.publishYear || "-"}</td>
+            <td><span class="badge badge-gray">${b.category || "General"}</span></td>
+            <td><span class="badge badge-info" style="font-size:12px;white-space:nowrap;">${b.location || 'Kệ A1 - Tầng 1'}</span></td>
+            <td>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                ${hasAvailable ? `
+                  <button class="btn btn-primary btn-sm" onclick="goToBorrow('${firstBarcode}')" title="Còn ${availCopies.length} bản sao sẵn sàng cho mượn">
+                    Mượn
+                  </button>
+                ` : `
+                  <button class="btn btn-primary btn-sm" disabled style="opacity:0.45;cursor:not-allowed;" title="Đã hết bản sao cho mượn">
+                    Mượn
+                  </button>
+                `}
+                <button class="btn btn-secondary btn-sm" onclick="viewCopies('${b.isbn}', '${b.title.replace(/'/g, "\\'")}')">
+                  Bản Sao (${copies.length})
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="editBook('${b.isbn}')">Sửa</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteBook('${b.isbn}')">Xóa</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      renderPaginationControls({
+        containerId: "books-pagination",
+        totalItems: currentBooks.length,
+        currentPage: booksCurrentPage,
+        pageSize: booksPageSize,
+        onPageChange: (newPage, newPageSize) => {
+          booksCurrentPage = newPage;
+          booksPageSize = newPageSize;
+          renderBooksTable();
+        }
+      });
+    }
+
+    function populateShelfFilter(books) {
+      const select = document.getElementById("shelf-filter");
+      if (!select) return;
+      const currentVal = select.value;
+      const uniqueShelves = [...new Set((books || []).map(b => (b.location || "").trim()).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">-- Tất cả vị trí kệ --</option>' +
+        uniqueShelves.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join("");
+      if (uniqueShelves.includes(currentVal)) {
+        select.value = currentVal;
+      }
+    }
+
+    function filterBooksByShelf() {
+      const shelf = (document.getElementById("shelf-filter") ? document.getElementById("shelf-filter").value : "").trim();
+      if (!shelf) {
+        currentBooks = allLoadedBooks;
+      } else {
+        currentBooks = allLoadedBooks.filter(b => (b.location || "").trim() === shelf);
+      }
+      booksCurrentPage = 1;
+      renderBooksTable();
+    }
+
     async function loadBooks(query = "") {
       const tbody = document.getElementById("books-table-body");
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Đang tải...</td></tr>`;
 
       try {
         const endpoint = query ? `/api/books?q=${encodeURIComponent(query)}` : "/api/books";
@@ -189,54 +317,41 @@
         ]);
 
         if (books.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không tìm thấy sách nào</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Không tìm thấy sách nào</td></tr>`;
+          allLoadedBooks = [];
+          currentBooks = [];
+          populateShelfFilter([]);
+          renderPaginationControls({
+            containerId: "books-pagination",
+            totalItems: 0,
+            currentPage: 1,
+            pageSize: booksPageSize,
+            onPageChange: () => {}
+          });
           return;
         }
 
         booksByIsbn = Object.fromEntries(books.map(book => [book.isbn, book]));
 
         // Gom danh sách bản sao theo ISBN để kiểm tra bản sao có sẵn
-        const copiesByIsbn = {};
+        currentCopiesByIsbn = {};
         (allCopies || []).forEach(c => {
-          if (!copiesByIsbn[c.isbn]) copiesByIsbn[c.isbn] = [];
-          copiesByIsbn[c.isbn].push(c);
+          if (!currentCopiesByIsbn[c.isbn]) currentCopiesByIsbn[c.isbn] = [];
+          currentCopiesByIsbn[c.isbn].push(c);
         });
 
-        tbody.innerHTML = books.map(b => {
-          const copies = copiesByIsbn[b.isbn] || [];
-          const availCopies = copies.filter(c => c.status === "Available");
-          const hasAvailable = availCopies.length > 0;
-          const firstBarcode = hasAvailable ? availCopies[0].barcode : "";
+        allLoadedBooks = books;
+        populateShelfFilter(books);
+        const shelfSelect = document.getElementById("shelf-filter");
+        const activeShelf = shelfSelect ? shelfSelect.value.trim() : "";
+        if (activeShelf) {
+          currentBooks = allLoadedBooks.filter(b => (b.location || "").trim() === activeShelf);
+        } else {
+          currentBooks = books;
+        }
 
-          return `
-            <tr>
-              <td><code>${b.isbn}</code></td>
-              <td><strong>${b.title}</strong></td>
-              <td>${b.author}</td>
-              <td>${b.publisher || "-"}</td>
-              <td>${b.publishYear || "-"}</td>
-              <td><span class="badge badge-gray">${b.category || "General"}</span></td>
-              <td>
-                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                  ${hasAvailable ? `
-                    <button class="btn btn-primary btn-sm" onclick="goToBorrow('${firstBarcode}')" title="Còn ${availCopies.length} bản sao sẵn sàng cho mượn">
-                      Mượn
-                    </button>
-                  ` : `
-                    <button class="btn btn-primary btn-sm" disabled style="opacity:0.45;cursor:not-allowed;" title="Đã hết bản sao cho mượn">
-                      Mượn
-                    </button>
-                  `}
-                  <button class="btn btn-secondary btn-sm" onclick="viewCopies('${b.isbn}', '${b.title.replace(/'/g, "\\'")}')">
-                    Bản Sao (${copies.length})
-                  </button>
-                  <button class="btn btn-secondary btn-sm" onclick="editBook('${b.isbn}')">Sửa</button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteBook('${b.isbn}')">Xóa</button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join("");
+        booksCurrentPage = 1;
+        renderBooksTable();
       } catch (e) {
         console.error("Lỗi khi tải danh sách sách:", e);
       }
@@ -267,11 +382,112 @@
       }
     }
 
+    let maxCopyNumFound = 15;
+    let maxBarcodeNumFound = 15;
+
     async function viewCopies(isbn, title) {
       currentIsbnForCopies = isbn;
+      const book = booksByIsbn[isbn];
       document.getElementById("copies-modal-title").textContent = `Bản sao: ${title}`;
+      const locElem = document.getElementById("copies-modal-location");
+      if (locElem) {
+        const loc = (book && book.location) ? book.location : "Kệ A1 - Tầng 1";
+        locElem.innerHTML = `Vị trí lưu kho: <strong>${loc}</strong>`;
+      }
       document.getElementById("copies-modal").classList.add("open");
+      const qtyInput = document.getElementById("new-copy-quantity");
+      if (qtyInput) qtyInput.value = "1";
+      const idInput = document.getElementById("new-copy-id");
+      if (idInput) idInput.value = "";
+      const bcInput = document.getElementById("new-copy-barcode");
+      if (bcInput) bcInput.value = "";
+
       loadCopiesTable(isbn);
+      updateSuggestedCopyCodes();
+    }
+
+    async function updateSuggestedCopyCodes() {
+      try {
+        const allCopies = await fetchAPI("/api/books/copies").catch(() => []);
+        let maxC = 0;
+        let maxB = 0;
+        (allCopies || []).forEach(c => {
+          const cDigits = (c.copyId || "").match(/\d+/g);
+          if (cDigits) {
+            const cNum = parseInt(cDigits[cDigits.length - 1], 10) || 0;
+            if (cNum > maxC) maxC = cNum;
+          }
+          const bDigits = (c.barcode || "").match(/\d+/g);
+          if (bDigits) {
+            const bNum = parseInt(bDigits[bDigits.length - 1], 10) || 0;
+            if (bNum > maxB) maxB = bNum;
+          }
+        });
+        if (maxC > 0) maxCopyNumFound = maxC;
+        if (maxB > 0) maxBarcodeNumFound = maxB;
+      } catch (e) {}
+
+      updateCopyHelpHint();
+    }
+
+    function updateCopyHelpHint() {
+      const qtyInput = document.getElementById("new-copy-quantity");
+      const idInput = document.getElementById("new-copy-id");
+      const barcodeInput = document.getElementById("new-copy-barcode");
+      const previewDiv = document.getElementById("copy-add-preview");
+      const submitBtn = document.getElementById("btn-submit-add-copy");
+
+      const qty = Math.max(1, parseInt(qtyInput ? qtyInput.value : "1") || 1);
+      const customId = idInput ? idInput.value.trim() : "";
+      const customBc = barcodeInput ? barcodeInput.value.trim() : "";
+
+      let startCNum = maxCopyNumFound + 1;
+      let cPrefix = "CP";
+      let cPad = 3;
+      if (customId) {
+        const match = customId.match(/^(.*?)(\d+)$/);
+        if (match) {
+          cPrefix = match[1] || "";
+          startCNum = parseInt(match[2], 10) || 1;
+          cPad = match[2].length;
+        } else {
+          cPrefix = customId;
+          startCNum = maxCopyNumFound + 1;
+        }
+      }
+
+      let startBNum = maxBarcodeNumFound + 1;
+      let bPrefix = "BC-";
+      let bPad = 5;
+      if (customBc) {
+        const match = customBc.match(/^(.*?)(\d+)$/);
+        if (match) {
+          bPrefix = match[1] || "";
+          startBNum = parseInt(match[2], 10) || 1;
+          bPad = match[2].length;
+        } else {
+          bPrefix = customBc;
+          startBNum = maxBarcodeNumFound + 1;
+        }
+      }
+
+      const startCStr = `${cPrefix}${String(startCNum).padStart(cPad, "0")}`;
+      const endCStr = `${cPrefix}${String(startCNum + qty - 1).padStart(cPad, "0")}`;
+
+      const startBStr = `${bPrefix}${String(startBNum).padStart(bPad, "0")}`;
+      const endBStr = `${bPrefix}${String(startBNum + qty - 1).padStart(bPad, "0")}`;
+
+      if (submitBtn) {
+        submitBtn.textContent = qty > 1 ? `+ Thêm ${qty} Bản Sao` : `+ Thêm Bản Sao`;
+      }
+
+      if (previewDiv) {
+        if (qty === 1) {
+          previewDiv.innerHTML = `Dự kiến tạo: <strong>${startCStr}</strong> (Barcode: <strong>${startBStr}</strong>)`;
+        } else {
+          previewDiv.innerHTML = `Dự kiến tạo <strong>${qty}</strong> bản sao: <strong>${startCStr} &rarr; ${endCStr}</strong> (Barcode: <strong>${startBStr} &rarr; ${endBStr}</strong>)`;
+        }
+      }
     }
 
     async function loadCopiesTable(isbn) {
@@ -314,33 +530,46 @@
     }
 
     async function submitAddCopy() {
+      const qtyInput = document.getElementById("new-copy-quantity");
+      const quantity = Math.max(1, parseInt(qtyInput ? qtyInput.value : "1") || 1);
       const copyId = document.getElementById("new-copy-id").value.trim();
       const barcode = document.getElementById("new-copy-barcode").value.trim();
       const price = parseFloat(document.getElementById("new-copy-price").value) || 0;
 
-      if (!copyId || !barcode) {
-        showToast("Vui lòng nhập Mã bản sao và Mã vạch!", "warning");
-        return;
+      const submitBtn = document.getElementById("btn-submit-add-copy");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Đang tạo bản sao...";
       }
 
       try {
         await fetchAPI("/api/books/copies", {
           method: "POST",
           body: JSON.stringify({
-            copyId,
             isbn: currentIsbnForCopies,
+            copyId,
             barcode,
             price,
+            quantity,
             status: "Available"
           })
         });
 
-        showToast("Thêm bản sao thành công!", "success");
+        showToast(quantity > 1 ? `Đã thêm thành công ${quantity} bản sao!` : "Thêm bản sao thành công!", "success");
         document.getElementById("new-copy-id").value = "";
         document.getElementById("new-copy-barcode").value = "";
-        loadCopiesTable(currentIsbnForCopies);
+        if (qtyInput) qtyInput.value = "1";
+        await loadCopiesTable(currentIsbnForCopies);
+        await updateSuggestedCopyCodes();
         loadBooks();
-      } catch (e) {}
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "+ Thêm Bản Sao";
+        }
+      }
     }
 
     function closeCopiesModal() {
@@ -436,6 +665,8 @@
       document.getElementById("book-submit-button").textContent = "Lưu Đầu Sách";
       document.getElementById("book-isbn").readOnly = false;
       document.querySelector("#add-book-modal form").reset();
+      const locInput = document.getElementById("book-location");
+      if (locInput) locInput.value = "Kệ A1 - Tầng 1 (Cơ sở dữ liệu)";
       toggleAddCategoryInline(false);
       loadCategories();
       document.getElementById("add-book-modal").classList.add("open");
@@ -453,6 +684,8 @@
       document.getElementById("book-author").value = book.author;
       document.getElementById("book-publisher").value = book.publisher || "";
       document.getElementById("book-year").value = book.publishYear || "";
+      const locInput = document.getElementById("book-location");
+      if (locInput) locInput.value = book.location || "Kệ A1 - Tầng 1";
       toggleAddCategoryInline(false);
       loadCategories(book.categoryId || book.category);
       document.getElementById("add-book-modal").classList.add("open");
@@ -468,6 +701,8 @@
       const categoryId = catSelect.value;
       const selectedOption = catSelect.options[catSelect.selectedIndex];
       const categoryName = selectedOption ? (selectedOption.dataset.name || selectedOption.textContent.trim()) : "";
+      const locInput = document.getElementById("book-location");
+      const location = (locInput ? locInput.value : "").trim() || "Kệ A1 - Tầng 1";
 
       const book = {
         isbn: document.getElementById("book-isbn").value.trim(),
@@ -476,7 +711,8 @@
         publisher: document.getElementById("book-publisher").value.trim(),
         publishYear: parseInt(document.getElementById("book-year").value) || null,
         categoryId: categoryId,
-        category: categoryName
+        category: categoryName,
+        location: location
       };
 
       try {
@@ -511,7 +747,7 @@
       } catch (e) {}
     }
     document.addEventListener("DOMContentLoaded", () => {
-      renderSidebar("books");
+      renderSidebar("books", "list");
       loadBooks();
 
       const searchInput = document.getElementById("search-keyword");

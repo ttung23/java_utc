@@ -13,16 +13,30 @@ public class StaffUser {
     private String passwordHash;
     private UserRole role;
     private String status;
+    private String avatar;
 
     public StaffUser() {}
 
     public StaffUser(String staffId, String username, String fullName, String passwordHash, UserRole role, String status) {
+        this(staffId, username, fullName, passwordHash, role, status, null);
+    }
+
+    public StaffUser(String staffId, String username, String fullName, String passwordHash, UserRole role, String status, String avatar) {
         this.staffId = staffId;
         this.username = username;
         this.fullName = fullName;
         this.passwordHash = passwordHash;
         this.role = role;
         this.status = status;
+        this.avatar = avatar;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
     public String getStaffId() {

@@ -43,6 +43,7 @@
           </tbody>
         </table>
       </div>
+      <div id="reservations-pagination"></div>
     </div>
 
     <!-- Modal Tạo Đơn Đặt Trước -->
@@ -72,39 +73,71 @@
 
   <script src="js/app.js"></script>
   <script>
+    let allReservationsList = [];
+    let reservationsCurrentPage = 1;
+    let reservationsPageSize = 10;
+
+    function renderReservationsTable() {
+      const tbody = document.getElementById("reservations-table-body");
+      const pageReservations = paginateItems(allReservationsList, reservationsCurrentPage, reservationsPageSize);
+
+      tbody.innerHTML = pageReservations.map(r => {
+        let badge = "badge-warning";
+        if (r.status === "Fulfilled") badge = "badge-success";
+        if (r.status === "Expired" || r.status === "Cancelled") badge = "badge-gray";
+
+        const canCancel = r.status === "Pending";
+        const actionBtn = canCancel
+          ? `<button class="btn btn-danger btn-sm" onclick="cancelReservation('${r.reservationId}')">Hủy đặt</button>`
+          : `-`;
+
+        return `
+          <tr>
+            <td><strong>${r.reservationId}</strong></td>
+            <td>${r.readerId}</td>
+            <td><code>${r.isbn}</code></td>
+            <td>${formatDateTime(r.reservationDate)}</td>
+            <td>${formatDateTime(r.expiryDate)}</td>
+            <td><span class="badge ${badge}">${r.status}</span></td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join("");
+
+      renderPaginationControls({
+        containerId: "reservations-pagination",
+        totalItems: allReservationsList.length,
+        currentPage: reservationsCurrentPage,
+        pageSize: reservationsPageSize,
+        onPageChange: (newPage, newPageSize) => {
+          reservationsCurrentPage = newPage;
+          reservationsPageSize = newPageSize;
+          renderReservationsTable();
+        }
+      });
+    }
+
     async function loadReservations() {
       const tbody = document.getElementById("reservations-table-body");
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
 
       try {
         const list = await fetchAPI("/api/reservations");
-        if (list.length === 0) {
+        if (!list || list.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có đơn đặt trước nào</td></tr>`;
+          renderPaginationControls({
+            containerId: "reservations-pagination",
+            totalItems: 0,
+            currentPage: 1,
+            pageSize: reservationsPageSize,
+            onPageChange: () => {}
+          });
           return;
         }
 
-        tbody.innerHTML = list.map(r => {
-          let badge = "badge-warning";
-          if (r.status === "Fulfilled") badge = "badge-success";
-          if (r.status === "Expired" || r.status === "Cancelled") badge = "badge-gray";
-
-          const canCancel = r.status === "Pending";
-          const actionBtn = canCancel
-            ? `<button class="btn btn-danger btn-sm" onclick="cancelReservation('${r.reservationId}')">Hủy đặt</button>`
-            : `-`;
-
-          return `
-            <tr>
-              <td><strong>${r.reservationId}</strong></td>
-              <td>${r.readerId}</td>
-              <td><code>${r.isbn}</code></td>
-              <td>${formatDateTime(r.reservationDate)}</td>
-              <td>${formatDateTime(r.expiryDate)}</td>
-              <td><span class="badge ${badge}">${r.status}</span></td>
-              <td>${actionBtn}</td>
-            </tr>
-          `;
-        }).join("");
+        allReservationsList = list;
+        reservationsCurrentPage = 1;
+        renderReservationsTable();
       } catch (e) {}
     }
 

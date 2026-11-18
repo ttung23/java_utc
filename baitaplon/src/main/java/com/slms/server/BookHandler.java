@@ -1,5 +1,7 @@
 package com.slms.server;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.slms.dto.ApiResponse;
 import com.slms.model.Book;
 import com.slms.model.BookCopy;
@@ -81,15 +83,22 @@ public class BookHandler implements HttpHandler {
                     }
                 } else if ("POST".equals(method)) {
                     String body = HttpHelper.readRequestBody(exchange);
-                    BookCopy copy = HttpHelper.getGson().fromJson(body, BookCopy.class);
-                    if (copy.getAcquisitionDate() == null) {
-                        copy.setAcquisitionDate(LocalDate.now());
+                    JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                    int quantity = json.has("quantity") && !json.get("quantity").isJsonNull()
+                        ? json.get("quantity").getAsInt() : 1;
+                    if (quantity < 1) quantity = 1;
+
+                    String isbn = json.has("isbn") && !json.get("isbn").isJsonNull() ? json.get("isbn").getAsString() : null;
+                    String startCopyId = json.has("copyId") && !json.get("copyId").isJsonNull() ? json.get("copyId").getAsString().trim() : "";
+                    String startBarcode = json.has("barcode") && !json.get("barcode").isJsonNull() ? json.get("barcode").getAsString().trim() : "";
+                    double price = json.has("price") && !json.get("price").isJsonNull() ? json.get("price").getAsDouble() : 0.0;
+
+                    List<BookCopy> savedList = bookService.addCopies(isbn, price, quantity, startCopyId, startBarcode);
+                    if (quantity == 1) {
+                        HttpHelper.sendJsonResponse(exchange, 201, ApiResponse.ok("Thêm bản sao sách thành công", savedList.isEmpty() ? null : savedList.get(0)));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 201, ApiResponse.ok("Đã thêm thành công " + savedList.size() + " bản sao", savedList));
                     }
-                    if (copy.getStatus() == null) {
-                        copy.setStatus(CopyStatus.Available);
-                    }
-                    BookCopy saved = bookService.addCopy(copy);
-                    HttpHelper.sendJsonResponse(exchange, 201, ApiResponse.ok("Thêm bản sao sách thành công", saved));
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }

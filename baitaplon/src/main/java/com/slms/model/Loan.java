@@ -32,6 +32,9 @@ public class Loan {
     /** Trạng thái phiếu mượn */
     private LoanStatus status;
 
+    /** Số lần đã gia hạn mượn */
+    private int renewalCount = 0;
+
     /**
      * Constructor mặc định.
      */
@@ -135,6 +138,14 @@ public class Loan {
 
     public void setStatus(LoanStatus status) {
         this.status = status;
+    }
+
+    public int getRenewalCount() {
+        return renewalCount;
+    }
+
+    public void setRenewalCount(int renewalCount) {
+        this.renewalCount = renewalCount;
     }
 
     // ======================== toString ========================

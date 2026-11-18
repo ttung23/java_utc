@@ -49,8 +49,22 @@ public class AuthHandler implements HttpHandler {
                 data.put("userId", s.getUserId());
                 data.put("displayName", s.getDisplayName());
                 data.put("role", s.getRole().name());
+                data.put("avatar", s.getAvatar());
                 data.put("expiresAt", s.getExpiresAt().toString());
                 HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(data));
+            } else if (path.equals("/api/auth/avatar") && ("PUT".equals(method) || "POST".equals(method))) {
+                Optional<AuthSession> session = AuthHelper.getSession(exchange);
+                if (session.isEmpty()) {
+                    HttpHelper.sendJsonResponse(exchange, 401, ApiResponse.error("Chưa đăng nhập"));
+                    return;
+                }
+                String body = HttpHelper.readRequestBody(exchange);
+                JsonObject json = JsonParser.parseString(body).getAsJsonObject();
+                String avatarUrl = json.has("avatar") ? json.get("avatar").getAsString() : "";
+                authService.updateStaffAvatar(session.get().getUserId(), avatarUrl);
+                Map<String, Object> resp = new HashMap<>();
+                resp.put("avatar", avatarUrl);
+                HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Cập nhật avatar thành công", resp));
             } else if (path.equals("/api/auth/profile") && "PUT".equals(method)) {
                 AuthSession session = AuthHelper.requireRoles(exchange, com.slms.model.enums.UserRole.READER);
                 if (session == null) return;

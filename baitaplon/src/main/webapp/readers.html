@@ -21,8 +21,15 @@
 
     <!-- Bảng danh sách độc giả -->
     <div class="panel">
-      <div class="panel-header">
+      <div class="panel-header" style="flex-wrap:wrap;gap:12px;">
         <h2 class="panel-title">Danh sách Độc giả</h2>
+        <div style="position:relative;display:flex;align-items:center;width:280px;max-width:100%;">
+          <input type="search" id="reader-search-input" placeholder="Tìm theo mã hoặc tên..." 
+            oninput="handleReaderSearch()" 
+            style="width:100%;padding:7px 32px 7px 12px;font-size:13px;border-radius:6px;border:1px solid var(--border);">
+          <button id="reader-clear-search-btn" class="clear-search-btn" type="button" 
+            onclick="clearReaderSearch()" title="Xóa tìm kiếm">✕</button>
+        </div>
       </div>
       <div class="table-responsive">
         <table>
@@ -42,6 +49,7 @@
           </tbody>
         </table>
       </div>
+      <div id="readers-pagination"></div>
     </div>
 
     <!-- Modal Thêm Độc Giả -->
@@ -92,6 +100,149 @@
   <script>
     let readersById = {};
     let editingReaderId = null;
+    let allReadersList = [];
+    let filteredReadersList = [];
+    let readersCurrentPage = 1;
+    let readersPageSize = 10;
+
+    function removeAccents(str) {
+      return (str || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    function formatReaderType(type) {
+      switch ((type || "").toUpperCase()) {
+        case "STUDENT":
+          return "Sinh viên";
+        case "LECTURER":
+          return "Giảng viên";
+        default:
+          return type || "-";
+      }
+    }
+
+    function formatReaderStatus(status) {
+      switch ((status || "").toUpperCase()) {
+        case "ACTIVE":
+          return { text: "Đang hoạt động", badge: "badge-success" };
+        case "BLOCKED":
+          return { text: "Đã khóa", badge: "badge-danger" };
+        case "EXPIRED":
+          return { text: "Hết hạn", badge: "badge-warning" };
+        default:
+          return { text: status || "-", badge: "badge-secondary" };
+      }
+    }
+
+    function handleReaderSearch() {
+      const input = document.getElementById("reader-search-input");
+      const clearBtn = document.getElementById("reader-clear-search-btn");
+      const kw = (input ? input.value : "").trim();
+
+      if (clearBtn) {
+        clearBtn.style.display = kw ? "block" : "none";
+      }
+
+      readersCurrentPage = 1;
+      applyReaderFilter();
+    }
+
+    function clearReaderSearch() {
+      const input = document.getElementById("reader-search-input");
+      const clearBtn = document.getElementById("reader-clear-search-btn");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      if (clearBtn) clearBtn.style.display = "none";
+      readersCurrentPage = 1;
+      applyReaderFilter();
+    }
+
+    function applyReaderFilter() {
+      const input = document.getElementById("reader-search-input");
+      const kw = (input ? input.value : "").trim();
+      const rawKw = kw.toLowerCase();
+      const noAccKw = removeAccents(kw);
+
+      if (!kw) {
+        filteredReadersList = allReadersList;
+      } else {
+        filteredReadersList = allReadersList.filter(r => {
+          const id = (r.readerId || "").toLowerCase();
+          const name = (r.fullName || "").toLowerCase();
+          const nameNoAcc = removeAccents(r.fullName);
+          const type = (r.type || "").toLowerCase();
+          const typeVi = formatReaderType(r.type).toLowerCase();
+          const status = (r.status || "").toLowerCase();
+          const statusVi = formatReaderStatus(r.status).text.toLowerCase();
+
+          return id.includes(rawKw) ||
+            name.includes(rawKw) ||
+            nameNoAcc.includes(noAccKw) ||
+            type.includes(rawKw) ||
+            typeVi.includes(rawKw) ||
+            status.includes(rawKw) ||
+            statusVi.includes(rawKw);
+        });
+      }
+
+      const tbody = document.getElementById("readers-table-body");
+      if (filteredReadersList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không tìm thấy độc giả nào phù hợp</td></tr>`;
+        renderPaginationControls({
+          containerId: "readers-pagination",
+          totalItems: 0,
+          currentPage: 1,
+          pageSize: readersPageSize,
+          onPageChange: () => {}
+        });
+        return;
+      }
+
+      renderReadersTable();
+    }
+
+    function renderReadersTable() {
+      const tbody = document.getElementById("readers-table-body");
+      const pageReaders = paginateItems(filteredReadersList, readersCurrentPage, readersPageSize);
+
+      tbody.innerHTML = pageReaders.map(r => {
+        const st = formatReaderStatus(r.status);
+        const typeText = formatReaderType(r.type);
+        const fineStyle = r.balanceFine > 50000 ? "color:var(--danger);font-weight:700;" : "";
+
+        return `
+          <tr>
+            <td><strong>${r.readerId}</strong></td>
+            <td>${r.fullName}</td>
+            <td><span class="badge badge-primary">${typeText}</span></td>
+            <td>${r.expiryDate || "-"}</td>
+            <td style="${fineStyle}">${formatCurrency(r.balanceFine)}</td>
+            <td><span class="badge ${st.badge}">${st.text}</span></td>
+            <td>
+              <a href="loans.html" class="btn btn-secondary btn-sm">Mượn sách</a>
+              <button class="btn btn-secondary btn-sm" onclick="editReader('${r.readerId}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteReader('${r.readerId}')">Xóa</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      renderPaginationControls({
+        containerId: "readers-pagination",
+        totalItems: filteredReadersList.length,
+        currentPage: readersCurrentPage,
+        pageSize: readersPageSize,
+        onPageChange: (newPage, newPageSize) => {
+          readersCurrentPage = newPage;
+          readersPageSize = newPageSize;
+          renderReadersTable();
+        }
+      });
+    }
 
     async function loadReaders() {
       const tbody = document.getElementById("readers-table-body");
@@ -99,36 +250,24 @@
 
       try {
         const readers = await fetchAPI("/api/readers");
-        if (readers.length === 0) {
+        if (!readers || readers.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Chưa có độc giả nào</td></tr>`;
+          renderPaginationControls({
+            containerId: "readers-pagination",
+            totalItems: 0,
+            currentPage: 1,
+            pageSize: readersPageSize,
+            onPageChange: () => {}
+          });
           return;
         }
 
         readersById = Object.fromEntries(readers.map(reader => [reader.readerId, reader]));
-        tbody.innerHTML = readers.map(r => {
-          let statusBadge = "badge-success";
-          if (r.status === "EXPIRED") statusBadge = "badge-warning";
-          if (r.status === "BLOCKED") statusBadge = "badge-danger";
-
-          let fineStyle = r.balanceFine > 50000 ? "color:var(--danger);font-weight:700;" : "";
-
-          return `
-            <tr>
-              <td><strong>${r.readerId}</strong></td>
-              <td>${r.fullName}</td>
-              <td><span class="badge badge-primary">${r.type}</span></td>
-              <td>${r.expiryDate}</td>
-              <td style="${fineStyle}">${formatCurrency(r.balanceFine)}</td>
-              <td><span class="badge ${statusBadge}">${r.status}</span></td>
-              <td>
-                <a href="loans.html" class="btn btn-secondary btn-sm">Mượn sách</a>
-                <button class="btn btn-secondary btn-sm" onclick="editReader('${r.readerId}')">Sửa</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteReader('${r.readerId}')">Xóa</button>
-              </td>
-            </tr>
-          `;
-        }).join("");
-      } catch (e) {}
+        allReadersList = readers;
+        applyReaderFilter();
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger);">Lỗi tải danh sách độc giả</td></tr>`;
+      }
     }
 
     function openAddReaderModal() {

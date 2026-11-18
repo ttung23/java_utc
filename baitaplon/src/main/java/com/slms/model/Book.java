@@ -27,6 +27,9 @@ public class Book {
     /** Mã thể loại liên kết với bảng CATEGORIES */
     private String categoryId;
 
+    /** Vị trí lưu kho thực tế (Kệ / Quầy / Ngăn) */
+    private String location;
+
     /**
      * Constructor mặc định.
      */
@@ -109,6 +112,14 @@ public class Book {
 
     public void setCategoryId(String categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     // ======================== toString ========================

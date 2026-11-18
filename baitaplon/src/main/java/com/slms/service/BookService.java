@@ -7,6 +7,8 @@ import com.slms.repository.BookRepository;
 import com.slms.repository.BookCopyRepository;
 import com.slms.repository.LoanRepository;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -207,6 +209,137 @@ public class BookService {
 
         bookCopyRepository.save(copy);
         return copy;
+    }
+
+    /**
+     * Thêm hàng loạt bản sao cho một cuốn sách với số lượng tùy chỉnh.
+     * Tự động sinh mã bản sao (Copy ID) và mã vạch (Barcode) tiếp theo nếu không nhập.
+     *
+     * @param isbn mã ISBN của sách
+     * @param price giá bìa
+     * @param quantity số lượng bản sao cần tạo
+     * @param startCopyId mã bản sao bắt đầu (tùy chọn)
+     * @param startBarcode mã vạch bắt đầu (tùy chọn)
+     * @return danh sách các bản sao đã được tạo thành công
+     */
+    public synchronized List<BookCopy> addCopies(String isbn, double price, int quantity, String startCopyId, String startBarcode) {
+        if (isbn == null || isbn.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã ISBN không được để trống.");
+        }
+        Optional<Book> book = bookRepository.findByIsbn(isbn);
+        if (book.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy sách với ISBN '" + isbn + "'.");
+        }
+        if (quantity < 1) {
+            quantity = 1;
+        }
+
+        List<BookCopy> allCopies = bookCopyRepository.findAll();
+        int maxCopyNum = 0;
+        int maxBarcodeNum = 0;
+        for (BookCopy c : allCopies) {
+            int cNum = extractTrailingNumber(c.getCopyId());
+            if (cNum > maxCopyNum) maxCopyNum = cNum;
+            int bNum = extractTrailingNumber(c.getBarcode());
+            if (bNum > maxBarcodeNum) maxBarcodeNum = bNum;
+        }
+
+        String copyPrefix = "CP";
+        int copyPadding = 3;
+        int nextCopyNum = maxCopyNum + 1;
+        if (startCopyId != null && !startCopyId.trim().isEmpty()) {
+            String trimmed = startCopyId.trim();
+            int parsed = extractTrailingNumber(trimmed);
+            if (parsed > 0) {
+                copyPrefix = extractPrefix(trimmed);
+                copyPadding = Math.max(extractPadding(trimmed), 1);
+                nextCopyNum = parsed;
+            } else {
+                copyPrefix = trimmed;
+                nextCopyNum = maxCopyNum + 1;
+            }
+        }
+
+        String barcodePrefix = "BC-";
+        int barcodePadding = 5;
+        int nextBarcodeNum = maxBarcodeNum + 1;
+        if (startBarcode != null && !startBarcode.trim().isEmpty()) {
+            String trimmed = startBarcode.trim();
+            int parsed = extractTrailingNumber(trimmed);
+            if (parsed > 0) {
+                barcodePrefix = extractPrefix(trimmed);
+                barcodePadding = Math.max(extractPadding(trimmed), 1);
+                nextBarcodeNum = parsed;
+            } else {
+                barcodePrefix = trimmed;
+                nextBarcodeNum = maxBarcodeNum + 1;
+            }
+        }
+
+        List<BookCopy> added = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        for (int i = 0; i < quantity; i++) {
+            String cId = String.format("%s%0" + copyPadding + "d", copyPrefix, nextCopyNum);
+            while (bookCopyRepository.findById(cId).isPresent()) {
+                nextCopyNum++;
+                cId = String.format("%s%0" + copyPadding + "d", copyPrefix, nextCopyNum);
+            }
+
+            String bCode = String.format("%s%0" + barcodePadding + "d", barcodePrefix, nextBarcodeNum);
+            while (bookCopyRepository.findByBarcode(bCode).isPresent()) {
+                nextBarcodeNum++;
+                bCode = String.format("%s%0" + barcodePadding + "d", barcodePrefix, nextBarcodeNum);
+            }
+
+            BookCopy copy = new BookCopy();
+            copy.setCopyId(cId);
+            copy.setIsbn(isbn);
+            copy.setBarcode(bCode);
+            copy.setAcquisitionDate(today);
+            copy.setPrice(price);
+            copy.setStatus(CopyStatus.Available);
+
+            bookCopyRepository.save(copy);
+            added.add(copy);
+
+            nextCopyNum++;
+            nextBarcodeNum++;
+        }
+
+        return added;
+    }
+
+    private int extractTrailingNumber(String str) {
+        if (str == null || str.isEmpty()) return 0;
+        int i = str.length() - 1;
+        while (i >= 0 && Character.isDigit(str.charAt(i))) {
+            i--;
+        }
+        if (i == str.length() - 1) return 0;
+        try {
+            return Integer.parseInt(str.substring(i + 1));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private String extractPrefix(String str) {
+        if (str == null || str.isEmpty()) return "";
+        int i = str.length() - 1;
+        while (i >= 0 && Character.isDigit(str.charAt(i))) {
+            i--;
+        }
+        return str.substring(0, i + 1);
+    }
+
+    private int extractPadding(String str) {
+        if (str == null || str.isEmpty()) return 0;
+        int i = str.length() - 1;
+        while (i >= 0 && Character.isDigit(str.charAt(i))) {
+            i--;
+        }
+        return str.length() - 1 - i;
     }
 
     /**

@@ -106,13 +106,14 @@ public class LoanHandler implements HttpHandler {
                     List<Loan> loans;
                     if (readerId != null && !readerId.trim().isEmpty()) {
                         loans = loanService.getLoansByReaderId(readerId.trim());
-                    } else if ("OVERDUE".equalsIgnoreCase(status)) {
-                        loans = loanService.getOverdueLoans();
-                    } else if ("BORROWED".equalsIgnoreCase(status)) {
-                        loans = loanService.getBorrowedLoans();
                     } else if (status != null && !status.trim().isEmpty()) {
-                        HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Trạng thái phiếu mượn không hợp lệ"));
-                        return;
+                        try {
+                            com.slms.model.enums.LoanStatus.valueOf(status.trim().toUpperCase());
+                            loans = loanService.getLoansByStatus(status.trim().toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error("Trạng thái phiếu mượn không hợp lệ: " + status));
+                            return;
+                        }
                     } else {
                         loans = loanService.getAllLoans();
                     }

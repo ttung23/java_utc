@@ -48,6 +48,9 @@ public class LoanRepository {
     private static final String SQL_UPDATE_DUE_DATE =
             "UPDATE LOANS SET due_date = ? WHERE loan_id = ?";
 
+    private static final String SQL_UPDATE_DUE_DATE_AND_RENEWAL =
+            "UPDATE LOANS SET due_date = ?, renewal_count = ? WHERE loan_id = ?";
+
     private static final String SQL_FIND_OVERDUE =
             "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
                     + "FROM LOANS WHERE return_date IS NULL AND "
@@ -58,6 +61,10 @@ public class LoanRepository {
             "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
                     + "FROM LOANS WHERE status = 'BORROWED' AND return_date IS NULL "
                     + "AND due_date >= CURRENT_TIMESTAMP ORDER BY borrow_date DESC";
+
+    private static final String SQL_FIND_BY_STATUS =
+            "SELECT loan_id, reader_id, copy_id, borrow_date, due_date, return_date, status "
+                    + "FROM LOANS WHERE status = ? ORDER BY borrow_date DESC";
 
     private static final String SQL_HAS_LOANS_BY_COPY =
             "SELECT COUNT(*) FROM LOANS WHERE copy_id = ?";
@@ -231,17 +238,30 @@ public class LoanRepository {
     }
 
     /**
-     * Gia hạn hạn trả của phiếu mượn.
+     * Gia hạn hạn trả của phiếu mượn và cập nhật số lần gia hạn.
      */
-    public boolean updateDueDate(String loanId, LocalDateTime newDueDate) {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_DUE_DATE)) {
-            ps.setTimestamp(1, Timestamp.valueOf(newDueDate));
-            ps.setString(2, loanId);
-            return ps.executeUpdate() > 0;
+    public boolean updateDueDate(String loanId, LocalDateTime newDueDate, int renewalCount) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_DUE_DATE_AND_RENEWAL)) {
+                ps.setTimestamp(1, Timestamp.valueOf(newDueDate));
+                ps.setInt(2, renewalCount);
+                ps.setString(3, loanId);
+                return ps.executeUpdate() > 0;
+            } catch (SQLException e) {
+                // Fallback nếu cột renewal_count chưa có trong schema cũ
+                try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_DUE_DATE)) {
+                    ps.setTimestamp(1, Timestamp.valueOf(newDueDate));
+                    ps.setString(2, loanId);
+                    return ps.executeUpdate() > 0;
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi gia hạn phiếu mượn [" + loanId + "]: " + e.getMessage(), e);
         }
+    }
+
+    public boolean updateDueDate(String loanId, LocalDateTime newDueDate) {
+        return updateDueDate(loanId, newDueDate, 1);
     }
 
     /**
@@ -276,6 +296,23 @@ public class LoanRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi khi tìm phiếu mượn đang trong hạn: " + e.getMessage(), e);
+        }
+        return loans;
+    }
+
+    public List<Loan> findByStatus(String status) {
+        List<Loan> loans = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_FIND_BY_STATUS)) {
+
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    loans.add(mapResultSetToLoan(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi khi tìm phiếu mượn theo status [" + status + "]: " + e.getMessage(), e);
         }
         return loans;
     }
@@ -328,6 +365,13 @@ public class LoanRepository {
 
         // Chuyển đổi chuỗi trạng thái sang enum LoanStatus
         loan.setStatus(LoanStatus.valueOf(rs.getString("status")));
+
+        try {
+            loan.setRenewalCount(rs.getInt("renewal_count"));
+        } catch (SQLException ignored) {
+            loan.setRenewalCount(0);
+        }
+
         return loan;
     }
 }

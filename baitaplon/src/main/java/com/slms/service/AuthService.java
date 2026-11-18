@@ -59,7 +59,7 @@ public class AuthService {
             throw new IllegalArgumentException("Sai tài khoản hoặc mật khẩu");
         }
 
-        AuthSession session = createSession(staff.getRole(), staff.getStaffId(), staff.getFullName());
+        AuthSession session = createSession(staff.getRole(), staff.getStaffId(), staff.getFullName(), staff.getAvatar());
         return toLoginResponse(session, staff.getStatus(), staff.getRole().name());
     }
 
@@ -146,10 +146,18 @@ public class AuthService {
         readerRepository.updatePassword(reader.getReaderId(), reader.getPasswordHash());
     }
 
+    public void updateStaffAvatar(String staffId, String avatarUrl) {
+        staffRepository.updateAvatar(staffId, avatarUrl);
+    }
+
     private AuthSession createSession(UserRole role, String userId, String displayName) {
+        return createSession(role, userId, displayName, null);
+    }
+
+    private AuthSession createSession(UserRole role, String userId, String displayName, String avatar) {
         String token = SessionStore.newToken();
         Instant expires = Instant.now().plus(SESSION_HOURS, ChronoUnit.HOURS);
-        AuthSession session = new AuthSession(token, role, userId, displayName, expires);
+        AuthSession session = new AuthSession(token, role, userId, displayName, avatar, expires);
         SessionStore.put(session);
         return session;
     }
@@ -160,6 +168,7 @@ public class AuthService {
         result.put("role", session.getRole().name());
         result.put("userId", session.getUserId());
         result.put("displayName", session.getDisplayName());
+        result.put("avatar", session.getAvatar());
         result.put("status", status);
         result.put("type", typeOrRole);
         result.put("expiresAt", session.getExpiresAt().toString());

@@ -28,8 +28,8 @@
     <div class="panel">
       <div class="table-responsive">
         <table>
-          <thead><tr><th>ISBN</th><th>Tên sách</th><th>Tác giả</th><th>Còn lại</th><th></th></tr></thead>
-          <tbody id="catalog-body"><tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr></tbody>
+          <thead><tr><th>ISBN</th><th>Tên sách</th><th>Tác giả</th><th>Vị trí kệ</th><th>Còn lại</th><th></th></tr></thead>
+          <tbody id="catalog-body"><tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -76,11 +76,11 @@
       const q = document.getElementById("search-q").value.trim();
       updateClearBtn();
       const tbody = document.getElementById("catalog-body");
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Đang tải...</td></tr>`;
       try {
         const books = await fetchAPI(q ? "/api/books?q=" + encodeURIComponent(q) : "/api/books");
         if (!books.length) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Không tìm thấy sách</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Không tìm thấy sách</td></tr>`;
           return;
         }
         const rows = await Promise.all(books.map(async (b) => {
@@ -92,11 +92,18 @@
           const action = available === 0
             ? `<button class="btn btn-primary btn-sm" onclick="reserveBook('${b.isbn}')">Đặt trước</button>`
             : `<span class="badge badge-success">Có sẵn</span>`;
-          return `<tr><td>${b.isbn}</td><td>${b.title}</td><td>${b.author || "-"}</td><td><strong>${available}</strong>/${total}</td><td>${action}</td></tr>`;
+          return `<tr>
+            <td><code>${b.isbn}</code></td>
+            <td><strong>${b.title}</strong></td>
+            <td>${b.author || "-"}</td>
+            <td><span class="badge badge-info" style="font-size:12px;white-space:nowrap;">${b.location || 'Kệ A1 - Tầng 1'}</span></td>
+            <td><strong>${available}</strong>/${total}</td>
+            <td>${action}</td>
+          </tr>`;
         }));
         tbody.innerHTML = rows.join("");
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Lỗi tải</td></tr>`;
       }
     }
 

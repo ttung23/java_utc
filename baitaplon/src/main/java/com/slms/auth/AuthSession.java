@@ -13,14 +13,20 @@ public class AuthSession {
     private final UserRole role;
     private final String userId;
     private final String displayName;
+    private final String avatar;
     private final Instant createdAt;
     private final Instant expiresAt;
 
     public AuthSession(String token, UserRole role, String userId, String displayName, Instant expiresAt) {
+        this(token, role, userId, displayName, null, expiresAt);
+    }
+
+    public AuthSession(String token, UserRole role, String userId, String displayName, String avatar, Instant expiresAt) {
         this.token = token;
         this.role = role;
         this.userId = userId;
         this.displayName = displayName;
+        this.avatar = avatar;
         this.createdAt = Instant.now();
         this.expiresAt = expiresAt;
     }
@@ -43,6 +49,10 @@ public class AuthSession {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getAvatar() {
+        return avatar;
     }
 
     public Instant getCreatedAt() {

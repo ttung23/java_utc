@@ -57,6 +57,7 @@
         sessionStorage.setItem(TOKEN_KEY, json.data.token);
         sessionStorage.setItem(ROLE_KEY, json.data.role);
         sessionStorage.setItem("slms_staff_name", json.data.displayName || "");
+        sessionStorage.setItem("slms_staff_avatar", json.data.avatar || "");
         window.location.href = "books.html";
       } catch (ex) {
         err.textContent = ex.message;

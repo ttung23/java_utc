@@ -48,10 +48,20 @@ public class TestConnection {
                 }
 
                 try (Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery("SELECT isbn, title, category_id, category FROM BOOKS FETCH FIRST 5 ROWS ONLY")) {
-                    System.out.println("    [BOOKS SAMPLE WITH CATEGORY_ID]:");
+                     ResultSet rs = stmt.executeQuery("SELECT staff_id, username, full_name, role, avatar FROM STAFF_USERS")) {
+                    System.out.println("    [STAFF USERS WITH AVATAR]:");
                     while (rs.next()) {
-                        System.out.println("      - " + rs.getString("isbn") + " | " + rs.getString("title") + " | category_id=" + rs.getString("category_id") + " | category=" + rs.getString("category"));
+                        System.out.println("      - " + rs.getString("staff_id") + " | " + rs.getString("username") + " | " + rs.getString("full_name") + " | " + rs.getString("role") + " | avatar=" + rs.getString("avatar"));
+                    }
+                } catch (Exception e) {
+                    System.out.println("    [CANH BAO] Loi doc STAFF_USERS: " + e.getMessage());
+                }
+
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT isbn, title, category_id, location FROM BOOKS FETCH FIRST 5 ROWS ONLY")) {
+                    System.out.println("    [BOOKS SAMPLE WITH LOCATION]:");
+                    while (rs.next()) {
+                        System.out.println("      - " + rs.getString("isbn") + " | " + rs.getString("title") + " | location=" + rs.getString("location"));
                     }
                 } catch (Exception e) {
                     System.out.println("    [CANH BAO] Loi doc BOOKS: " + e.getMessage());

@@ -42,10 +42,25 @@ public class DatabaseInitializer {
         addColumnIfMissing(conn, "READERS", "PASSWORD_HASH", "VARCHAR2(100)");
 
         createStaffTableIfMissing(conn);
+        addColumnIfMissing(conn, "STAFF_USERS", "AVATAR", "VARCHAR2(500)");
         createCategoriesTableIfMissing(conn);
         addColumnIfMissing(conn, "BOOKS", "CATEGORY_ID", "VARCHAR2(50)");
         migrateBookCategories(conn);
-        System.out.println(">>> [DB] Schema upgrade (auth/profile/categories) đã hoàn tất.");
+        addColumnIfMissing(conn, "LOANS", "RENEWAL_COUNT", "NUMBER DEFAULT 0");
+        addColumnIfMissing(conn, "BOOKS", "LOCATION", "VARCHAR2(100)");
+        seedBookLocations(conn);
+        System.out.println(">>> [DB] Schema upgrade (auth/profile/categories/loans/locations) đã hoàn tất.");
+    }
+
+    private static void seedBookLocations(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("UPDATE BOOKS SET location = 'Kệ B1 - Tầng 2 (CNTT)' WHERE isbn = '978-0-13-468599-1' AND location IS NULL");
+            stmt.executeUpdate("UPDATE BOOKS SET location = 'Kệ B2 - Tầng 2 (Phần mềm)' WHERE isbn = '978-0-13-235088-4' AND location IS NULL");
+            stmt.executeUpdate("UPDATE BOOKS SET location = 'Kệ B2 - Tầng 2 (Kiến trúc)' WHERE isbn = '978-0-201-63361-0' AND location IS NULL");
+            stmt.executeUpdate("UPDATE BOOKS SET location = 'Kệ B3 - Tầng 2 (Web Dev)' WHERE isbn = '978-0-596-51774-8' AND location IS NULL");
+            stmt.executeUpdate("UPDATE BOOKS SET location = 'Kệ A1 - Tầng 1 (Cơ sở dữ liệu)' WHERE isbn = '978-0-13-468729-2' AND location IS NULL");
+            stmt.executeUpdate("UPDATE BOOKS SET location = 'Kệ A2 - Tầng 1 (Khu Đại cương)' WHERE location IS NULL");
+        } catch (SQLException ignored) {}
     }
 
     private static void addColumnIfMissing(Connection conn, String tableName, String columnName, String columnType) {
@@ -78,6 +93,7 @@ public class DatabaseInitializer {
                     " password_hash VARCHAR2(100) NOT NULL," +
                     " role VARCHAR2(20) NOT NULL," +
                     " status VARCHAR2(20) DEFAULT 'ACTIVE'," +
+                    " avatar VARCHAR2(500)," +
                     " CONSTRAINT pk_staff_users PRIMARY KEY (staff_id)" +
                     ")";
             try (Statement stmt = conn.createStatement()) {
@@ -191,11 +207,19 @@ public class DatabaseInitializer {
             if (staffRepository.count() == 0) {
                 staffRepository.save(new StaffUser(
                         "ST001", "librarian", "Thu Thu Demo",
-                        PasswordUtil.hash("123456"), UserRole.LIBRARIAN, "ACTIVE"));
+                        PasswordUtil.hash("123456"), UserRole.LIBRARIAN, "ACTIVE", "images/avatar-staff.svg"));
                 staffRepository.save(new StaffUser(
                         "ST002", "admin", "Admin SLMS",
-                        PasswordUtil.hash("admin123"), UserRole.ADMIN, "ACTIVE"));
+                        PasswordUtil.hash("admin123"), UserRole.ADMIN, "ACTIVE", "images/avatar-admin.svg"));
                 System.out.println(">>> [Auth] Đã tạo tài khoản staff demo: librarian/123456, admin/admin123");
+            } else {
+                // Cập nhật avatar mặc định cho các tài khoản hiện có nếu chưa có avatar
+                try (Connection conn = DatabaseConnection.getConnection();
+                     Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("UPDATE STAFF_USERS SET avatar = 'images/avatar-admin.svg' WHERE role = 'ADMIN' AND (avatar IS NULL OR avatar = '')");
+                    stmt.executeUpdate("UPDATE STAFF_USERS SET avatar = 'images/avatar-staff.svg' WHERE role != 'ADMIN' AND (avatar IS NULL OR avatar = '')");
+                } catch (Exception ignored) {
+                }
             }
             System.out.println(">>> [Auth] Mật khẩu mặc định độc giả demo: " + AuthService.DEFAULT_READER_PASSWORD);
         } catch (Exception e) {

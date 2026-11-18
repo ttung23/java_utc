@@ -42,13 +42,49 @@ public class CategoryHandler implements HttpHandler {
                     }
                     Category saved = categoryService.addCategory(category);
                     HttpHelper.sendJsonResponse(exchange, 201, ApiResponse.ok("Tạo thể loại thành công", saved));
+                } else if ("PUT".equals(method)) {
+                    String body = HttpHelper.readRequestBody(exchange);
+                    Category category = HttpHelper.getGson().fromJson(body, Category.class);
+                    if (categoryService.updateCategory(category)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Cập nhật thể loại thành công", category));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy thể loại để cập nhật"));
+                    }
+                } else {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
+                }
+            } else if (path.startsWith("/api/categories/")) {
+                String categoryId = path.substring("/api/categories/".length()).trim();
+                if ("GET".equals(method)) {
+                    java.util.Optional<Category> opt = categoryService.getCategoryById(categoryId);
+                    if (opt.isPresent()) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok(opt.get()));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy thể loại: " + categoryId));
+                    }
+                } else if ("PUT".equals(method)) {
+                    String body = HttpHelper.readRequestBody(exchange);
+                    Category category = HttpHelper.getGson().fromJson(body, Category.class);
+                    if (category == null) category = new Category();
+                    category.setCategoryId(categoryId);
+                    if (categoryService.updateCategory(category)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Cập nhật thể loại thành công", category));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy thể loại để cập nhật"));
+                    }
+                } else if ("DELETE".equals(method)) {
+                    if (categoryService.deleteCategory(categoryId)) {
+                        HttpHelper.sendJsonResponse(exchange, 200, ApiResponse.ok("Xóa thể loại thành công", null));
+                    } else {
+                        HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Không tìm thấy thể loại để xóa"));
+                    }
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
             } else {
                 HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Đường dẫn không tồn tại"));
             }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             HttpHelper.sendJsonResponse(exchange, 400, ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             System.err.println(">>> [CategoryHandler Error]: " + e.getMessage());

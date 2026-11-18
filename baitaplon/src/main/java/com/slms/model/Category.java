@@ -16,6 +16,9 @@ public class Category {
     /** Mô tả thể loại */
     private String description;
 
+    /** Số lượng đầu sách thuộc thể loại này */
+    private int bookCount;
+
     public Category() {
     }
 
@@ -52,6 +55,14 @@ public class Category {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public int getBookCount() {
+        return bookCount;
+    }
+
+    public void setBookCount(int bookCount) {
+        this.bookCount = bookCount;
     }
 
     @Override

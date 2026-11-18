@@ -88,15 +88,25 @@
     <!-- TAB 3: DANH SÁCH PHIẾU MƯỢN -->
     <div id="list-tab" class="tab-content">
       <div class="panel">
-        <div class="panel-header">
+        <div class="panel-header" style="flex-wrap:wrap;gap:12px;">
           <h2 class="panel-title">Tất cả Phiếu Mượn</h2>
-          <div style="display:flex;gap:10px;">
-            <select id="filter-loan-status" onchange="loadLoansList()" style="padding:6px 12px;font-size:13px;">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);">
+              <span>Từ ngày:</span>
+              <input type="date" id="filter-from-date" onchange="onLoansFilterChange()" style="padding:5px 8px;font-size:13px;border-radius:6px;border:1px solid var(--border);">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);">
+              <span>Đến ngày:</span>
+              <input type="date" id="filter-to-date" onchange="onLoansFilterChange()" style="padding:5px 8px;font-size:13px;border-radius:6px;border:1px solid var(--border);">
+            </div>
+            <select id="filter-loan-status" onchange="onLoansFilterChange()" style="padding:6px 12px;font-size:13px;border-radius:6px;border:1px solid var(--border);">
               <option value="">Tất cả trạng thái</option>
-              <option value="BORROWED">Đang mượn (BORROWED)</option>
-              <option value="OVERDUE">Quá hạn (OVERDUE)</option>
+              <option value="BORROWED">Đang mượn</option>
+              <option value="OVERDUE">Quá hạn</option>
+              <option value="RETURNED">Đã trả</option>
+              <option value="DAMAGED_RETURN">Trả hỏng</option>
+              <option value="LOST_RETURN">Báo mất</option>
             </select>
-            <button class="btn btn-secondary btn-sm" onclick="loadLoansList()">Làm mới</button>
           </div>
         </div>
         <div class="table-responsive">
@@ -104,19 +114,21 @@
             <thead>
               <tr>
                 <th>Mã phiếu</th>
-                <th>Mã độc giả</th>
+                <th>Tên độc giả</th>
                 <th>Mã bản sao</th>
                 <th>Ngày mượn</th>
                 <th>Hạn trả</th>
                 <th>Ngày trả</th>
                 <th>Trạng thái</th>
+                <th>Hành động</th>
               </tr>
             </thead>
             <tbody id="loans-table-body">
-              <tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>
+              <tr><td colspan="8" style="text-align:center;">Đang tải...</td></tr>
             </tbody>
           </table>
         </div>
+        <div id="loans-pagination"></div>
       </div>
     </div>
   </main>
@@ -299,43 +311,221 @@
       } catch (e) {}
     }
 
-    // Tải danh sách tất cả phiếu mượn
-    async function loadLoansList() {
+    function formatLoanStatus(status, isOverdue) {
+      const code = isOverdue ? "OVERDUE" : status;
+      switch (code) {
+        case "BORROWED":
+          return { text: "Đang mượn", badge: "badge-primary" };
+        case "RETURNED":
+          return { text: "Đã trả", badge: "badge-success" };
+        case "OVERDUE":
+          return { text: "Quá hạn", badge: "badge-danger" };
+        case "DAMAGED_RETURN":
+          return { text: "Trả hỏng", badge: "badge-warning" };
+        case "LOST_RETURN":
+          return { text: "Báo mất", badge: "badge-danger" };
+        default:
+          return { text: code || "-", badge: "badge-secondary" };
+      }
+    }
+
+    // Quản lý trạng thái danh sách phiếu mượn & phân trang
+    let allLoansData = [];
+    let filteredLoans = [];
+    let loansCurrentPage = 1;
+    let loansPageSize = 10;
+
+    function onLoansFilterChange() {
+      loansCurrentPage = 1;
+      applyLoansFilterAndRender();
+    }
+
+    function applyLoansFilterAndRender() {
       const status = document.getElementById("filter-loan-status").value;
+      const fromDate = document.getElementById("filter-from-date").value;
+      const toDate = document.getElementById("filter-to-date").value;
       const tbody = document.getElementById("loans-table-body");
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Đang tải...</td></tr>`;
 
-      try {
-        const endpoint = status ? `/api/loans?status=${encodeURIComponent(status)}` : "/api/loans";
-        const loans = await fetchAPI(endpoint);
-
-        if (loans.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Không có phiếu mượn nào</td></tr>`;
-          return;
+      filteredLoans = allLoansData.filter(l => {
+        // Lọc trạng thái
+        if (status) {
+          const isOverdue = !l.returnDate && (l.status === "OVERDUE" || Date.parse((l.dueDate || "").replace(" ", "T")) < Date.now());
+          const effectiveStatus = isOverdue ? "OVERDUE" : l.status;
+          if (effectiveStatus !== status) return false;
         }
 
-        tbody.innerHTML = loans.map(l => {
-          const isOverdue = !l.returnDate
-            && (l.status === "OVERDUE" || Date.parse(l.dueDate.replace(" ", "T")) < Date.now());
-          const status = isOverdue ? "OVERDUE" : l.status;
-          let badge = "badge-primary";
-          if (status === "RETURNED") badge = "badge-success";
-          if (status === "OVERDUE") badge = "badge-danger";
-          if (status.includes("DAMAGED") || status.includes("LOST")) badge = "badge-warning";
+        // Lọc ngày mượn (từ ngày - đến ngày)
+        if (fromDate || toDate) {
+          if (!l.borrowDate) return false;
+          const bDateStr = l.borrowDate.substring(0, 10);
+          if (fromDate && bDateStr < fromDate) return false;
+          if (toDate && bDateStr > toDate) return false;
+        }
 
-          return `
-            <tr>
-              <td><strong>${l.loanId}</strong></td>
-              <td>${l.readerId}</td>
-              <td>${l.copyId}</td>
-              <td>${formatDateTime(l.borrowDate)}</td>
-              <td>${formatDateTime(l.dueDate)}</td>
-              <td>${l.returnDate ? formatDateTime(l.returnDate) : "-"}</td>
-              <td><span class="badge ${badge}">${status}</span></td>
-            </tr>
-          `;
-        }).join("");
-      } catch (e) {}
+        return true;
+      });
+
+      if (filteredLoans.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Không tìm thấy phiếu mượn nào phù hợp</td></tr>`;
+        renderPaginationControls({
+          containerId: "loans-pagination",
+          totalItems: 0,
+          currentPage: 1,
+          pageSize: loansPageSize,
+          onPageChange: () => {}
+        });
+        return;
+      }
+
+      renderLoansTable();
+    }
+
+    function renderLoansTable() {
+      const tbody = document.getElementById("loans-table-body");
+      const pageLoans = paginateItems(filteredLoans, loansCurrentPage, loansPageSize);
+
+      tbody.innerHTML = pageLoans.map(l => {
+        const isOverdue = !l.returnDate
+          && (l.status === "OVERDUE" || Date.parse((l.dueDate || "").replace(" ", "T")) < Date.now());
+        const st = formatLoanStatus(l.status, isOverdue);
+
+        // Tìm tên độc giả từ allReaders
+        const reader = (allReaders || []).find(r => r.readerId === l.readerId);
+        const readerName = reader ? reader.fullName : l.readerId;
+
+        // Tìm mã vạch từ danh sách bản sao đã tải
+        const copy = (allBookCopies || []).find(c => c.copyId === l.copyId);
+        const barcode = (copy && copy.barcode) ? copy.barcode : (l.barcode || l.copyId);
+
+        const isReturned = (l.returnDate != null) || (l.status !== "BORROWED" && l.status !== "OVERDUE");
+        const renewalCount = l.renewalCount || 0;
+        const canRenew = !isReturned && !isOverdue && renewalCount < 2;
+
+        let renewBtn = "";
+        if (!isReturned) {
+          if (canRenew) {
+            renewBtn = `<button class="btn btn-secondary btn-sm" onclick="renewLoanAction('${l.loanId}', '${readerName.replace(/'/g, "\\'")}', ${renewalCount})" title="Gia hạn thời gian mượn sách (+7 ngày cho SV, +14 ngày cho GV)">Gia hạn (${renewalCount}/2)</button>`;
+          } else if (isOverdue) {
+            renewBtn = `<button class="btn btn-secondary btn-sm" disabled style="opacity:0.4;cursor:not-allowed;" title="Phiếu mượn đã quá hạn, không thể gia hạn">Quá hạn</button>`;
+          } else if (renewalCount >= 2) {
+            renewBtn = `<button class="btn btn-secondary btn-sm" disabled style="opacity:0.4;cursor:not-allowed;" title="Đã gia hạn tối đa 2 lần">Hết lượt (${renewalCount}/2)</button>`;
+          }
+        }
+
+        const actionBtn = isReturned
+          ? `<button class="btn btn-secondary btn-sm" disabled style="opacity:0.4;cursor:not-allowed;" title="Phiếu mượn này đã được trả">Đã trả</button>`
+          : `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="goToReturnTab('${l.copyId}', '${barcode}')" title="Chuyển sang nhận trả sách này">Trả sách</button>
+              ${renewBtn}
+            </div>`;
+
+        const renewalBadge = renewalCount > 0
+          ? `<span class="badge badge-primary" style="font-size:10px;margin-left:4px;padding:2px 5px;" title="Đã gia hạn ${renewalCount} lần">+${renewalCount}</span>`
+          : "";
+
+        return `
+          <tr>
+            <td><strong>${l.loanId}</strong></td>
+            <td>
+              <div style="font-weight:600;color:var(--text-main);">${readerName}</div>
+              <div style="font-size:11px;color:var(--text-muted);">${l.readerId}</div>
+            </td>
+            <td>${l.copyId}</td>
+            <td>${formatDateTime(l.borrowDate)}</td>
+            <td>${formatDateTime(l.dueDate)}${renewalBadge}</td>
+            <td>${l.returnDate ? formatDateTime(l.returnDate) : "-"}</td>
+            <td><span class="badge ${st.badge}">${st.text}</span></td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join("");
+
+      renderPaginationControls({
+        containerId: "loans-pagination",
+        totalItems: filteredLoans.length,
+        currentPage: loansCurrentPage,
+        pageSize: loansPageSize,
+        onPageChange: (newPage, newPageSize) => {
+          loansCurrentPage = newPage;
+          loansPageSize = newPageSize;
+          renderLoansTable();
+        }
+      });
+    }
+
+    // Tải danh sách tất cả phiếu mượn
+    async function loadLoansList() {
+      const tbody = document.getElementById("loans-table-body");
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        if (!allReaders || allReaders.length === 0) {
+          try {
+            allReaders = await fetchAPI("/api/readers") || [];
+          } catch (e) {}
+        }
+        if (!allBookCopies || allBookCopies.length === 0) {
+          try {
+            allBookCopies = await fetchAPI("/api/books/copies") || [];
+          } catch (e) {}
+        }
+
+        allLoansData = await fetchAPI("/api/loans") || [];
+        loansCurrentPage = 1;
+        applyLoansFilterAndRender();
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);">Lỗi tải dữ liệu phiếu mượn</td></tr>`;
+      }
+    }
+
+    async function renewLoanAction(loanId, readerName, currentRenewalCount) {
+      if (!confirm(`Xác nhận gia hạn phiếu mượn [${loanId}] của độc giả "${readerName}" (Lần ${currentRenewalCount + 1}/2)?\n\nThời gian sẽ được cộng thêm vào hạn trả hiện tại.`)) {
+        return;
+      }
+
+      try {
+        const renewed = await fetchAPI("/api/loans/renew", {
+          method: "POST",
+          body: JSON.stringify({ loanId })
+        });
+        alert(`🎉 Gia hạn mượn sách thành công!\n\nMã phiếu: ${renewed.loanId}\nHạn trả mới: ${formatDateTime(renewed.dueDate)}\nSố lần đã gia hạn: ${renewed.renewalCount}/2`);
+        loadLoansList();
+      } catch (err) {
+        // Lỗi đã được showToast hiển thị hoặc ném ra
+      }
+    }
+
+    function goToReturnTab(copyId, defaultBarcode) {
+      let barcode = defaultBarcode;
+      if (!barcode || barcode === "undefined" || barcode === "null" || barcode === copyId) {
+        const copy = (allBookCopies || []).find(c => c.copyId === copyId);
+        if (copy && copy.barcode) {
+          barcode = copy.barcode;
+        } else {
+          barcode = copyId;
+        }
+      }
+
+      // Chuyển sang Tab Nhận Trả Sách
+      switchTab("return-tab");
+
+      // Cập nhật URL & Sidebar active sub-menu
+      history.replaceState(null, "", "loans.html?tab=return");
+      if (typeof renderSidebar === "function") {
+        renderSidebar("loans", "return");
+      }
+
+      // Điền mã vạch vào ô nhập và focus
+      const returnInput = document.getElementById("return-barcode");
+      if (returnInput) {
+        returnInput.value = barcode;
+        returnInput.focus();
+        returnInput.select();
+      }
+
+      // Reset kết quả thông báo trả sách trước đó
+      const resBox = document.getElementById("return-result");
+      if (resBox) resBox.style.display = "none";
     }
 
     // ==================== AUTOCOMPLETE & GỢI Ý TÌM KIẾM ====================
@@ -362,14 +552,16 @@
         console.error("Lỗi tải bản sao sách:", e);
       }
 
-      // Bổ sung tên sách từ /api/books nếu bản sao chưa có title
+      // Bổ sung tên sách và vị trí kệ từ /api/books nếu bản sao chưa có title
       try {
         const books = await fetchAPI("/api/books");
         const bookMap = {};
-        (books || []).forEach(b => { bookMap[b.isbn] = b.title; });
+        (books || []).forEach(b => { bookMap[b.isbn] = b; });
         (allBookCopies || []).forEach(c => {
-          if (!c.bookTitle && bookMap[c.isbn]) {
-            c.bookTitle = bookMap[c.isbn];
+          const b = bookMap[c.isbn];
+          if (b) {
+            if (!c.bookTitle) c.bookTitle = b.title;
+            c.location = b.location || "Kệ A1 - Tầng 1";
           }
         });
       } catch (e) {}
@@ -394,7 +586,8 @@
         const hint = document.getElementById("book-selected-hint");
         if (c && hint) {
           const isAvail = c.status === "Available";
-          hint.innerHTML = `✓ Đã chọn: <strong>${c.bookTitle || c.isbn}</strong> (${c.barcode} - ${isAvail ? 'Có sẵn' : c.status})`;
+          const locStr = c.location ? ` | <strong>${c.location}</strong>` : "";
+          hint.innerHTML = `✓ Đã chọn: <strong>${c.bookTitle || c.isbn}</strong> (${c.barcode} - ${isAvail ? 'Có sẵn' : c.status})${locStr}`;
           hint.style.display = "block";
         }
       }
@@ -505,6 +698,8 @@
               <span>•</span>
               <span>ISBN: ${c.isbn}</span>
               <span>•</span>
+              <span style="color:#0284c7;font-weight:600;">${c.location || 'Kệ A1 - Tầng 1'}</span>
+              <span>•</span>
               <span>Giá: ${formatCurrency(c.price)}</span>
             </div>
           </div>
@@ -521,7 +716,8 @@
       const c = allBookCopies.find(x => (x.barcode || "").toLowerCase() === barcode.toLowerCase());
       if (c && hint) {
         const isAvail = c.status === "Available";
-        hint.innerHTML = `✓ Đã chọn: <strong>${c.bookTitle || c.isbn}</strong> (${c.barcode} - ${isAvail ? 'Có sẵn' : c.status})`;
+        const locStr = c.location ? ` | <strong>${c.location}</strong>` : "";
+        hint.innerHTML = `✓ Đã chọn: <strong>${c.bookTitle || c.isbn}</strong> (${c.barcode} - ${isAvail ? 'Có sẵn' : c.status})${locStr}`;
         hint.style.display = "block";
       } else if (hint) {
         hint.innerHTML = `✓ Đã chọn mã vạch: <strong>${barcode}</strong>`;

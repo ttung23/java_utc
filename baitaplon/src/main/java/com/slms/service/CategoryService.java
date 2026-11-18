@@ -62,5 +62,28 @@ public class CategoryService {
     public Category getOrCreateByName(String categoryName) {
         return categoryRepository.getOrCreateByName(categoryName);
     }
+
+    /**
+     * Cập nhật thông tin thể loại.
+     */
+    public boolean updateCategory(Category category) {
+        if (category == null || category.getCategoryId() == null || category.getCategoryId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã thể loại không hợp lệ.");
+        }
+        if (category.getCategoryName() == null || category.getCategoryName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên thể loại không được để trống.");
+        }
+        return categoryRepository.update(category);
+    }
+
+    /**
+     * Xóa thể loại (sẽ từ chối nếu có sách liên kết).
+     */
+    public boolean deleteCategory(String categoryId) {
+        if (categoryId == null || categoryId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã thể loại không hợp lệ.");
+        }
+        return categoryRepository.delete(categoryId);
+    }
 }
 

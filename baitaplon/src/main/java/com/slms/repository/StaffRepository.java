@@ -15,13 +15,16 @@ import java.util.Optional;
 public class StaffRepository {
 
     private static final String SQL_FIND_BY_USERNAME =
-            "SELECT staff_id, username, full_name, password_hash, role, status FROM STAFF_USERS WHERE username = ?";
+            "SELECT staff_id, username, full_name, password_hash, role, status, avatar FROM STAFF_USERS WHERE username = ?";
 
     private static final String SQL_FIND_BY_ID =
-            "SELECT staff_id, username, full_name, password_hash, role, status FROM STAFF_USERS WHERE staff_id = ?";
+            "SELECT staff_id, username, full_name, password_hash, role, status, avatar FROM STAFF_USERS WHERE staff_id = ?";
 
     private static final String SQL_INSERT =
-            "INSERT INTO STAFF_USERS (staff_id, username, full_name, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)";
+            "INSERT INTO STAFF_USERS (staff_id, username, full_name, password_hash, role, status, avatar) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+    private static final String SQL_UPDATE_AVATAR =
+            "UPDATE STAFF_USERS SET avatar = ? WHERE staff_id = ?";
 
     private static final String SQL_COUNT =
             "SELECT COUNT(*) FROM STAFF_USERS";
@@ -65,11 +68,23 @@ public class StaffRepository {
             ps.setString(4, staff.getPasswordHash());
             ps.setString(5, staff.getRole().name());
             ps.setString(6, staff.getStatus());
+            ps.setString(7, staff.getAvatar());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi lưu staff: " + e.getMessage(), e);
         }
         return staff;
+    }
+
+    public void updateAvatar(String staffId, String avatar) {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_AVATAR)) {
+            ps.setString(1, avatar);
+            ps.setString(2, staffId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi cập nhật avatar staff: " + e.getMessage(), e);
+        }
     }
 
     public int count() {
@@ -93,6 +108,7 @@ public class StaffRepository {
         s.setPasswordHash(rs.getString("password_hash"));
         s.setRole(UserRole.valueOf(rs.getString("role")));
         s.setStatus(rs.getString("status"));
+        s.setAvatar(rs.getString("avatar"));
         return s;
     }
 }

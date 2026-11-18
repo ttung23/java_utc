@@ -52,12 +52,31 @@
           return;
         }
         tbody.innerHTML = loans.map(l => {
-          const canRenew = (l.status || "").toUpperCase() === "BORROWED";
+          const isOverdue = Date.parse((l.dueDate || "").replace(" ", "T")) < Date.now();
+          const isBorrowed = (l.status || "").toUpperCase() === "BORROWED";
+          const renewalCount = l.renewalCount || 0;
+          const canRenew = isBorrowed && !isOverdue && renewalCount < 2;
+
+          const renewalBadge = renewalCount > 0
+            ? `<span class="badge badge-primary" style="font-size:10px;margin-left:4px;padding:2px 5px;" title="Đã gia hạn ${renewalCount} lần">+${renewalCount}</span>`
+            : "";
+
+          let actionContent = "-";
+          if (isBorrowed) {
+            if (canRenew) {
+              actionContent = `<button class="btn btn-primary btn-sm" onclick="renewLoan('${l.loanId}', ${renewalCount})">Gia hạn (${renewalCount}/2)</button>`;
+            } else if (isOverdue) {
+              actionContent = `<span style="font-size:12px;color:var(--danger);font-weight:600;">Quá hạn</span>`;
+            } else if (renewalCount >= 2) {
+              actionContent = `<span style="font-size:12px;color:var(--text-muted);">Hết lượt (2/2)</span>`;
+            }
+          }
+
           return `<tr>
-            <td>${l.loanId}</td><td>${l.copyId}</td>
-            <td>${formatDateTime(l.borrowDate)}</td><td>${formatDateTime(l.dueDate)}</td>
+            <td><strong>${l.loanId}</strong></td><td>${l.copyId}</td>
+            <td>${formatDateTime(l.borrowDate)}</td><td>${formatDateTime(l.dueDate)}${renewalBadge}</td>
             <td>${statusBadge(l.status)}</td>
-            <td>${canRenew ? `<button class="btn btn-primary btn-sm" onclick="renewLoan('${l.loanId}')">Gia hạn</button>` : "-"}</td>
+            <td>${actionContent}</td>
           </tr>`;
         }).join("");
       } catch (e) {
@@ -65,14 +84,14 @@
       }
     }
 
-    async function renewLoan(loanId) {
-      if (!confirm("Gia hạn phiếu " + loanId + "?")) return;
+    async function renewLoan(loanId, currentRenewalCount) {
+      if (!confirm(`Xác nhận gia hạn phiếu mượn [${loanId}] (Lần ${(currentRenewalCount || 0) + 1}/2)?`)) return;
       try {
         const loan = await fetchAPI("/api/loans/renew", {
           method: "POST",
           body: JSON.stringify({ loanId })
         });
-        showToast("Đã gia hạn đến " + formatDateTime(loan.dueDate), "success");
+        alert(`🎉 Đã gia hạn thành công!\nHạn trả mới: ${formatDateTime(loan.dueDate)}\nSố lần đã gia hạn: ${loan.renewalCount}/2`);
         loadLoans();
       } catch (e) {}
     }

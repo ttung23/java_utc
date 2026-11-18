@@ -316,10 +316,13 @@ public class LoanService {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // ===== BƯỚC 1: Tìm bản sao sách theo barcode =====
+            // ===== BƯỚC 1: Tìm bản sao sách theo barcode hoặc copyId =====
             Optional<BookCopy> copyOpt = bookCopyRepository.findByBarcode(barcode);
             if (copyOpt.isEmpty()) {
-                throw new BookNotAvailableException("Không tìm thấy bản sao sách với mã vạch '" + barcode + "'.");
+                copyOpt = bookCopyRepository.findById(barcode);
+            }
+            if (copyOpt.isEmpty()) {
+                throw new BookNotAvailableException("Không tìm thấy bản sao sách với mã vạch hoặc mã bản sao '" + barcode + "'.");
             }
             BookCopy copy = copyOpt.get();
 
@@ -482,8 +485,13 @@ public class LoanService {
     }
 
     /**
-     * Gia hạn phiếu mượn 1 lần: cộng thêm số ngày theo loại độc giả.
-     * Chỉ áp dụng phiếu BORROWED, chưa quá hạn, thuộc đúng độc giả.
+     * Gia hạn phiếu mượn sách.
+     * Quy định nghiệp vụ:
+     * - Chỉ áp dụng cho phiếu đang mượn (BORROWED), chưa quá hạn.
+     * - Tối đa 2 lần gia hạn cho mỗi phiếu mượn.
+     * - Thẻ độc giả phải đang ACTIVE, chưa hết hạn, và nợ phạt <= 50.000 VNĐ.
+     * - Không cho phép gia hạn nếu đầu sách đang có người khác đặt trước trong hàng chờ.
+     * - Thời gian gia hạn: Sinh viên +7 ngày, Giảng viên +14 ngày.
      */
     public Loan renewLoan(String loanId, String readerId) {
         if (loanId == null || loanId.trim().isEmpty()) {
@@ -494,29 +502,56 @@ public class LoanService {
             throw new IllegalArgumentException("Không tìm thấy phiếu mượn: " + loanId);
         }
         Loan loan = opt.get();
-        if (readerId != null && !readerId.equals(loan.getReaderId())) {
-            throw new IllegalArgumentException("Phiếu mượn không thuộc độc giả này.");
+        if (readerId != null && !readerId.trim().isEmpty() && !readerId.trim().equalsIgnoreCase(loan.getReaderId())) {
+            throw new IllegalArgumentException("Phiếu mượn không thuộc quyền sở hữu của độc giả này.");
         }
         if (loan.getStatus() != LoanStatus.BORROWED) {
-            throw new IllegalStateException("Chỉ gia hạn được phiếu đang mượn (BORROWED).");
+            throw new IllegalStateException("Chỉ có thể gia hạn phiếu mượn đang trong trạng thái 'Đang mượn' (BORROWED).");
         }
         if (loan.getDueDate() != null && loan.getDueDate().isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException("Phiếu đã quá hạn — không thể gia hạn. Hãy trả sách tại quầy.");
+            throw new IllegalStateException("Phiếu mượn đã quá hạn — không thể gia hạn. Vui lòng mang sách trả tại quầy thư viện.");
+        }
+        if (loan.getRenewalCount() >= 2) {
+            throw new IllegalStateException("Phiếu mượn đã gia hạn tối đa 2 lần. Vui lòng hoàn trả sách về thư viện.");
         }
 
         Optional<Reader> readerOpt = readerRepository.findById(loan.getReaderId());
         if (readerOpt.isEmpty()) {
-            throw new IllegalArgumentException("Không tìm thấy độc giả của phiếu mượn.");
+            throw new IllegalArgumentException("Không tìm thấy hồ sơ độc giả của phiếu mượn.");
         }
         Reader reader = readerOpt.get();
+
+        if ("BLOCKED".equalsIgnoreCase(reader.getStatus())) {
+            throw new IllegalStateException("Thẻ thư viện của bạn đang bị khóa, không thể gia hạn.");
+        }
+        if ("EXPIRED".equalsIgnoreCase(reader.getStatus()) ||
+                (reader.getExpiryDate() != null && reader.getExpiryDate().isBefore(LocalDate.now()))) {
+            throw new IllegalStateException("Thẻ thư viện đã hết hạn, vui lòng gia hạn thẻ trước khi gia hạn mượn sách.");
+        }
         if (reader.getBalanceFine() > 50000) {
-            throw new FineExceededException("Nợ phạt vượt quá 50.000 VNĐ — không thể gia hạn.");
+            throw new FineExceededException("Nợ phạt (" + (long) reader.getBalanceFine() + " đ) vượt quá 50.000 VNĐ — vui lòng thanh toán nợ trước khi gia hạn.");
         }
 
-        int extraDays = reader.getType().getMaxBorrowDays();
+        // Kiểm tra xem đầu sách có đang có người khác đặt trước trong hàng chờ không
+        if (loan.getCopyId() != null) {
+            Optional<BookCopy> copyOpt = bookCopyRepository.findById(loan.getCopyId());
+            if (copyOpt.isPresent()) {
+                String isbn = copyOpt.get().getIsbn();
+                List<Reservation> pendingRes = reservationRepository.findPendingByIsbn(isbn);
+                if (pendingRes != null && !pendingRes.isEmpty()) {
+                    throw new IllegalStateException("Đầu sách này đang có độc giả khác đặt trước trong hàng chờ, không thể gia hạn tiếp.");
+                }
+            }
+        }
+
+        // Số ngày gia hạn thêm: Sinh viên +7 ngày, Giảng viên +14 ngày
+        int extraDays = (reader.getType() == ReaderType.LECTURER) ? 14 : 7;
         LocalDateTime newDue = loan.getDueDate().plusDays(extraDays);
-        loanRepository.updateDueDate(loan.getLoanId(), newDue);
+        int newRenewalCount = loan.getRenewalCount() + 1;
+
+        loanRepository.updateDueDate(loan.getLoanId(), newDue, newRenewalCount);
         loan.setDueDate(newDue);
+        loan.setRenewalCount(newRenewalCount);
         return loan;
     }
 
@@ -533,6 +568,16 @@ public class LoanService {
 
     public List<Loan> getBorrowedLoans() {
         return loanRepository.findBorrowedLoans();
+    }
+
+    public List<Loan> getLoansByStatus(String status) {
+        if ("OVERDUE".equalsIgnoreCase(status)) {
+            return getOverdueLoans();
+        }
+        if ("BORROWED".equalsIgnoreCase(status)) {
+            return getBorrowedLoans();
+        }
+        return loanRepository.findByStatus(status.toUpperCase());
     }
 
     /**

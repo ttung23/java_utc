@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>SLMS - Quản Lý Thể Loại Sách</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <aside class="sidebar"></aside>
+
+  <main class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="page-title">Quản Lý Thể Loại Sách</h1>
+        <p class="page-subtitle">Quản lý danh mục phân loại đầu sách, theo dõi số lượng sách theo từng thể loại</p>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="openAddCategoryModal()">+ Thêm Thể Loại Mới</button>
+      </div>
+    </div>
+
+    <!-- Thanh tìm kiếm thể loại -->
+    <div class="panel" style="padding:16px 20px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="position:relative;flex:1;display:flex;align-items:center;">
+          <input type="search" id="search-keyword" placeholder="Nhập tên thể loại hoặc mã cần tìm..." style="width:100%;padding-right:34px;">
+          <button id="clear-search-btn" class="clear-search-btn" type="button" onclick="clearSearch()" title="Xóa tìm kiếm (Xem tất cả)">✕</button>
+        </div>
+        <button class="btn btn-primary" onclick="searchCategories()">Tìm Kiếm</button>
+      </div>
+    </div>
+
+    <!-- Bảng danh sách thể loại -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">Danh Sách Thể Loại Sách</h2>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã thể loại</th>
+              <th>Tên thể loại</th>
+              <th>Mô tả</th>
+              <th>Số lượng đầu sách</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="categories-table-body">
+            <tr><td colspan="5" style="text-align:center;">Đang tải dữ liệu...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="categories-pagination"></div>
+    </div>
+
+    <!-- Modal Thêm / Cập nhật Thể loại -->
+    <div id="category-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width:520px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 id="category-modal-title">Thêm Thể Loại Mới</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeCategoryModal()">✕</button>
+        </div>
+        <form onsubmit="submitCategoryForm(event)">
+          <input type="hidden" id="category-id">
+          <div class="form-group" style="margin-bottom:14px;">
+            <label for="category-name">Tên thể loại sách:</label>
+            <input type="text" id="category-name" required placeholder="VD: Trí tuệ nhân tạo, Kinh tế, Lịch sử...">
+          </div>
+          <div class="form-group" style="margin-bottom:20px;">
+            <label for="category-desc">Mô tả (tùy chọn):</label>
+            <textarea id="category-desc" rows="3" placeholder="Ghi chú thêm về phân loại này..."></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeCategoryModal()">Hủy</button>
+            <button type="submit" class="btn btn-primary" id="category-submit-btn">Lưu Thể Loại</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    let allCategoriesList = [];
+    let filteredCategories = [];
+    let categoriesCurrentPage = 1;
+    let categoriesPageSize = 10;
+    let editingCategoryId = null;
+
+    function renderCategoriesTable() {
+      const tbody = document.getElementById("categories-table-body");
+      const pageItems = paginateItems(filteredCategories, categoriesCurrentPage, categoriesPageSize);
+
+      tbody.innerHTML = pageItems.map(c => `
+        <tr>
+          <td><code>${c.categoryId}</code></td>
+          <td><strong>${c.categoryName}</strong></td>
+          <td>${c.description || "-"}</td>
+          <td>
+            <span class="badge ${c.bookCount > 0 ? 'badge-primary' : 'badge-gray'}">
+              ${c.bookCount || 0} đầu sách
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="btn btn-secondary btn-sm" onclick="openEditCategoryModal('${c.categoryId}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.categoryId}', '${c.categoryName.replace(/'/g, "\\'")}', ${c.bookCount || 0})">Xóa</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      renderPaginationControls({
+        containerId: "categories-pagination",
+        totalItems: filteredCategories.length,
+        currentPage: categoriesCurrentPage,
+        pageSize: categoriesPageSize,
+        onPageChange: (newPage, newPageSize) => {
+          categoriesCurrentPage = newPage;
+          categoriesPageSize = newPageSize;
+          renderCategoriesTable();
+        }
+      });
+    }
+
+    async function loadCategoriesList(keyword = "") {
+      const tbody = document.getElementById("categories-table-body");
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Đang tải...</td></tr>`;
+
+      try {
+        allCategoriesList = await fetchAPI("/api/categories") || [];
+
+        let filtered = allCategoriesList;
+        if (keyword && keyword.trim()) {
+          const kw = keyword.trim().toLowerCase();
+          filtered = allCategoriesList.filter(c =>
+            (c.categoryName || "").toLowerCase().includes(kw) ||
+            (c.categoryId || "").toLowerCase().includes(kw) ||
+            (c.description || "").toLowerCase().includes(kw)
+          );
+        }
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Không tìm thấy thể loại nào</td></tr>`;
+          renderPaginationControls({
+            containerId: "categories-pagination",
+            totalItems: 0,
+            currentPage: 1,
+            pageSize: categoriesPageSize,
+            onPageChange: () => {}
+          });
+          return;
+        }
+
+        filteredCategories = filtered;
+        categoriesCurrentPage = 1;
+        renderCategoriesTable();
+      } catch (err) {
+        console.error("Lỗi tải thể loại:", err);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--danger);">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
+      }
+    }
+
+    function searchCategories() {
+      const kw = document.getElementById("search-keyword").value.trim();
+      updateClearBtn();
+      loadCategoriesList(kw);
+    }
+
+    function clearSearch() {
+      const input = document.getElementById("search-keyword");
+      const btn = document.getElementById("clear-search-btn");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      if (btn) btn.style.display = "none";
+      loadCategoriesList("");
+    }
+
+    function updateClearBtn() {
+      const input = document.getElementById("search-keyword");
+      const btn = document.getElementById("clear-search-btn");
+      if (input && btn) {
+        btn.style.display = input.value.trim().length > 0 ? "block" : "none";
+      }
+    }
+
+    function openAddCategoryModal() {
+      editingCategoryId = null;
+      document.getElementById("category-modal-title").textContent = "Thêm Thể Loại Mới";
+      document.getElementById("category-submit-btn").textContent = "Lưu Thể Loại";
+      document.getElementById("category-id").value = "";
+      document.getElementById("category-name").value = "";
+      document.getElementById("category-desc").value = "";
+      document.getElementById("category-modal").classList.add("open");
+      setTimeout(() => document.getElementById("category-name").focus(), 100);
+    }
+
+    function openEditCategoryModal(id) {
+      const cat = allCategoriesList.find(c => c.categoryId === id);
+      if (!cat) return;
+
+      editingCategoryId = id;
+      document.getElementById("category-modal-title").textContent = "Cập Nhật Thể Loại";
+      document.getElementById("category-submit-btn").textContent = "Lưu Thay Đổi";
+      document.getElementById("category-id").value = cat.categoryId;
+      document.getElementById("category-name").value = cat.categoryName || "";
+      document.getElementById("category-desc").value = cat.description || "";
+      document.getElementById("category-modal").classList.add("open");
+      setTimeout(() => document.getElementById("category-name").focus(), 100);
+    }
+
+    function closeCategoryModal() {
+      document.getElementById("category-modal").classList.remove("open");
+    }
+
+    async function submitCategoryForm(e) {
+      e.preventDefault();
+      const name = document.getElementById("category-name").value.trim();
+      const description = document.getElementById("category-desc").value.trim();
+
+      if (!name) {
+        alert("Vui lòng nhập tên thể loại!");
+        return;
+      }
+
+      try {
+        if (editingCategoryId) {
+          await fetchAPI(`/api/categories/${encodeURIComponent(editingCategoryId)}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              categoryId: editingCategoryId,
+              categoryName: name,
+              description: description
+            })
+          });
+          showToast("Cập nhật thể loại thành công!", "success");
+        } else {
+          await fetchAPI("/api/categories", {
+            method: "POST",
+            body: JSON.stringify({
+              categoryName: name,
+              description: description
+            })
+          });
+          showToast("Thêm thể loại mới thành công!", "success");
+        }
+
+        closeCategoryModal();
+        loadCategoriesList();
+      } catch (err) {
+        alert(err.message || "Đã xảy ra lỗi khi lưu thể loại");
+      }
+    }
+
+    async function deleteCategory(id, name, bookCount) {
+      if (bookCount > 0) {
+        alert(`Không thể xóa thể loại "${name}" vì đang có ${bookCount} đầu sách thuộc thể loại này!\nVui lòng chuyển thể loại cho các sách trước.`);
+        return;
+      }
+
+      if (!confirm(`Bạn có chắc chắn muốn xóa thể loại "${name}" (Mã: ${id})?`)) {
+        return;
+      }
+
+      try {
+        await fetchAPI(`/api/categories/${encodeURIComponent(id)}`, {
+          method: "DELETE"
+        });
+        showToast("Xóa thể loại thành công!", "success");
+        loadCategoriesList();
+      } catch (err) {
+        alert(err.message || "Không thể xóa thể loại");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSidebar("books", "categories");
+      loadCategoriesList();
+
+      const searchInput = document.getElementById("search-keyword");
+      if (searchInput) {
+        searchInput.addEventListener("input", () => {
+          updateClearBtn();
+          if (!searchInput.value.trim()) {
+            loadCategoriesList("");
+          }
+        });
+        searchInput.addEventListener("search", () => {
+          updateClearBtn();
+          if (!searchInput.value.trim()) {
+            loadCategoriesList("");
+          }
+        });
+        searchInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            searchCategories();
+          } else if (e.key === "Escape") {
+            clearSearch();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+
