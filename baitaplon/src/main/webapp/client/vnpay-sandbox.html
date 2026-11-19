@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VNPay Sandbox Demo - SLMS</title>
+  <style>
+    :root {
+      --bg: #0b3d91;
+      --card: #ffffff;
+      --ok: #16a34a;
+      --danger: #dc2626;
+      --muted: #64748b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(160deg, #0b3d91 0%, #1d4ed8 45%, #0ea5e9 100%);
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, .28);
+      overflow: hidden;
+    }
+    .head {
+      background: #0b3d91;
+      color: #fff;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .head strong { font-size: 18px; letter-spacing: .3px; }
+    .badge {
+      font-size: 11px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    .body { padding: 22px; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 14px;
+    }
+    .row span { color: var(--muted); }
+    .row strong { text-align: right; }
+    .amount {
+      margin: 18px 0 8px;
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      color: #0b3d91;
+    }
+    .hint {
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    .actions { display: grid; gap: 10px; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 14px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-ok { background: var(--ok); color: #fff; }
+    .btn-cancel { background: #fee2e2; color: var(--danger); }
+    .foot {
+      padding: 12px 22px 18px;
+      font-size: 11.5px;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <strong>VNPAY Sandbox</strong>
+      <!-- <span class="badge">LOCAL DEMO</span> -->
+    </div>
+    <div class="body">
+      <div class="row"><span>Mã giao dịch</span><strong id="txn">—</strong></div>
+      <div class="row"><span>Nội dung</span><strong id="info">—</strong></div>
+      <div class="amount" id="amount">0 đ</div>
+      <!-- <p class="hint">
+        Đây là cổng giả lập VNPay chạy local để demo bài tập lớn.
+        Credential Sandbox công khai thường bị VNPay từ chối — dùng chế độ này để test ổn định.
+      </p> -->
+      <div class="actions">
+        <button class="btn-ok" type="button" onclick="complete(true)">✓ Thanh toán thành công (NCB / OTP 123456)</button>
+        <button class="btn-cancel" type="button" onclick="complete(false)">Hủy giao dịch</button>
+      </div>
+    </div>
+    <!-- <div class="foot">SLMS · Mô phỏng luồng Return URL giống VNPay (HMAC-SHA512)</div> -->
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const txnRef = params.get("txnRef") || "";
+    const amount = Number(params.get("amount") || 0);
+    const orderInfo = params.get("orderInfo") || "Thanh toan phat thu vien";
+
+    document.getElementById("txn").textContent = txnRef || "—";
+    document.getElementById("info").textContent = orderInfo;
+    document.getElementById("amount").textContent = new Intl.NumberFormat("vi-VN").format(amount) + " đ";
+
+    function complete(success) {
+      if (!txnRef) {
+        alert("Thiếu mã giao dịch txnRef");
+        return;
+      }
+      window.location.href = "/api/vnpay/demo-complete?txnRef="
+        + encodeURIComponent(txnRef)
+        + "&success=" + (success ? "true" : "false");
+    }
+  </script>
+</body>
+</html>

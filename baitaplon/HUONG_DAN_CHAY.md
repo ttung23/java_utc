@@ -63,6 +63,30 @@ Nếu máy bạn hoặc phòng máy trường đã cài Oracle XE (11g/19c/21c):
 
 ---
 
+## 💳 2.5. Thanh toán phạt qua VNPay (demo local + Sandbox thật)
+
+Độc giả nộp phạt online tại **`/client/fines.html`** → nút **VNPay** / **Nộp phạt qua VNPay**.
+
+### Chế độ mặc định: `sandbox` (cổng VNPay thật)
+- Redirect tới: `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`
+- Cần `VNPAY_TMN_CODE` + `VNPAY_HASH_SECRET` do VNPay cấp (mặc định demo `DEMOV210` thường bị từ chối)
+```bash
+export VNPAY_MODE=sandbox
+export VNPAY_TMN_CODE=ma_do_vnpay_cap
+export VNPAY_HASH_SECRET=secret_do_vnpay_cap
+```
+- Đăng ký (nếu HTTPS lỗi thử HTTP): http://sandbox.vnpayment.vn/devreg/  
+- Thẻ test: NCB `9704198526191432198` / `NGUYEN VAN A` / `07/15` / OTP `123456`
+
+### Chế độ `local` (khuyên dùng khi bảo vệ bài, chưa có credential)
+```bash
+export VNPAY_MODE=local
+```
+- Giả lập cổng tại `/client/vnpay-sandbox.html` → cập nhật hóa đơn `Paid`
+- Thủ thư vẫn thu tiền mặt tại quầy bằng nút **Thu tiền** (`POST /api/fines/pay`)
+
+---
+
 ## 🎯 3. Kịch Bản Demo Bảo Vệ Bài Tập Lớn (Dành cho Thầy/Cô Chấm)
 
 ### 📌 Kịch bản 1: Lập Phiếu Mượn Sách (UC21)

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kết quả thanh toán VNPay - Thư Viện UTC</title>
+  <link rel="stylesheet" href="css/client.css">
+</head>
+<body class="client-body">
+  <header class="cl-header"></header>
+
+  <main class="cl-main" style="max-width:640px;">
+    <div class="cart-card" style="padding:32px 28px;text-align:center;margin-top:24px;">
+      <div id="result-icon" style="font-size:52px;margin-bottom:12px;">⏳</div>
+      <h1 id="result-title" style="font-size:22px;font-weight:800;color:var(--cl-navy);margin:0 0 8px;">
+        Đang xác nhận giao dịch...
+      </h1>
+      <p id="result-message" style="font-size:14px;color:var(--cl-muted);line-height:1.6;margin:0 0 20px;">
+        Vui lòng chờ trong giây lát.
+      </p>
+
+      <div style="background:#f8fafc;border:1px solid var(--cl-border);border-radius:12px;padding:14px 16px;text-align:left;font-size:13px;color:#334155;margin-bottom:22px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;">
+          <span style="color:var(--cl-muted);">Mã giao dịch</span>
+          <strong id="result-txn">—</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:12px;">
+          <span style="color:var(--cl-muted);">Số tiền</span>
+          <strong id="result-amount">—</strong>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <a href="fines.html" class="btn btn-primary btn-sm">Về trang khoản phạt</a>
+        <a href="index.html" class="btn btn-secondary btn-sm">Về trang chủ</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="cl-footer"></footer>
+
+  <script src="js/client.js"></script>
+  <script>
+    renderClientHeader("fines");
+    renderFloatingCartBar();
+    renderClientFooter();
+
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success") === "true";
+    const status = params.get("status") || "";
+    const message = params.get("message") || "";
+    const txnRef = params.get("txnRef") || "—";
+    const amount = Number(params.get("amount") || 0);
+
+    document.getElementById("result-txn").textContent = txnRef;
+    document.getElementById("result-amount").textContent = formatCurrency(amount);
+
+    const icon = document.getElementById("result-icon");
+    const title = document.getElementById("result-title");
+    const msg = document.getElementById("result-message");
+
+    if (success || status === "success") {
+      icon.textContent = "✅";
+      title.textContent = "Thanh toán VNPay thành công";
+      title.style.color = "var(--cl-success)";
+      msg.textContent = message || "Khoản phạt đã được ghi nhận thanh toán trên hệ thống.";
+    } else if (status === "invalid_signature") {
+      icon.textContent = "⚠️";
+      title.textContent = "Giao dịch không hợp lệ";
+      title.style.color = "var(--cl-danger)";
+      msg.textContent = message || "Chữ ký xác thực từ VNPay không khớp.";
+    } else {
+      icon.textContent = "❌";
+      title.textContent = "Thanh toán chưa hoàn tất";
+      title.style.color = "var(--cl-danger)";
+      msg.textContent = message || "Giao dịch đã bị hủy hoặc không thành công. Bạn có thể thử lại.";
+    }
+  </script>
+</body>
+</html>

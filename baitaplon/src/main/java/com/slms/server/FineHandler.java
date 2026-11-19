@@ -75,6 +75,15 @@ public class FineHandler implements HttpHandler {
                 } else {
                     HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
                 }
+            } else if (path.equals("/api/fines/seed-test")) {
+                if ("POST".equals(method)) {
+                    com.slms.repository.DatabaseInitializer.seedTestFinesNow();
+                    HttpHelper.sendJsonResponse(exchange, 200,
+                            ApiResponse.ok("Đã bổ sung dữ liệu phạt test (FNTEST*). Đăng nhập RD001/123456 để nộp VNPay.",
+                                    fineService.getAllFines()));
+                } else {
+                    HttpHelper.sendJsonResponse(exchange, 405, ApiResponse.error("Phương thức không được hỗ trợ"));
+                }
             } else {
                 HttpHelper.sendJsonResponse(exchange, 404, ApiResponse.error("Endpoint không tồn tại"));
             }
