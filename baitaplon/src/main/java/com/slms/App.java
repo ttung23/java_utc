@@ -10,6 +10,7 @@ import com.slms.server.ReaderHandler;
 import com.slms.server.ReservationHandler;
 import com.slms.server.StatisticsHandler;
 import com.slms.server.StaticFileHandler;
+import com.slms.server.VnPayHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -67,6 +68,7 @@ public class App {
             server.createContext("/api/readers", new ReaderHandler());
             server.createContext("/api/loans", new LoanHandler());
             server.createContext("/api/fines", new FineHandler());
+            server.createContext("/api/vnpay", new VnPayHandler(port));
             server.createContext("/api/reservations", new ReservationHandler());
             server.createContext("/api/scanner", new com.slms.server.ScannerHandler());
             server.createContext("/api/statistics", new StatisticsHandler());

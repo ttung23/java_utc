@@ -45,7 +45,7 @@
 
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button type="button" class="btn btn-primary btn-sm" id="btn-pay-all" style="display:none;" onclick="payAllFines()">
-          💳 Nộp Phạt Trực Tuyến
+          💳 Nộp phạt qua VNPay
         </button>
         <a href="rules.html" class="btn btn-secondary btn-sm">Xem biểu phí phạt →</a>
       </div>
@@ -141,7 +141,7 @@
 
           const action = isPaid
             ? `<span style="font-size:12px;color:var(--cl-muted);">Đã hoàn tất</span>`
-            : `<button class="btn btn-primary btn-sm" onclick="payFine('${f.fineId}', ${f.fineAmount})">Thanh toán ngay</button>`;
+            : `<button class="btn btn-primary btn-sm" onclick="payFine('${f.fineId}', ${f.fineAmount})">VNPay</button>`;
 
           return `
             <tr>
@@ -160,35 +160,41 @@
       }
     }
 
-    async function payFine(fineId, amount) {
-      if (!confirm(`Xác nhận thanh toán khoản phạt ${fineId} (${formatCurrency(amount)}) qua cổng thanh toán sinh viên?`)) return;
+    async function createVnPayAndRedirect(fineIds, confirmText) {
+      if (!confirm(confirmText)) return;
       try {
-        await fetchAPI("/api/fines/pay", {
+        showToast("Đang chuyển tới cổng VNPay...", "warning");
+        const data = await fetchAPI("/api/vnpay/create-payment", {
           method: "POST",
-          body: JSON.stringify({ fineId })
+          body: JSON.stringify({ fineIds })
         });
-        showToast("🎉 Thanh toán khoản phạt thành công!", "success");
-        loadFines();
-      } catch (e) {}
+        if (!data || !data.paymentUrl) {
+          throw new Error("Không nhận được URL thanh toán VNPay");
+        }
+        window.location.href = data.paymentUrl;
+      } catch (e) {
+        // fetchAPI đã showToast lỗi
+      }
+    }
+
+    async function payFine(fineId, amount) {
+      await createVnPayAndRedirect(
+        [fineId],
+        `Xác nhận thanh toán khoản phạt ${fineId} (${formatCurrency(amount)}) qua VNPay Sandbox?`
+      );
     }
 
     async function payAllFines() {
       const unpaid = myFines.filter(f => (f.paymentStatus || "").toLowerCase() !== "paid");
       if (unpaid.length === 0) return;
-      if (!confirm(`Xác nhận thanh toán toàn bộ ${unpaid.length} khoản phạt chưa thanh toán?`)) return;
-
-      for (const f of unpaid) {
-        try {
-          await fetchAPI("/api/fines/pay", {
-            method: "POST",
-            body: JSON.stringify({ fineId: f.fineId })
-          });
-        } catch (e) {}
-      }
-      showToast("🎉 Đã thanh toán toàn bộ khoản phạt!", "success");
-      loadFines();
+      const total = unpaid.reduce((sum, f) => sum + (Number(f.fineAmount) || 0), 0);
+      await createVnPayAndRedirect(
+        unpaid.map(f => f.fineId),
+        `Xác nhận thanh toán ${unpaid.length} khoản phạt (${formatCurrency(total)}) qua VNPay Sandbox?`
+      );
     }
 
+    // Nếu vừa quay lại từ VNPay với query cũ (ít gặp), vẫn làm mới danh sách
     loadFines();
   </script>
 </body>

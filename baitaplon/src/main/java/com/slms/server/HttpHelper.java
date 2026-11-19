@@ -56,6 +56,16 @@ public class HttpHelper {
     }
 
     /**
+     * Chuyển hướng HTTP 302 tới URL đích (dùng cho Return URL VNPay).
+     */
+    public static void sendRedirect(HttpExchange exchange, String location) throws IOException {
+        enableCors(exchange);
+        exchange.getResponseHeaders().set("Location", location);
+        exchange.sendResponseHeaders(302, -1);
+        exchange.close();
+    }
+
+    /**
      * Bật CORS để cho phép frontend gọi API mượt mà.
      */
     public static void enableCors(HttpExchange exchange) {

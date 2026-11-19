@@ -27,8 +27,70 @@ public class DatabaseInitializer {
             }
             upgradeSchema(conn);
             ensureAuthDefaults();
+            seedDemoFinesIfNeeded(conn);
         } catch (Exception e) {
             System.err.println(">>> Lỗi khi kiểm tra / khởi tạo database: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tạo / bổ sung hóa đơn phạt Unpaid để demo VNPay.
+     * An toàn khi restart nhiều lần (bỏ qua nếu mã đã tồn tại).
+     */
+    private static void seedDemoFinesIfNeeded(Connection conn) {
+        ensureDemoFine(conn, "FNDEMO01", "LN001", "Phat tre han demo 2 ngay", 10000);
+        ensureDemoFine(conn, "FNDEMO02", "LN001", "Phat hu hong bia sach demo", 25000);
+        ensureDemoFine(conn, "FNDEMO03", "LN002", "Phat tre han demo RD002", 20000);
+        // Bộ test mới cho RD001 (dùng khi các khoản cũ đã Paid)
+        ensureDemoFine(conn, "FNTEST10", "LN001", "Phat tre han test 3 ngay", 15000);
+        ensureDemoFine(conn, "FNTEST11", "LN001", "Phat mat tem barcode demo", 10000);
+        ensureDemoFine(conn, "FNTEST12", "LN001", "Phat tra sach tre han them", 20000);
+        ensureDemoFine(conn, "FNTEST20", "LN002", "Phat tre han test RD002", 30000);
+        refreshReaderFineBalances(conn);
+        System.out.println(">>> [DB] Đã đảm bảo dữ liệu phạt demo/test (FNDEMO*, FNTEST*).");
+    }
+
+    /** Public để API seed-test gọi lại khi đang chạy server. */
+    public static void seedTestFinesNow() {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            seedDemoFinesIfNeeded(conn);
+        } catch (SQLException e) {
+            throw new RuntimeException("Không seed được dữ liệu phạt test: " + e.getMessage(), e);
+        }
+    }
+
+    private static void ensureDemoFine(Connection conn, String fineId, String loanId,
+                                       String reason, double amount) {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT COUNT(*) AS cnt FROM FINES WHERE fine_id = '" + fineId + "'")) {
+            if (rs.next() && rs.getInt("cnt") > 0) {
+                return;
+            }
+        } catch (SQLException e) {
+            System.err.println(">>> [DB] Không kiểm tra fine " + fineId + ": " + e.getMessage());
+            return;
+        }
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(
+                    "INSERT INTO FINES (fine_id, loan_id, reason, fine_amount, payment_status, payment_date) "
+                            + "VALUES ('" + fineId + "', '" + loanId + "', '" + reason + "', "
+                            + amount + ", 'Unpaid', NULL)");
+        } catch (SQLException e) {
+            System.err.println(">>> [DB] Seed fine " + fineId + " bỏ qua: " + e.getMessage());
+        }
+    }
+
+    private static void refreshReaderFineBalances(Connection conn) {
+        String sql = "UPDATE READERS r SET balance_fine = ("
+                + " SELECT COALESCE(SUM(f.fine_amount), 0) FROM FINES f "
+                + " JOIN LOANS l ON f.loan_id = l.loan_id "
+                + " WHERE l.reader_id = r.reader_id AND f.payment_status = 'Unpaid'"
+                + ")";
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) {
+            System.err.println(">>> [DB] Không cập nhật balance_fine: " + e.getMessage());
         }
     }
 
