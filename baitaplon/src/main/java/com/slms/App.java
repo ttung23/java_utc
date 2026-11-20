@@ -108,7 +108,12 @@ public class App {
     }
 
     private static int resolvePort(String[] args) {
-        String configuredPort = System.getProperty("slms.port", "8080");
+        // Ưu tiên: --port=... > -Dslms.port > PORT (Render/Cloud) > 8080
+        String configuredPort = firstNonBlank(
+                System.getenv("PORT"),
+                System.getProperty("slms.port"),
+                "8080"
+        );
         for (String arg : args) {
             if (arg.startsWith("--port=")) {
                 configuredPort = arg.substring("--port=".length());
@@ -126,6 +131,18 @@ public class App {
             throw new IllegalArgumentException("Cổng máy chủ phải nằm trong khoảng 1-65535.");
         }
         return port;
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 }
 

@@ -30,5 +30,7 @@ COPY src/main/webapp /app/webapp
 EXPOSE 8080
 
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
+# Render/Cloud gán PORT động; App.java đọc biến PORT
+ENV PORT=8080
 
-CMD ["sh", "-c", "java $JAVA_OPTS -jar /app/slms.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar /app/slms.jar --port=${PORT:-8080}"]
