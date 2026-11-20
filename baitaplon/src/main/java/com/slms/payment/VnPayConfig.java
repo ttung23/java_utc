@@ -80,11 +80,11 @@ public final class VnPayConfig {
         if (configured != null) {
             return configured;
         }
-        return "http://localhost:" + serverPort + "/api/vnpay/return";
+        return "https://localhost:" + serverPort + "/api/vnpay/return";
     }
 
     public static String localPayPage(int serverPort) {
-        return "http://localhost:" + serverPort + "/client/vnpay-sandbox.html";
+        return "https://localhost:" + serverPort + "/client/vnpay-sandbox.html";
     }
 
     private static String firstNonBlank(String... values) {
